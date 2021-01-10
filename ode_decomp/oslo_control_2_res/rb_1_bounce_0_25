@@ -1,0 +1,17 @@
+note: this is from the second iteration.
+
+First iteration should be:
+
+reward: 3673.6
+bounces: 2665.8
+profit: 3007.1
+rebalancing: 1637.7
+
+running hours: 5 -> 21
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 1990.9682744346183, regret: 2128.8482219197476, arrivals: 123.6803267519112, bounces: 22.37277555722822
+Iteration complete, time: 186.714184171, error: inf
+Reward: 3332.807284581582, regret: 742.4318523080397, arrivals: 2461.5653664933534, bounces: 691.50169108636
+Iteration complete, time: 385.919098892, error: 34.73214037328403
+Reward: 3669.148701412296, regret: 391.9878747517381, arrivals: 3810.648373278101, bounces: 1439.0118213786607
+Iteration complete, time: 580.225810276, error: 20.60112899286643

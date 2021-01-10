@@ -37,6 +37,9 @@ import ctypes
 
 
 """
+    most of this code is legacy
+
+    What is still valuable is the simulation code 
     [ ] Check accuracy for iteration()
     [ ] Figure out why simulation is so fast
 """
@@ -47,7 +50,7 @@ ATOL = 10**(-6)
 RATE_MULTIPLIER = 1
 #HOURS = [11,12,13]
 
-data_folder = "oslo_data_3"
+data_folder = "oslo_data_3_big"
 out_folder = "oslo_out"
 
 def get_cox_data(hour, n_cells):
@@ -930,19 +933,19 @@ def run_hour(hour, first_vec_iter, first_vec_disc, first_vec_sim):
     mu, phi = get_cox_data(hour, len(cell_to_station))
 
     # build StrictTrajCellCox for each station cell
-    traj_cells = [
+    """traj_cells = [
         spatial_decomp_strict.StrictTrajCellCox(cell_idx, cell_to_station[cell_idx], 
             mu, phi, in_demands[cell_idx], in_probabilities[cell_idx], 
             out_demands[cell_idx])
 
             for cell_idx in range(n_cells)
-    ]
+    ]"""
 
     # run model
     starting_bps = get_starting_bps()
     model_data = ModelData(n_stations, n_cells, starting_bps, mu, phi, in_demands, in_probabilities, out_demands)
-    ares, last_vector_iter = run_iteration(model_data, traj_cells, "RK45", 0.25, current_vector=first_vec_iter) # HOOK
-    time_points, x_arr, time_val, last_vector_sim = run_simulation(model_data,1, current_vector=first_vec_sim)
+    #ares, last_vector_iter = run_iteration(model_data, traj_cells, "RK45", 0.25, current_vector=first_vec_iter) # HOOK
+    time_points, x_arr, time_val, last_vector_sim = run_simulation(model_data,100, current_vector=first_vec_sim)
     #time_points, x_arr, time_val, last_vector_disc = run_discrete(model_data, traj_cells, "RK45", 0.5, current_vector=first_vec_disc) # HOOK
  
     station_discres = [0 for i in range(n_stations)]
@@ -953,23 +956,24 @@ def run_hour(hour, first_vec_iter, first_vec_disc, first_vec_sim):
 
     total_bikes = 0
 
-    for cell_idx, traj_cell in enumerate(traj_cells):
+    #for cell_idx, traj_cell in enumerate(traj_cells):
         #total_bikes += sum(last_vector_disc[cell_idx])
-        for station_cell_idx, station_idx in enumerate(cell_to_station[cell_idx]):
+        #for station_cell_idx, station_idx in enumerate(cell_to_station[cell_idx]):
             #station_discres[station_idx] = last_vector_disc[cell_idx][traj_cell.station_offset + station_cell_idx]
-            station_simres[station_idx] = last_vector_sim[cell_idx][traj_cell.station_offset + station_cell_idx]
-            station_iterres[station_idx] = last_vector_iter[cell_idx][traj_cell.station_offset + station_cell_idx]
+            #station_simres[station_idx] = last_vector_sim[cell_idx][traj_cell.station_offset + station_cell_idx]
+            #station_iterres[station_idx] = last_vector_iter[cell_idx][traj_cell.station_offset + station_cell_idx]
 
-    with open(f"{out_folder}/res_disc_{hour+1}", "w") as f:
-        json.dump(station_discres, f)
+    #with open(f"{out_folder}/res_disc_{hour+1}", "w") as f:
+    #    json.dump(station_discres, f)
             
     with open(f"{out_folder}/res_sim_{hour+1}", "w") as f:
         json.dump(station_simres, f)
             
-    with open(f"{out_folder}/res_iter_{hour+1}", "w") as f:
+    #with open(f"{out_folder}/res_iter_{hour+1}", "w") as f:
         #print(station_iterres)
-        json.dump(station_iterres, f)
+        #json.dump(station_iterres, f)
     last_vector_disc = None
+    last_vector_iter = None
     return [last_vector_iter, last_vector_disc, last_vector_sim]
     
 
@@ -992,9 +996,9 @@ if __name__ == "__main__":
     l_disc = "none"
     l_sim = "none"
 
-    run_control_period(16,20,l_iter, l_disc, l_sim)
+    #run_control_period(16,20,l_iter, l_disc, l_sim)
 
-    for hr in range(16, 21):
+    for hr in range(5, 21):
         l_iter, l_disc, l_sim = run_hour(hr,l_iter, l_disc, l_sim)
     """with open ("oslo_hr", "w") as f:
         json.dump(hourly_res, f)

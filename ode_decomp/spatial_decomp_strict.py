@@ -648,6 +648,97 @@ class StrictTrajCellCoxControl:
         self.inbound_traj_inflation = self.cache["inbound_traj_inflation"]
         self.inbound_prices[self.cell_idx] = self.cache["cur_inbound_price"]
     
+    def get_departure_probs(self, t, x):
+        """
+            Get probability of departure, as well as total rate
+        """
+        hr_idx = math.floor(t)
+
+        total_rate = 0
+
+        for cell_idx in range(self.n_cells):
+            for phase in range(0,self.n_phases_out[end_cell]):
+                pass
+        
+        for j, station_idx in enumerate(self.stations):
+            # note: don't include output rate for 
+            pass
+
+        raise Exception("not implemented")
+    
+    def find_next_cell(self, hr_idx, stn_idx):
+        # get cell after a departure
+        big_X = random.random()
+        cprob = 0
+
+        station_demand = sum(self.out_demands[hr_idx][stn_idx])
+
+        for next_cell in range(self.n_cells):
+            cprob += self.out_demands[hr_idx][stn_idx][next_cell]
+            if cprob >= big_X:
+                return next_cell
+    
+    def find_station(self, hr_idx, src_cell):
+        big_X = random.random()
+        cprob = 0
+
+        for j, stn in enumerate(self.stations):
+            cprob += self.in_probabilities[hr_idx][start_cell][j]
+            if cprob >= big_X:
+                return j
+    
+    def vector_step(self, t, x, x_idx, dst_cell):
+        # vector departure
+        hr_idx = math.floor(t)
+        reward = 0
+        arrivals = 0
+        bounces = 0
+        regret = 0
+        cell_arrival = -1
+
+        is_station = x_idx >= self.station_offset
+
+        if is_station:
+            stn_idx = x_idx - self.station_offset
+
+            if x[x_idx] == 0:
+                regret += 1
+            else:
+                x[x_idx] -= 1
+                reward += self.price
+                cell_arrival = self.find_next_cell(hr_idx, stn_idx)
+        elif random.random() <= self.phi[hr_idx][self.cell_idx][dst_cell][x_idx - self.x_idx[dst_cell]]:
+            # departure into other cell
+            cell_arrival = dst_cell
+        else:
+            # go to next phase
+            x[x_idx]   -= 1
+            x[x_idx+1] += 1
+
+
+        raise Exception("not implemented")
+
+        return [reward, arrivals, bounces, regret, cell_arrival]
+    
+    def vector_arrival(self, t, x, src_cell):
+        raise Exception("not implemented")
+        hr_idx = math.floor(t)
+        reward = 0
+        arrivals = 0
+        bounces = 0
+        regret = 0
+
+        stn_idx = self.find_station(hr_idx, src_cell)
+
+        if x[self.station_offset + stn_idx] == self.capacities[stn_idx]:
+            bounces += 1
+            x[self.x_idx[self.cell_idx]] += 1 # reroute back into cell
+        else:
+            x[self.station_offset + stn_idx] += 1
+
+        return [reward, arrivals, bounces, regret]
+
+    
     def dxdt_array_2phase(self, t, x):
         """
             Derivative with last 2 phases from trajectories
@@ -656,7 +747,7 @@ class StrictTrajCellCoxControl:
 
             No REFINED_SPECULATIVE, DELAY_PER_HOUR, and all has CAPACITY_ADJ, and we assume STATION_MMK_COMBINED
         """
-        hr = math.floor(t)
+        hr = math.floor(t) # note: this is an index not an hour
 
         deriv = [0 for i in range(self.station_offset+self.s_in_cell+4)]
         #deriv = np.zeros(self.station_offset+self.s_in_cell+4)
@@ -742,7 +833,7 @@ class StrictTrajCellCoxControl:
         return deriv
     
     def dxdt_array(self, t, x):
-        raise Exception("fix bounces")
+        raise Exception("fix bounces - deprecated")
         hr = math.floor(t)
 
         deriv = [0 for i in range(self.station_offset+self.s_in_cell+4)]
