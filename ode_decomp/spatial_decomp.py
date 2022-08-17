@@ -22,24 +22,28 @@ class TrajCell:
         self.in_probabilities = in_probabilities
         self.out_demands = out_demands
 
-        total_rate_in  = 0
-        total_rate_out = 0
-        for start_cell in range(self.n_cells):
-            if start_cell == cell_idx:
-                continue
-            total_rate_in += in_demands[start_cell][cell_idx]
+        if in_demands != None:
+            total_rate_in  = 0
+            total_rate_out = 0
+            for start_cell in range(self.n_cells):
+                if start_cell == cell_idx:
+                    continue
+                total_rate_in += in_demands[start_cell][cell_idx]
 
-        for end_cell in range(self.n_cells):
-            if start_cell == cell_idx:
-                continue
-            total_rate_out += in_demands[cell_idx][end_cell]
-        if total_rate_out == 0:
-            self.io_rate = 1
+            for end_cell in range(self.n_cells):
+                if start_cell == cell_idx:
+                    continue
+                total_rate_out += in_demands[cell_idx][end_cell]
+            if total_rate_out == 0:
+                self.io_rate = 1
+            else:
+                self.io_rate = total_rate_in/total_rate_out
+            self.first_iteration = True
         else:
-            self.io_rate = total_rate_in/total_rate_out
+            self.io_rate = 1
+            self.first_iteration = False
     
         self.trajectories = []
-        self.first_iteration = True
     
     def set_trajectories(self, trajectories):
         self.trajectories = trajectories

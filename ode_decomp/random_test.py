@@ -109,7 +109,9 @@ def run_model():
     time_end = 1
     n_hours  = 24
 
-    n_cells = 25
+    feedback = True
+
+    n_cells = 50
     spc_range = [3, 20]
     in_rate_range = [0,1]
     out_rate_range = [0,0.5]
@@ -123,8 +125,8 @@ def run_model():
 
     n_clusters = 50
 
-    ode_method="BDF"
-    #ode_method="RK45"
+    #ode_method="BDF"
+    ode_method="RK45"
 
     print("loading data...")
     clusters, duration_array, in_demands, in_demands_cell, in_probabilities, out_demands = get_rand_data(n_cells, spc_range, dur_range, in_rate_range, out_rate_range)
@@ -222,7 +224,8 @@ def run_model():
             traj_cells[hour][cell_idx].set_trajectories(traj_in)
 
             tic = time.time()
-            #traj_cells[hour][cell_idx].first_iteration = False
+            if not feedback:
+                traj_cells[hour][cell_idx].first_iteration = False
             x_t = spi.solve_ivp(traj_cells[hour][cell_idx].dxdt, [0,time_end], starting_vector[cell_idx], t_eval=time_points, method=ode_method, atol=atol) 
             traj_cells[hour][cell_idx].first_iteration = False
             toc = time.time() 
@@ -279,7 +282,7 @@ if __name__ == "__main__":
     
     fig, ax = plt.subplots(nrows=1, ncols=2)
 
-    n_runs = 10
+    n_runs = 5
     for run_no in range(n_runs):
         mape_traj, time_traj = run_model()
         all_mapes.append(mape_traj)
