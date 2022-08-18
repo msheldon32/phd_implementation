@@ -45,7 +45,6 @@ class TrajCell:
 
     def get_station_idx(self, i_idx):
         # i_idx: index of the source station in self.stations (e.g. the internal index)
-        # s_idx: overall station index
         return (self.n_stations * self.s_in_cell) + i_idx 
 
     def dxdt(self, t, x):
@@ -53,6 +52,7 @@ class TrajCell:
         
         # inline re-implementation for speed
         get_delay_idx = lambda i_idx, d_idx: (i_idx*self.n_stations) + d_idx
+        get_station_idx = lambda i_idx: (self.n_stations * self.s_in_cell) + i_idx
 
         # derive output delays
         for j, src_station in enumerate(self.stations):
@@ -64,22 +64,33 @@ class TrajCell:
 
         
         # derive station levels
-        for j, dest_station in enumerate(self.stations):
+        for j, dst_station in enumerate(self.stations):
             d_idx = (self.n_stations*self.s_in_cell)+j
 
-            for source_station in range(self.n_stations):
-                rate = 1/self.durations[source_station][dest_station]
-                if source_station in self.cell_to_station[self.cell_idx]:
+            for src_station in range(self.n_stations):
+                rate = 1/self.durations[src_station][dst_station]
+                if src_station in self.cell_to_station[self.cell_idx]:
                     # the source is internal to the cell, so we can solve it with x
-                    corres_idx = self.stations.index(source_station)
-                    x_idx = (self.n_stations*corres_idx) + dest_station
-                    deriv[d_idx] += rate*x[x_idx]
+                    corres_idx = self.stations.index(src_station)
+                    src_d_idx = get_delay_idx(corres_idx, dst_station)
+                    deriv[d_idx] += rate*x[src_d_idx]
                 else:
-                    deriv[d_idx] += rate*self.trajectories[source_station][dest_station](t)
+                    deriv[d_idx] += rate*self.trajectories[src_station][dst_station](t)
             
             deriv[d_idx] -= self.total_rate[j]*min(x[d_idx],1)
 
         return deriv
+
+
+def get_traj_fn_decay(lval, t0, decay):
+    def traj_fn(t):
+        return lval*math.exp(-decay*(t-t0))
+    return traj_fn
+
+def get_traj_fn_lval(lval):
+    def traj_fn(t):
+        return lval
+    return traj_fn
 
 def get_traj_fn(traj_t, traj_x):
     traj_map = {
