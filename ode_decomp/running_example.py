@@ -221,10 +221,10 @@ class TrajectoryIterationEx:
 
 if __name__ == "__main__":
     durations = [[0.5 for i in range(N_STATIONS)] for j in range(N_STATIONS)]
-    demands = [[0,5,1,2],
-               [6,0,1,1],
-               [1,1,0,9],
-               [2,1,4,0]]
+    demands   = [[0,5,1,2],
+                 [6,0,1,1],
+                 [1,1,0,9],
+                 [2,1,4,0]]
     
     step_sizes = [1, 0.5, 0.2, 0.1, 0.01, 0.001]
 
