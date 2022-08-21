@@ -28,7 +28,7 @@ ODE_METHOD = "BDF"
 N_CELLS = 2
 TIME_END = 4
 STARTING_BIKES = 20
-N_TIME_POINTS = 1000
+N_TIME_POINTS = 10000
 ATOL = 10**(-6)
 
 class CompExample:
@@ -90,7 +90,7 @@ class DiscreteStepEx:
         for step_idx, step_size in enumerate(self.step_sizes):
             #print(f"Running step_size {step_size}")
 
-            n_substeps = math.floor((step_size/TIME_END)*N_TIME_POINTS)
+            n_substeps = 100#math.floor((step_size/TIME_END)*N_TIME_POINTS)
 
             trajectories = [[(lambda t: 0) for j in range(N_STATIONS)] for i in range(N_STATIONS)]
 
@@ -116,14 +116,14 @@ class DiscreteStepEx:
                     self.traj_cells[cell_idx].set_trajectories(trajectories)
 
                     x_t = spi.solve_ivp(self.traj_cells[cell_idx].dxdt, [t, t+step_size], current_vector[cell_idx], 
-                                            #t_eval=sub_time_points, 
+                                            t_eval=sub_time_points, 
                                             method=ODE_METHOD, atol=ATOL)
 
                     for i, src_stn in enumerate(self.traj_cells[cell_idx].stations):
                         sy_idx = self.traj_cells[cell_idx].get_station_idx(i)
                         
-                        #station_vals[step_idx][src_stn] += [float(y) for y in x_t.y[sy_idx, :]]
-                        station_vals[step_idx][src_stn] += [comp.get_traj_fn(x_t.t, x_t.y[sy_idx,:])(t) for t in sub_time_points]
+                        station_vals[step_idx][src_stn] += [float(y) for y in x_t.y[sy_idx, :]]
+                        #station_vals[step_idx][src_stn] += [comp.get_traj_fn(x_t.t, x_t.y[sy_idx,:])(t) for t in sub_time_points]
                         
                         new_vector[cell_idx][sy_idx] = float(x_t.y[sy_idx, -1])
 
@@ -226,7 +226,7 @@ if __name__ == "__main__":
                  [1,1,0,9],
                  [2,1,4,0]]
     
-    step_sizes = [1, 0.5, 0.2, 0.1, 0.01, 0.001]
+    step_sizes = [1, 0.5, 0.2, 0.1, 0.01]
 
     comp_ex = CompExample(durations, demands)
     ti_example = TrajectoryIterationEx(durations, demands)

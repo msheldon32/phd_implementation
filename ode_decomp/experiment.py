@@ -23,11 +23,18 @@ import comp
 from oslo_data import *
 import large_fluid
 
+# Parameters
+TIME_POINTS_PER_HOUR = 100
+ATOL = 10**(-6)
 
 def generate_uniform(interval):
     lo, hi = interval
     r = hi-lo
     return random.random()*r + lo
+
+def generate_dis_uniform(interval):
+    lo, hi = interval
+    return random.randint(lo, hi)
 
 def generate_gaussian(moments):
     # moments: [mean, std. dev]
@@ -42,12 +49,15 @@ def euclidian_distance(a, b):
     return sum_squares ** 0.5
 
 class ExperimentModel:
-    def __init__(self, stations, durations, demands, seed):
+    def __init__(self, stations, durations, demands, starting_bps, seed):
         self.n_stations = len(stations)
 
         self.stations  = stations
         self.durations = durations
         self.demands   = demands
+        
+        self.starting_bps = starting_bps # starting bikes per station
+        self.total_bikes = sum(self.starting_bps)
 
         self.n_cells = 1
         self.station_to_cell = [0 for i in range(self.n_stations)]
@@ -67,7 +77,16 @@ class ExperimentModel:
         
         for i, cell in enumerate(self.station_to_cell):
             self.cell_to_station[cell].add(i)
-            
+    
+    def get_dt_from_ratio(self, ratio):
+        avg_rate = [0,0]
+
+        for i in range(self.n_stations):
+            for j in range(self.n_stations):
+                avg_rate[0] += self.demands[i][j]
+                avg_rate[1] += 1
+        return ratio/(avg_rate[0]/avg_rate[1])
+
 
 class ExperimentConfig:
     def __init__(self):
@@ -77,20 +96,23 @@ class ExperimentConfig:
         # parameters
         self.ode_methods             = ["BDF", "RK45"]
         self.stations_per_cell       = [5, 10, 15, 20]
-        self.delta_t_ratio           = [0.5, 0.1, 0.05, 0.01, 0.005] # setting delta T based on (x/[average rate])
+        self.delta_t_ratio           = [1, 0.5, 0.1] # setting delta T based on (x/[average rate])
 
         # random configuration
-        self.n_station_range         = [50, 100]
+        self.n_station_range         = [25, 50]
         self.x_location_range        = [0, 1]
         self.y_location_range        = [0, 1]
         self.station_demand_range    = [0, 0.5]
         self.noise_moments_distance  = [0, 0.2]
+        self.bps_range               = [0, 15]
 
         # constants
         self.n_iterations = 25
         self.time_end     = 24
+        self.min_duration = 0.01
+        self.steps_per_dt = 100
 
-        self.seed = 1996
+        self.seed = 3#1996
 
     
     def generate_stations(self):
@@ -113,7 +135,7 @@ class ExperimentConfig:
             for j, dst_stn in enumerate(stations):
                 distance = euclidian_distance(src_stn, dst_stn)
                 eps = generate_gaussian(self.noise_moments_distance)
-                durations[i][j] = distance + eps
+                durations[i][j] = max(distance + eps, self.min_duration)
         return durations
 
     def generate_demands(self, stations):
@@ -123,6 +145,14 @@ class ExperimentConfig:
         for i, src_stn in enumerate(stations):
             for j, dst_stn in enumerate(stations):
                 demands[i][j] = generate_uniform(self.station_demand_range)
+        
+        return demands
+
+    def generate_bps(self, stations):
+        n_stations = len(stations)
+
+        bps = [generate_dis_uniform(self.bps_range) for i in range(n_stations)]
+        return bps
 
     def generate_model(self):
         random.seed(self.seed)
@@ -132,8 +162,9 @@ class ExperimentConfig:
         stations = self.generate_stations()
         durations = self.generate_durations(stations)
         demands = self.generate_demands(stations)
+        starting_bps = self.generate_bps(stations)
 
-        return ExperimentModel(stations, durations, demands, self.seed)
+        return ExperimentModel(stations, durations, demands, starting_bps, self.seed)
 
 class Experiment:
     def __init__(self, configuration):
@@ -141,14 +172,128 @@ class Experiment:
 
         self.output_folder = ""
     
-    def run_full(self, model):
-        pass
+    def run_full(self, model, ode_method):
+        print("Running Full Model")
+
+        comp_model = comp.CompModel(model.durations, model.demands)
+
+        n_time_points = self.configuration.time_end*TIME_POINTS_PER_HOUR
+        time_points = [(i*self.configuration.time_end)/n_time_points for i in range(n_time_points+1)]
+
+        starting_vector = [0 for i in range(comp_model.n_stations**2)] + model.starting_bps
+        
+        x_t = spi.solve_ivp(comp_model.dxdt, [0, self.configuration.time_end], starting_vector, 
+                                t_eval=time_points, 
+                                method=ode_method, atol=ATOL)
+        print("Full Model Finished")
+        return x_t
     
-    def run_iteration(self, model):
-        pass
+    def run_iteration(self, model, ode_method):
+        print("Running Trajectory-Based Iteration")
+
+        starting_vector = [
+            [0 for i in range(len(model.cell_to_station[cell_idx])*model.n_stations)] +
+            [x for i, x in enumerate(model.starting_bps) if i in model.cell_to_station[cell_idx]]
+                for cell_idx in range(model.n_cells)
+        ]
+                
+        traj_cells = [spatial_decomp_station.TrajCell(cell_idx, model.station_to_cell, model.cell_to_station, 
+                                    sorted(list(model.cell_to_station[cell_idx])), model.durations, model.demands)
+                            for cell_idx in range(model.n_cells)]
+
+        trajectories = [[(lambda t: 0) for j in range(model.n_stations)] for i in range(model.n_stations)]
+
+        n_time_points = self.configuration.time_end*TIME_POINTS_PER_HOUR
+        time_points = [(i*self.configuration.time_end)/n_time_points for i in range(n_time_points+1)]
+
+        station_vals = []
+
+        for iter_no in range(self.configuration.n_iterations):
+            for tc in traj_cells:
+                tc.set_trajectories(trajectories)
+
+            new_trajectories = copy.deepcopy(trajectories)
+
+            x_station = [[] for i in range(model.n_stations)]
+
+            total_bikes = 0
+
+            for cell_idx in range(model.n_cells):
+                x_t = spi.solve_ivp(traj_cells[cell_idx].dxdt, [0, self.configuration.time_end], starting_vector[cell_idx], 
+                                        t_eval=time_points, 
+                                        method=ode_method, atol=ATOL)
+
+                for i, src_stn in enumerate(traj_cells[cell_idx].stations):
+                    sy_idx = traj_cells[cell_idx].get_station_idx(i)
+                    x_station[src_stn] = [float(y) for y in x_t.y[sy_idx, :]]
+                    for dst_stn in range(model.n_stations):
+                        y_idx = traj_cells[cell_idx].get_delay_idx(i, dst_stn)
+                        new_trajectories[src_stn][dst_stn] = spatial_decomp_station.get_traj_fn(x_t.t, x_t.y[y_idx, :])
+                total_bikes += sum(x_t.y[:,-1])
+            
+            station_vals.append(x_station)
+            trajectories = new_trajectories
+            
     
-    def run_discrete(self, model):
-        pass
+    def run_discrete(self, model, ode_method, step_size):
+        starting_vector = [
+            [0 for i in range(len(model.cell_to_station[cell_idx])*model.n_stations)] +
+            [x for i, x in enumerate(model.starting_bps) if i in model.cell_to_station[cell_idx]]
+                for cell_idx in range(model.n_cells)
+        ]
+                
+        traj_cells = [spatial_decomp_station.TrajCell(cell_idx, model.station_to_cell, model.cell_to_station, 
+                                    sorted(list(model.cell_to_station[cell_idx])), model.durations, model.demands)
+                            for cell_idx in range(model.n_cells)]
+
+        trajectories = [[(lambda t: 0) for j in range(model.n_stations)] for i in range(model.n_stations)]
+
+        station_vals = [[] for i in range(model.n_stations)]
+
+        time_points = []
+        
+        x_station = [[] for i in range(model.n_stations)]
+        current_vector = copy.deepcopy(starting_vector)
+
+        t = 0
+
+        
+        while t < self.configuration.time_end:
+            sub_time_points = [t+(i*(step_size/self.configuration.steps_per_dt)) for i in range(self.configuration.steps_per_dt)]
+            if len(sub_time_points) == 0:
+                sub_time_points.append(t)
+            time_points += sub_time_points
+            
+            new_trajectories = copy.deepcopy(trajectories)
+            new_vector = copy.deepcopy(current_vector)
+
+            for cell_idx in range(model.n_cells):
+                traj_cells[cell_idx].set_trajectories(trajectories)
+
+                x_t = spi.solve_ivp(traj_cells[cell_idx].dxdt, [t, t+step_size], current_vector[cell_idx], 
+                                        method=ode_method, atol=ATOL)
+
+                for i, src_stn in enumerate(traj_cells[cell_idx].stations):
+                    sy_idx = traj_cells[cell_idx].get_station_idx(i)
+                    
+                    station_vals[src_stn] += [comp.get_traj_fn(x_t.t, x_t.y[sy_idx,:])(t) for t in sub_time_points]
+                    
+                    new_vector[cell_idx][sy_idx] = float(x_t.y[sy_idx, -1])
+
+                    for dst_stn in range(model.n_stations):
+                        y_idx = traj_cells[cell_idx].get_delay_idx(i, dst_stn)
+                        last_val = float(x_t.y[y_idx, -1])
+                        new_vector[cell_idx][y_idx] = last_val
+                        delay_rate = 1/model.durations[src_stn][dst_stn]
+                        traj = spatial_decomp_station.get_traj_fn_lval(last_val)
+                        new_trajectories[src_stn][dst_stn] = traj
+
+                #total_bikes += sum(x_t.y[:,-1])
+
+            trajectories = new_trajectories
+            current_vector = new_vector
+
+            t += step_size
 
     def run(self):
         if not os.path.exists(self.output_folder):
@@ -163,15 +308,16 @@ class Experiment:
                 model = self.configuration.generate_model()
 
                 for ode_method in self.configuration.ode_methods:
-                    full_res = self.run_full(model)
+                    #full_res = self.run_full(model, ode_method)
 
                     for stations_per_cell in self.configuration.stations_per_cell:
                         model.generate_cells(stations_per_cell)
 
-                        iter_res = self.run_iteration(model)
+                        #iter_res = self.run_iteration(model, ode_method)
 
                         for delta_t_ratio in self.configuration.delta_t_ratio:
-                            disc_res = self.run_discrete(model)
+                            delta_t = model.get_dt_from_ratio(delta_t_ratio)
+                            disc_res = self.run_discrete(model, ode_method, delta_t)
         except:
             os.remove(self.output_folder + "output.csv")
             raise
