@@ -165,6 +165,11 @@ class ExperimentConfig:
         starting_bps = self.generate_bps(stations)
 
         return ExperimentModel(stations, durations, demands, starting_bps, self.seed)
+    
+    def cell_arrange(self, x_y):
+        # rearrange x_y to be in the order of each cell...
+        raise Exception("not implemented..")
+        #return None
 
 class Experiment:
     def __init__(self, configuration):
@@ -174,6 +179,7 @@ class Experiment:
     
     def run_full(self, model, ode_method):
         print("Running Full Model")
+        tic = time.perf_counter()
 
         comp_model = comp.CompModel(model.durations, model.demands)
 
@@ -185,11 +191,16 @@ class Experiment:
         x_t = spi.solve_ivp(comp_model.dxdt, [0, self.configuration.time_end], starting_vector, 
                                 t_eval=time_points, 
                                 method=ode_method, atol=ATOL)
-        print("Full Model Finished")
-        return x_t
+        toc = time.perf_counter()
+        print(f"Full Model finished, time: {toc-tic}.")
+        return [[x for x in x_t.t], model.cell_arrange(x_t.y), toc-tic]
     
     def run_iteration(self, model, ode_method):
         print("Running Trajectory-Based Iteration")
+
+        tic = time.perf_counter()
+
+        x_arr = np.array([])
 
         starting_vector = [
             [0 for i in range(len(model.cell_to_station[cell_idx])*model.n_stations)] +
@@ -214,28 +225,48 @@ class Experiment:
 
             new_trajectories = copy.deepcopy(trajectories)
 
-            x_station = [[] for i in range(model.n_stations)]
-
             total_bikes = 0
+
+            x_iter = np.array([[0 for i in range(n_time_points)] for i in range(model.n_stations)])
 
             for cell_idx in range(model.n_cells):
                 x_t = spi.solve_ivp(traj_cells[cell_idx].dxdt, [0, self.configuration.time_end], starting_vector[cell_idx], 
                                         t_eval=time_points, 
                                         method=ode_method, atol=ATOL)
+                if x_iter.size == 0:
+                    x_iter = x_t.y
+                else:
+                    x_iter = np.concatenate([x_iter, x_t.y], axis=0)
+                
 
                 for i, src_stn in enumerate(traj_cells[cell_idx].stations):
                     sy_idx = traj_cells[cell_idx].get_station_idx(i)
-                    x_station[src_stn] = [float(y) for y in x_t.y[sy_idx, :]]
+                    
                     for dst_stn in range(model.n_stations):
                         y_idx = traj_cells[cell_idx].get_delay_idx(i, dst_stn)
                         new_trajectories[src_stn][dst_stn] = spatial_decomp_station.get_traj_fn(x_t.t, x_t.y[y_idx, :])
                 total_bikes += sum(x_t.y[:,-1])
             
-            station_vals.append(x_station)
+            if x_arr.size == 0:
+                x_arr = x_iter
+            else:
+                x_arr = np.concatenate([x_arr, x_t.y], axis=0)
+
             trajectories = new_trajectories
-            
+        
+
+        toc = time.perf_counter()
+        print(f"Trajectory-Based Iteration finished, time: {toc-tic}.")
+
+        return [time_points, x_arr, toc-tic]
     
     def run_discrete(self, model, ode_method, step_size):
+        print("Running Discrete-Step Submodeling")
+
+        tic = time.perf_counter()
+
+        x_arr = np.array([])
+
         starting_vector = [
             [0 for i in range(len(model.cell_to_station[cell_idx])*model.n_stations)] +
             [x for i, x in enumerate(model.starting_bps) if i in model.cell_to_station[cell_idx]]
@@ -252,7 +283,6 @@ class Experiment:
 
         time_points = []
         
-        x_station = [[] for i in range(model.n_stations)]
         current_vector = copy.deepcopy(starting_vector)
 
         t = 0
@@ -272,6 +302,10 @@ class Experiment:
 
                 x_t = spi.solve_ivp(traj_cells[cell_idx].dxdt, [t, t+step_size], current_vector[cell_idx], 
                                         method=ode_method, atol=ATOL)
+                if x_arr.size == 0:
+                    x_arr = x_t.y
+                else:
+                    x_arr = np.concatenate([x_arr, x_t.y], axis=1)
 
                 for i, src_stn in enumerate(traj_cells[cell_idx].stations):
                     sy_idx = traj_cells[cell_idx].get_station_idx(i)
@@ -288,12 +322,13 @@ class Experiment:
                         traj = spatial_decomp_station.get_traj_fn_lval(last_val)
                         new_trajectories[src_stn][dst_stn] = traj
 
-                #total_bikes += sum(x_t.y[:,-1])
-
             trajectories = new_trajectories
             current_vector = new_vector
 
             t += step_size
+        toc = time.perf_counter()
+        print(f"Discrete-Step Submodeling finished, time: {toc-tic}")
+        return [time_points, x_arr, toc-tic]
 
     def run(self):
         if not os.path.exists(self.output_folder):
@@ -308,12 +343,12 @@ class Experiment:
                 model = self.configuration.generate_model()
 
                 for ode_method in self.configuration.ode_methods:
-                    #full_res = self.run_full(model, ode_method)
+                    full_res = self.run_full(model, ode_method)
 
                     for stations_per_cell in self.configuration.stations_per_cell:
                         model.generate_cells(stations_per_cell)
 
-                        #iter_res = self.run_iteration(model, ode_method)
+                        iter_res = self.run_iteration(model, ode_method)
 
                         for delta_t_ratio in self.configuration.delta_t_ratio:
                             delta_t = model.get_dt_from_ratio(delta_t_ratio)
