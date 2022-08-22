@@ -86,6 +86,11 @@ class ExperimentModel:
                 avg_rate[0] += self.demands[i][j]
                 avg_rate[1] += 1
         return ratio/(avg_rate[0]/avg_rate[1])
+        
+    def cell_arrange(self, x_y):
+        # rearrange x_y to be in the order of each cell...
+        raise Exception("not implemented..")
+        #return None
 
 
 class ExperimentConfig:
@@ -166,10 +171,6 @@ class ExperimentConfig:
 
         return ExperimentModel(stations, durations, demands, starting_bps, self.seed)
     
-    def cell_arrange(self, x_y):
-        # rearrange x_y to be in the order of each cell...
-        raise Exception("not implemented..")
-        #return None
 
 class Experiment:
     def __init__(self, configuration):
