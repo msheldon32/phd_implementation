@@ -26,9 +26,10 @@ N_STATIONS = 4
 STATIONS_PER_CELL = 2
 ODE_METHOD = "BDF"
 N_CELLS = 2
-TIME_END = 4
-STARTING_BIKES = 20
+TIME_END = 6
+STARTING_BIKES = 40
 N_TIME_POINTS = 10000
+N_SUBSTEPS = 100
 ATOL = 10**(-6)
 
 class CompExample:
@@ -75,7 +76,7 @@ class DiscreteStepEx:
         
         self.step_sizes = step_sizes
 
-    def run(self, true_traj):
+    def run(self, true_traj, text_append=""):
         station_vals = []
         step_time_points = []
         for step_idx in range(len(self.step_sizes)):
@@ -90,7 +91,7 @@ class DiscreteStepEx:
         for step_idx, step_size in enumerate(self.step_sizes):
             #print(f"Running step_size {step_size}")
 
-            n_substeps = 100#math.floor((step_size/TIME_END)*N_TIME_POINTS)
+            n_substeps = N_SUBSTEPS#math.floor((step_size/TIME_END)*N_TIME_POINTS)
 
             trajectories = [[(lambda t: 0) for j in range(N_STATIONS)] for i in range(N_STATIONS)]
 
@@ -153,8 +154,9 @@ class DiscreteStepEx:
             plt.legend([f"Δt = {x}" for x in self.step_sizes] + ["true value"])
             plt.xlabel("time")
             plt.ylabel("number of bikes at station")
-            plt.title(f"Queue Length at Station {stn_idx + 1} (Discrete-Step Submodeling)")
-            plt.ylim(0,5)
+            plt.title(f"Queue Length at Station {stn_idx + 1} (Discrete-Step Submodeling{text_append})")
+            plt.ylim(0,2*(STARTING_BIKES/N_STATIONS))
+            plt.xlim(0,TIME_END)
             plt.show()
 
 class TrajectoryIterationEx:
@@ -171,7 +173,7 @@ class TrajectoryIterationEx:
         self.traj_cells = [spatial_decomp_station.TrajCell(0, station_to_cell, cell_to_station, [0,1], durations, demands),
                       spatial_decomp_station.TrajCell(1, station_to_cell, cell_to_station, [2,3], durations, demands)]
 
-    def run(self, true_traj):
+    def run(self, true_traj, text_append=""):
         time_points = [(i*TIME_END)/N_TIME_POINTS for i in range(N_TIME_POINTS+1)]
         trajectories = [[(lambda t: 0) for j in range(N_STATIONS)] for i in range(N_STATIONS)]
 
@@ -215,12 +217,17 @@ class TrajectoryIterationEx:
             plt.legend([f"iter {iter_no + 1}" for iter_no in range(N_ITERATIONS)] + ["true value"])
             plt.xlabel("time")
             plt.ylabel("number of bikes at station")
-            plt.title(f"Queue Length at Station {stn_idx+1} (Trajectory-Based Iteration)")
-            plt.ylim(0,5)
+            plt.title(f"Queue Length at Station {stn_idx+1} (Trajectory-Based Iteration{text_append})")
+            plt.ylim(0,2*(STARTING_BIKES/N_STATIONS))
+            plt.xlim(0,TIME_END)
             plt.show()
 
 if __name__ == "__main__":
-    durations = [[0.5 for i in range(N_STATIONS)] for j in range(N_STATIONS)]
+    durations = [[0.01,0.5, 0.75,1   ],
+                 [0.5, 0.01,1,   1.25],
+                 [0.75,1,   0.01,0.5 ],
+                 [1,   1.25,0.5, 0.01]]
+
     demands   = [[0,5,1,2],
                  [6,0,1,1],
                  [1,1,0,9],
@@ -235,3 +242,14 @@ if __name__ == "__main__":
     correct_x = comp_ex.run()
     ds_example.run(correct_x)
     ti_example.run(correct_x)
+
+    strict_durations = [[0.01,0.5, 1,   1   ],
+                        [0.5, 0.01,1,   1   ],
+                        [1,   1,   0.01,0.5 ],
+                        [1,   1,   0.5, 0.01]]
+
+    ti_strict = TrajectoryIterationEx(strict_durations, demands)
+    ds_strict = DiscreteStepEx(strict_durations, demands, step_sizes)
+
+    ds_strict.run(correct_x, text_append=" w/ Strict Distances")
+    ti_strict.run(correct_x, text_append=" w/ Strict Distances")
