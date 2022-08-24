@@ -102,7 +102,7 @@ class ExperimentConfig:
         # parameters
         self.ode_methods             = ["BDF", "RK45"]
         self.stations_per_cell       = [5, 10, 15, 20]
-        self.delta_t_ratio           = [1, 0.5, 0.1] # setting delta T based on (x/[average rate])
+        self.delta_t_ratio           = [0.2, 0.1, 0.05] # setting delta T based on (x/[average rate])
 
         # random configuration
         self.n_station_range         = [25, 50]
@@ -208,14 +208,14 @@ class Experiment:
     def run_iteration(self, model, ode_method):
         print("Running Trajectory-Based Iteration")
 
-        n_entries = self.n_stations**2 + self.n_stations
-
         tic = time.perf_counter()
+
+        n_entries = model.n_stations**2 + model.n_stations
 
         x_res = []
 
         starting_vector = [
-            [0 for i in range(len(model.cell_to_station[cell_idx])*model.n_stations)] +
+            [0 for i in range(len(model.cell_to_station[cell_idx]) * model.n_stations)] +
             [x for i, x in enumerate(model.starting_bps) if i in model.cell_to_station[cell_idx]]
                 for cell_idx in range(model.n_cells)
         ]
@@ -245,7 +245,7 @@ class Experiment:
                 x_t = spi.solve_ivp(traj_cells[cell_idx].dxdt, [0, self.configuration.time_end], starting_vector[cell_idx], 
                                         t_eval=time_points, 
                                         method=ode_method, atol=ATOL)
-                x_iter[traj_cells[cell_idx].get_idx()] = x_t.y
+                x_iter[traj_cells[cell_idx].get_idx(), :] = x_t.y
                 
 
                 for i, src_stn in enumerate(traj_cells[cell_idx].stations):
@@ -271,10 +271,12 @@ class Experiment:
 
         tic = time.perf_counter()
 
+        n_entries = model.n_stations**2 + model.n_stations
+
         x_arr = np.array([])
 
         starting_vector = [
-            [0 for i in range(len(model.cell_to_station[cell_idx])*model.n_stations)] +
+            [0 for i in range(len(model.cell_to_station[cell_idx]) * model.n_stations)] +
             [x for i, x in enumerate(model.starting_bps) if i in model.cell_to_station[cell_idx]]
                 for cell_idx in range(model.n_cells)
         ]
@@ -304,7 +306,8 @@ class Experiment:
             new_vector = copy.deepcopy(current_vector)
 
 
-            x_iter = np.array([[0 for x in range(len(sub_time_points))] for i in range(model.n_stations)])
+            x_iter = np.array([[0 for x in range(len(sub_time_points))] for i in range(n_entries)])
+            
 
             for cell_idx in range(model.n_cells):
                 traj_cells[cell_idx].set_trajectories(trajectories)
@@ -312,11 +315,8 @@ class Experiment:
                 x_t = spi.solve_ivp(traj_cells[cell_idx].dxdt, [t, t+step_size], current_vector[cell_idx], 
                                         t_eval = sub_time_points,
                                         method=ode_method, atol=ATOL)
-                                        
-                if x_iter.size == 0:
-                    x_iter = x_t.y
-                else:
-                    x_iter = np.concatenate([x_iter, x_t.y[:,:x_iter.shape[1]]], axis=0)
+
+                x_iter[traj_cells[cell_idx].get_idx(), :] = x_t.y
 
                 for i, src_stn in enumerate(traj_cells[cell_idx].stations):
                     sy_idx = traj_cells[cell_idx].get_station_idx(i)
@@ -364,10 +364,10 @@ class Experiment:
                     for stations_per_cell in self.configuration.stations_per_cell:
                         model.generate_cells(stations_per_cell)
 
-                        #iter_res = self.run_iteration(model, ode_method)
+                        iter_res = self.run_iteration(model, ode_method)
 
-                        #for iter_no, res in enumerate(iter_res[1]):
-                        #    print(f"Accuracy score (iteration {iter_no+1}): {get_accuracy_score(full_res[0], full_res[1], iter_res[0], res)}")
+                        for iter_no, res in enumerate(iter_res[1]):
+                            print(f"Accuracy score (iteration {iter_no+1}): {get_accuracy_score(full_res[0], full_res[1], iter_res[0], res)}")
 
                         for delta_t_ratio in self.configuration.delta_t_ratio:
                             delta_t = model.get_dt_from_ratio(delta_t_ratio)

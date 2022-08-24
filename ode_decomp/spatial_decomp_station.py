@@ -48,7 +48,15 @@ class TrajCell:
         return (self.n_stations * self.s_in_cell) + i_idx 
 
     def get_idx(self):
-        return [[(i*self.n_stations) + j for j in range(self.n_stations)] for i in range(self.s_in_cell)] + self.stations
+        out_list = []
+
+
+        for j, src_station in enumerate(self.stations):
+            for dst_station in range(self.n_stations):
+                out_list.append(src_station*self.n_stations + dst_station)
+
+        out_list += [(self.n_stations**2) + i for i in self.stations]
+        return out_list
 
     def dxdt(self, t, x):
         deriv = [0 for i in range((self.n_stations*self.s_in_cell)+self.s_in_cell)]
