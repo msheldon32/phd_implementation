@@ -86,11 +86,12 @@ class ExperimentModel:
                 avg_rate[0] += self.demands[i][j]
                 avg_rate[1] += 1
         return ratio/(avg_rate[0]/avg_rate[1])
-        
-    def cell_arrange(self, x_y):
-        # rearrange x_y to be in the order of each cell...
-        raise Exception("not implemented..")
-        #return None
+    
+    def get_delay_idx(self, srt_stn, end_stn):
+        return (srt_stn*self.n_stations) + end_stn
+    
+    def get_delay_start(self, dly_idx):
+        return dly_idx // self.n_stations
 
 
 class ExperimentConfig:
@@ -171,6 +172,14 @@ class ExperimentConfig:
 
         return ExperimentModel(stations, durations, demands, starting_bps, self.seed)
     
+def refit_times(base_t, base_y, alt_t):
+    t_map = [min(np.searchsorted(base_t, t), len(base_t)-1) for t in alt_t]
+    return base_y[:, t_map]
+
+def get_accuracy_score(base_t, base_y, alt_t, alt_y):
+    diff = abs(refit_times(base_t, base_y, alt_t) - alt_y)
+    total_val = base_y[:,0].sum()
+    return (diff/total_val).max()
 
 class Experiment:
     def __init__(self, configuration):
@@ -194,14 +203,16 @@ class Experiment:
                                 method=ode_method, atol=ATOL)
         toc = time.perf_counter()
         print(f"Full Model finished, time: {toc-tic}.")
-        return [[x for x in x_t.t], model.cell_arrange(x_t.y), toc-tic]
+        return [[x for x in x_t.t], x_t.y, toc-tic]
     
     def run_iteration(self, model, ode_method):
         print("Running Trajectory-Based Iteration")
 
+        n_entries = self.n_stations**2 + self.n_stations
+
         tic = time.perf_counter()
 
-        x_arr = np.array([])
+        x_res = []
 
         starting_vector = [
             [0 for i in range(len(model.cell_to_station[cell_idx])*model.n_stations)] +
@@ -228,16 +239,13 @@ class Experiment:
 
             total_bikes = 0
 
-            x_iter = np.array([[0 for i in range(n_time_points)] for i in range(model.n_stations)])
+            x_iter = np.array([[0 for i in range(n_time_points+1)] for i in range(n_entries)])
 
             for cell_idx in range(model.n_cells):
                 x_t = spi.solve_ivp(traj_cells[cell_idx].dxdt, [0, self.configuration.time_end], starting_vector[cell_idx], 
                                         t_eval=time_points, 
                                         method=ode_method, atol=ATOL)
-                if x_iter.size == 0:
-                    x_iter = x_t.y
-                else:
-                    x_iter = np.concatenate([x_iter, x_t.y], axis=0)
+                x_iter[traj_cells[cell_idx].get_idx()] = x_t.y
                 
 
                 for i, src_stn in enumerate(traj_cells[cell_idx].stations):
@@ -248,10 +256,7 @@ class Experiment:
                         new_trajectories[src_stn][dst_stn] = spatial_decomp_station.get_traj_fn(x_t.t, x_t.y[y_idx, :])
                 total_bikes += sum(x_t.y[:,-1])
             
-            if x_arr.size == 0:
-                x_arr = x_iter
-            else:
-                x_arr = np.concatenate([x_arr, x_t.y], axis=0)
+            x_res.append(x_iter)
 
             trajectories = new_trajectories
         
@@ -259,7 +264,7 @@ class Experiment:
         toc = time.perf_counter()
         print(f"Trajectory-Based Iteration finished, time: {toc-tic}.")
 
-        return [time_points, x_arr, toc-tic]
+        return [time_points, x_res, toc-tic]
     
     def run_discrete(self, model, ode_method, step_size):
         print("Running Discrete-Step Submodeling")
@@ -298,15 +303,20 @@ class Experiment:
             new_trajectories = copy.deepcopy(trajectories)
             new_vector = copy.deepcopy(current_vector)
 
+
+            x_iter = np.array([[0 for x in range(len(sub_time_points))] for i in range(model.n_stations)])
+
             for cell_idx in range(model.n_cells):
                 traj_cells[cell_idx].set_trajectories(trajectories)
 
                 x_t = spi.solve_ivp(traj_cells[cell_idx].dxdt, [t, t+step_size], current_vector[cell_idx], 
+                                        t_eval = sub_time_points,
                                         method=ode_method, atol=ATOL)
-                if x_arr.size == 0:
-                    x_arr = x_t.y
+                                        
+                if x_iter.size == 0:
+                    x_iter = x_t.y
                 else:
-                    x_arr = np.concatenate([x_arr, x_t.y], axis=1)
+                    x_iter = np.concatenate([x_iter, x_t.y[:,:x_iter.shape[1]]], axis=0)
 
                 for i, src_stn in enumerate(traj_cells[cell_idx].stations):
                     sy_idx = traj_cells[cell_idx].get_station_idx(i)
@@ -322,6 +332,11 @@ class Experiment:
                         delay_rate = 1/model.durations[src_stn][dst_stn]
                         traj = spatial_decomp_station.get_traj_fn_lval(last_val)
                         new_trajectories[src_stn][dst_stn] = traj
+
+            if x_arr.size == 0:
+                x_arr = x_iter
+            else:
+                x_arr = np.concatenate([x_arr, x_iter], axis=1)
 
             trajectories = new_trajectories
             current_vector = new_vector
@@ -349,11 +364,16 @@ class Experiment:
                     for stations_per_cell in self.configuration.stations_per_cell:
                         model.generate_cells(stations_per_cell)
 
-                        iter_res = self.run_iteration(model, ode_method)
+                        #iter_res = self.run_iteration(model, ode_method)
+
+                        #for iter_no, res in enumerate(iter_res[1]):
+                        #    print(f"Accuracy score (iteration {iter_no+1}): {get_accuracy_score(full_res[0], full_res[1], iter_res[0], res)}")
 
                         for delta_t_ratio in self.configuration.delta_t_ratio:
                             delta_t = model.get_dt_from_ratio(delta_t_ratio)
                             disc_res = self.run_discrete(model, ode_method, delta_t)
+
+                            print(f"Accuracy score: {get_accuracy_score(full_res[0], full_res[1], disc_res[0], disc_res[1])}")
         except:
             os.remove(self.output_folder + "output.csv")
             raise

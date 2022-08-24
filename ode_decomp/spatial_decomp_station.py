@@ -47,6 +47,9 @@ class TrajCell:
         # i_idx: index of the source station in self.stations (e.g. the internal index)
         return (self.n_stations * self.s_in_cell) + i_idx 
 
+    def get_idx(self):
+        return [[(i*self.n_stations) + j for j in range(self.n_stations)] for i in range(self.s_in_cell)] + self.stations
+
     def dxdt(self, t, x):
         deriv = [0 for i in range((self.n_stations*self.s_in_cell)+self.s_in_cell)]
         
