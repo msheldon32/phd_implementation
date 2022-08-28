@@ -11,7 +11,7 @@ import random
 import sqlite3
 import gc
 
-class TrajCell:
+class StrictTrajCell:
     def __init__(self, cell_idx, stations, durations, in_demands, in_probabilities, out_demands):
         self.n_cells = len(durations)
         self.stations = stations

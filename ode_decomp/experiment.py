@@ -19,6 +19,8 @@ import csv
 import sklearn.cluster
 
 import spatial_decomp_station
+import spatial_decomp_strict
+
 import comp
 from oslo_data import *
 import large_fluid
@@ -64,6 +66,11 @@ class ExperimentModel:
         self.cell_to_station = [set([i for i in range(self.n_stations)])]
 
         self.seed = seed
+
+        self.strict_durations = None
+        self.strict_in_demands = None
+        self.strict_out_demands = None
+        self.strict_in_probs = None
     
     def generate_cells(self, stations_per_cell):
         self.n_cells = round(self.n_stations/stations_per_cell)
@@ -92,6 +99,47 @@ class ExperimentModel:
     
     def get_delay_start(self, dly_idx):
         return dly_idx // self.n_stations
+    
+    def get_durations_strict(self):
+        if not self.strict_durations:
+            self.strict_durations = [[-1 for j in range(self.n_cells)] for i in range(self.n_cells)]
+
+            total_acc = 0
+            total_N = 0
+
+            for start_cell in range(self.n_cells):
+                for end_cell in range(self.n_cells):
+                    acc = 0
+                    N = 0
+                    for srt_stn in self.cell_to_station[start_cell]:
+                        for end_stn in self.cell_to_station[end_cell]:
+                            acc += self.durations[srt_stn][end_stn]
+                            total_acc += self.durations[srt_stn][end_stn]
+                            N += 1
+                            total_N += 1
+                    if N > 0:
+                        self.strict_durations[start_cell][end_cell] = acc/N
+            for start_cell in range(self.n_cells):
+                for end_cell in range(self.n_cells):
+                    if self.strict_durations[start_cell][end_cell] == -1:
+                        # use the overall average if there's no information available
+                        self.strict_durations[start_cell][end_cell] = total_acc/total_N
+        return self.strict_durations
+    
+    def get_in_demands_strict(self):
+        if not self.strict_in_demands:
+            raise Exception("Not implemented")
+        return self.strict_in_demands
+    
+    def get_out_demands_strict(self):
+        if not self.strict_out_demands:
+            raise Exception("Not implemented")
+        return self.strict_out_demands
+    
+    def get_in_probs_strict(self):
+        if not self.strict_in_probs:
+            raise Exception("Not implemented")
+        return self.strict_in_probs
 
 
 class ExperimentConfig:
@@ -100,12 +148,12 @@ class ExperimentConfig:
         self.repetitions_per_point = 300
 
         # parameters
-        self.ode_methods             = ["BDF", "RK45"]
+        self.ode_methods             = ["RK45"]
         self.stations_per_cell       = [5, 10, 15, 20]
-        self.delta_t_ratio           = [0.2, 0.1, 0.05] # setting delta T based on (x/[average rate])
+        self.delta_t_ratio           = [0.1, 0.05, 0.025] # setting delta T based on (x/[average rate])
 
         # random configuration
-        self.n_station_range         = [25, 50]
+        self.n_station_range         = [50, 100]
         self.x_location_range        = [0, 1]
         self.y_location_range        = [0, 1]
         self.station_demand_range    = [0, 0.5]
@@ -113,10 +161,11 @@ class ExperimentConfig:
         self.bps_range               = [0, 15]
 
         # constants
-        self.n_iterations = 25
-        self.time_end     = 24
-        self.min_duration = 0.01
-        self.steps_per_dt = 100
+        self.max_iterations = 100
+        self.iter_tolerance = 0.005
+        self.time_end       = 4
+        self.min_duration   = 0.01
+        self.steps_per_dt   = 100
 
         self.seed = 3#1996
 
@@ -231,7 +280,7 @@ class Experiment:
 
         station_vals = []
 
-        for iter_no in range(self.configuration.n_iterations):
+        for iter_no in range(self.configuration.max_iterations):
             for tc in traj_cells:
                 tc.set_trajectories(trajectories)
 
@@ -259,6 +308,12 @@ class Experiment:
             x_res.append(x_iter)
 
             trajectories = new_trajectories
+
+            if iter_no > 0:
+                if (abs(x_res[-1] - x_res[-2])).max() < self.configuration.iter_tolerance:
+                    break
+                else:
+                    print(f"iter ptg: {(abs(x_res[-1] - x_res[-2])).max()}")
         
 
         toc = time.perf_counter()
@@ -345,18 +400,23 @@ class Experiment:
         toc = time.perf_counter()
         print(f"Discrete-Step Submodeling finished, time: {toc-tic}")
         return [time_points, x_arr, toc-tic]
+    
+    def write_row(self, row):
+        with open(self.output_folder + "output.csv", "x") as f:
+            writer = csv.writer(f)
+            writer.writerow(row)
 
     def run(self):
         if not os.path.exists(self.output_folder):
             os.makedirs(self.output_folder)
-        with open(self.output_folder + "output.csv", "x") as f:
-            writer = csv.writer(f)
-            writer.writerow(["solution_method", "spatial_simplification", "ode_method", "stations_per_cell", 
-                             "iteration", "delta_t", "station_no", "delta"])
+        
+        self.write_row(["solution_method", "spatial_simplification", "ode_method", "stations_per_cell", 
+                             "delta_t_ratio", "delta_t", "time", "std_time", "error"])
+
         try:
             for repetition in range(self.configuration.repetitions_per_point):
-                print(f"Repetition: {repetition}")
                 model = self.configuration.generate_model()
+                print(f"Repetition: {repetition}, n stations: {model.n_stations}")
 
                 for ode_method in self.configuration.ode_methods:
                     full_res = self.run_full(model, ode_method)
@@ -366,14 +426,18 @@ class Experiment:
 
                         iter_res = self.run_iteration(model, ode_method)
 
-                        for iter_no, res in enumerate(iter_res[1]):
-                            print(f"Accuracy score (iteration {iter_no+1}): {get_accuracy_score(full_res[0], full_res[1], iter_res[0], res)}")
+                        error = get_accuracy_score(full_res[0], full_res[1], iter_res[0], res)
+
+                        self.write_row(["traj_iteration", "none", ode_method, stations_per_cell, 0, 0, iter_res[2], full_res[2], error])
 
                         for delta_t_ratio in self.configuration.delta_t_ratio:
                             delta_t = model.get_dt_from_ratio(delta_t_ratio)
                             disc_res = self.run_discrete(model, ode_method, delta_t)
 
-                            print(f"Accuracy score: {get_accuracy_score(full_res[0], full_res[1], disc_res[0], disc_res[1])}")
+                            error = get_accuracy_score(full_res[0], full_res[1], disc_res[0], disc_res[1])
+
+                            self.write_row(["discrete_step", "none", ode_method, stations_per_cell, delta_t_ratio, delta_t, iter_res[2], full_res[2], error])
+
         except:
             os.remove(self.output_folder + "output.csv")
             raise

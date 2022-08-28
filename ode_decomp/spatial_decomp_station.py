@@ -17,7 +17,6 @@ class TrajCell:
         self.n_cells = len(cell_to_station)
         self.n_stations = len(durations)
 
-
         self.s_in_cell = len(stations)
         self.stations = stations
 
@@ -49,8 +48,7 @@ class TrajCell:
 
     def get_idx(self):
         out_list = []
-
-
+        
         for j, src_station in enumerate(self.stations):
             for dst_station in range(self.n_stations):
                 out_list.append(src_station*self.n_stations + dst_station)
