@@ -20,6 +20,10 @@ class TrajCell:
         self.s_in_cell = len(stations)
         self.stations = stations
 
+        self.station_rev = {
+            stn: i for i, stn in enumerate(self.stations)
+        }
+
         self.durations = durations
         self.demands = demands
 
@@ -33,6 +37,8 @@ class TrajCell:
         for j, station_idx in enumerate(self.stations):
             for dest_station in range(self.n_stations):
                 self.total_rate[j] += self.demands[station_idx][dest_station]
+        
+        self.tstep = 0
     
     def set_trajectories(self, trajectories):
         self.trajectories = trajectories
@@ -46,9 +52,14 @@ class TrajCell:
         # i_idx: index of the source station in self.stations (e.g. the internal index)
         return (self.n_stations * self.s_in_cell) + i_idx 
 
+
+    def set_timestep(self, tstep):
+        self.tstep = tstep
+
+
     def get_idx(self):
         out_list = []
-        
+
         for j, src_station in enumerate(self.stations):
             for dst_station in range(self.n_stations):
                 out_list.append(src_station*self.n_stations + dst_station)
@@ -56,7 +67,7 @@ class TrajCell:
         out_list += [(self.n_stations**2) + i for i in self.stations]
         return out_list
 
-    def dxdt(self, t, x):
+    def dxdt_const(self, t, x):
         deriv = [0 for i in range((self.n_stations*self.s_in_cell)+self.s_in_cell)]
         
         # inline re-implementation for speed
@@ -66,10 +77,11 @@ class TrajCell:
         # derive output delays
         for j, src_station in enumerate(self.stations):
             for dst_station in range(self.n_stations):
-                    d_idx = get_delay_idx(j, dst_station)
-                    src_idx = (self.n_stations*self.s_in_cell) + j
-                    deriv[d_idx] += self.demands[src_station][dst_station]*min(x[src_idx], 1)
-                    deriv[d_idx] -= (1/self.durations[src_station][dst_station])*x[d_idx]
+                    #d_idx = get_delay_idx(j, dst_station)
+                    #d_idx = (j*self.n_stations) + dst_station
+                    #src_idx = (self.n_stations*self.s_in_cell) + j
+                    deriv[(j*self.n_stations) + dst_station] += self.demands[src_station][dst_station]*min(x[(self.n_stations*self.s_in_cell) + j], 1)
+                    deriv[(j*self.n_stations) + dst_station] -= (1/self.durations[src_station][dst_station])*x[(j*self.n_stations) + dst_station]
 
         
         # derive station levels
@@ -80,11 +92,93 @@ class TrajCell:
                 rate = 1/self.durations[src_station][dst_station]
                 if src_station in self.cell_to_station[self.cell_idx]:
                     # the source is internal to the cell, so we can solve it with x
-                    corres_idx = self.stations.index(src_station)
-                    src_d_idx = get_delay_idx(corres_idx, dst_station)
-                    deriv[d_idx] += rate*x[src_d_idx]
+                    #corres_idx = self.stations.index(src_station)
+                    #corres_idx = self.station_rev[src_station]
+                    #src_d_idx = get_delay_idx(corres_idx, dst_station)
+                    #src_d_idx = (self.station_rev[src_station]*self.n_stations) + dst_station
+                    deriv[d_idx] += rate*x[(self.station_rev[src_station]*self.n_stations) + dst_station]
+                else:
+                    deriv[d_idx] += rate*self.trajectories[src_station][dst_station]
+            
+            deriv[d_idx] -= self.total_rate[j]*min(x[d_idx],1)
+
+        return deriv
+
+    def dxdt_array(self, t, x):
+        deriv = [0 for i in range((self.n_stations*self.s_in_cell)+self.s_in_cell)]
+        
+        # inline re-implementation for speed
+        #get_delay_idx = lambda i_idx, d_idx: (i_idx*self.n_stations) + d_idx
+        #get_station_idx = lambda i_idx: (self.n_stations * self.s_in_cell) + i_idx
+
+        # derive output delays
+        for j, src_station in enumerate(self.stations):
+            for dst_station in range(self.n_stations):
+                    #d_idx = get_delay_idx(j, dst_station)
+                    #d_idx = (j*self.n_stations) + dst_station
+                    #src_idx = (self.n_stations*self.s_in_cell) + j
+                    deriv[(j*self.n_stations) + dst_station] += self.demands[src_station][dst_station]*min(x[(self.n_stations*self.s_in_cell) + j], 1)
+                    deriv[(j*self.n_stations) + dst_station] -= (1/self.durations[src_station][dst_station])*x[(j*self.n_stations) + dst_station]
+
+        
+        # derive station levels
+        for j, dst_station in enumerate(self.stations):
+            d_idx = (self.n_stations*self.s_in_cell)+j
+
+            for src_station in range(self.n_stations):
+                rate = 1/self.durations[src_station][dst_station]
+                if src_station in self.cell_to_station[self.cell_idx]:
+                    # the source is internal to the cell, so we can solve it with x
+                    #corres_idx = self.stations.index(src_station)
+                    #corres_idx = self.station_rev[src_station]
+                    #src_d_idx = get_delay_idx(corres_idx, dst_station)
+                    #src_d_idx = (self.station_rev[src_station]*self.n_stations) + dst_station
+                    deriv[d_idx] += rate*x[(self.station_rev[src_station]*self.n_stations) + dst_station]
+                else:
+                    #t_point = int(t//self.tstep)
+                    #print(self.trajectories[src_station][dst_station])
+                    #print(self.trajectories[src_station][dst_station][0])
+                    #print(t_point)
+                    deriv[d_idx] += rate*self.trajectories[src_station][dst_station][int(t//self.tstep)]
+                    #deriv[d_idx] += rate*self.trajectories[src_station][dst_station][]
+            
+            deriv[d_idx] -= self.total_rate[j]*min(x[d_idx],1)
+
+        return deriv
+
+    def dxdt_func(self, t, x):
+        deriv = [0 for i in range((self.n_stations*self.s_in_cell)+self.s_in_cell)]
+        
+        # inline re-implementation for speed
+        #get_delay_idx = lambda i_idx, d_idx: (i_idx*self.n_stations) + d_idx
+        #get_station_idx = lambda i_idx: (self.n_stations * self.s_in_cell) + i_idx
+
+        # derive output delays
+        for j, src_station in enumerate(self.stations):
+            for dst_station in range(self.n_stations):
+                    #d_idx = get_delay_idx(j, dst_station)
+                    #d_idx = (j*self.n_stations) + dst_station
+                    #src_idx = (self.n_stations*self.s_in_cell) + j
+                    deriv[(j*self.n_stations) + dst_station] += self.demands[src_station][dst_station]*min(x[(self.n_stations*self.s_in_cell) + j], 1)
+                    deriv[(j*self.n_stations) + dst_station] -= (1/self.durations[src_station][dst_station])*x[(j*self.n_stations) + dst_station]
+
+        
+        # derive station levels
+        for j, dst_station in enumerate(self.stations):
+            d_idx = (self.n_stations*self.s_in_cell)+j
+
+            for src_station in range(self.n_stations):
+                rate = 1/self.durations[src_station][dst_station]
+                if src_station in self.cell_to_station[self.cell_idx]:
+                    # the source is internal to the cell, so we can solve it with x
+                    #corres_idx = self.stations.index(src_station)
+                    #corres_idx = self.station_rev[src_station]
+                    #src_d_idx = get_delay_idx(corres_idx, dst_station)
+                    #src_d_idx = (self.station_rev[src_station]*self.n_stations) + dst_station
+                    deriv[d_idx] += rate*x[(self.station_rev[src_station]*self.n_stations) + dst_station]
                 else:
                     deriv[d_idx] += rate*self.trajectories[src_station][dst_station](t)
+                    #deriv[d_idx] += rate*self.trajectories[src_station][dst_station][]
             
             deriv[d_idx] -= self.total_rate[j]*min(x[d_idx],1)
 
@@ -112,7 +206,6 @@ def get_traj_fn(traj_t, traj_x):
             return traj_x[0]
         elif t in traj_map:
             return traj_map[t]
-            
         np_idx = np.searchsorted(traj_t, t)
         after_t = traj_t[np_idx]
         if after_t == t or np_idx == 0:

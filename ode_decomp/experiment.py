@@ -15,6 +15,7 @@ import scipy.integrate as spi
 import time
 import copy
 import csv
+import shutil
 
 import sklearn.cluster
 
@@ -24,6 +25,8 @@ import spatial_decomp_strict
 import comp
 from oslo_data import *
 import large_fluid
+
+import pickle
 
 # Parameters
 TIME_POINTS_PER_HOUR = 100
@@ -145,15 +148,16 @@ class ExperimentModel:
 class ExperimentConfig:
     def __init__(self):
         # meta
-        self.repetitions_per_point = 300
+        self.repetitions_per_point = 50
 
         # parameters
-        self.ode_methods             = ["RK45"]
-        self.stations_per_cell       = [5, 10, 15, 20]
+        #self.ode_methods             = ["BDF"]
+        self.ode_methods             = ["RK45", "BDF"]
+        self.stations_per_cell       = [5, 10, 15]
         self.delta_t_ratio           = [0.1, 0.05, 0.025] # setting delta T based on (x/[average rate])
 
         # random configuration
-        self.n_station_range         = [50, 100]
+        self.n_station_range         = [100, 150]
         self.x_location_range        = [0, 1]
         self.y_location_range        = [0, 1]
         self.station_demand_range    = [0, 0.5]
@@ -162,7 +166,7 @@ class ExperimentConfig:
 
         # constants
         self.max_iterations = 100
-        self.iter_tolerance = 0.005
+        self.iter_tolerance = 1
         self.time_end       = 4
         self.min_duration   = 0.01
         self.steps_per_dt   = 100
@@ -273,10 +277,12 @@ class Experiment:
                                     sorted(list(model.cell_to_station[cell_idx])), model.durations, model.demands)
                             for cell_idx in range(model.n_cells)]
 
-        trajectories = [[(lambda t: 0) for j in range(model.n_stations)] for i in range(model.n_stations)]
-
         n_time_points = self.configuration.time_end*TIME_POINTS_PER_HOUR
         time_points = [(i*self.configuration.time_end)/n_time_points for i in range(n_time_points+1)]
+        trajectories = [[np.zeros(n_time_points+1) for j in range(model.n_stations)] for i in range(model.n_stations)]
+        
+        for traj_cell in traj_cells:
+            traj_cell.set_timestep(self.configuration.time_end/n_time_points)
 
         station_vals = []
 
@@ -291,7 +297,7 @@ class Experiment:
             x_iter = np.array([[0 for i in range(n_time_points+1)] for i in range(n_entries)])
 
             for cell_idx in range(model.n_cells):
-                x_t = spi.solve_ivp(traj_cells[cell_idx].dxdt, [0, self.configuration.time_end], starting_vector[cell_idx], 
+                x_t = spi.solve_ivp(traj_cells[cell_idx].dxdt_array, [0, self.configuration.time_end], starting_vector[cell_idx], 
                                         t_eval=time_points, 
                                         method=ode_method, atol=ATOL)
                 x_iter[traj_cells[cell_idx].get_idx(), :] = x_t.y
@@ -302,7 +308,7 @@ class Experiment:
                     
                     for dst_stn in range(model.n_stations):
                         y_idx = traj_cells[cell_idx].get_delay_idx(i, dst_stn)
-                        new_trajectories[src_stn][dst_stn] = spatial_decomp_station.get_traj_fn(x_t.t, x_t.y[y_idx, :])
+                        new_trajectories[src_stn][dst_stn] = x_t.y[y_idx, :]
                 total_bikes += sum(x_t.y[:,-1])
             
             x_res.append(x_iter)
@@ -312,8 +318,6 @@ class Experiment:
             if iter_no > 0:
                 if (abs(x_res[-1] - x_res[-2])).max() < self.configuration.iter_tolerance:
                     break
-                else:
-                    print(f"iter ptg: {(abs(x_res[-1] - x_res[-2])).max()}")
         
 
         toc = time.perf_counter()
@@ -340,7 +344,7 @@ class Experiment:
                                     sorted(list(model.cell_to_station[cell_idx])), model.durations, model.demands)
                             for cell_idx in range(model.n_cells)]
 
-        trajectories = [[(lambda t: 0) for j in range(model.n_stations)] for i in range(model.n_stations)]
+        trajectories = [[0 for j in range(model.n_stations)] for i in range(model.n_stations)]
 
         station_vals = [[] for i in range(model.n_stations)]
 
@@ -367,7 +371,7 @@ class Experiment:
             for cell_idx in range(model.n_cells):
                 traj_cells[cell_idx].set_trajectories(trajectories)
 
-                x_t = spi.solve_ivp(traj_cells[cell_idx].dxdt, [t, t+step_size], current_vector[cell_idx], 
+                x_t = spi.solve_ivp(traj_cells[cell_idx].dxdt_const, [t, t+step_size], current_vector[cell_idx], 
                                         t_eval = sub_time_points,
                                         method=ode_method, atol=ATOL)
 
@@ -385,8 +389,7 @@ class Experiment:
                         last_val = float(x_t.y[y_idx, -1])
                         new_vector[cell_idx][y_idx] = last_val
                         delay_rate = 1/model.durations[src_stn][dst_stn]
-                        traj = spatial_decomp_station.get_traj_fn_lval(last_val)
-                        new_trajectories[src_stn][dst_stn] = traj
+                        new_trajectories[src_stn][dst_stn] = last_val
 
             if x_arr.size == 0:
                 x_arr = x_iter
@@ -402,21 +405,32 @@ class Experiment:
         return [time_points, x_arr, toc-tic]
     
     def write_row(self, row):
-        with open(self.output_folder + "output.csv", "x") as f:
+        with open(self.output_folder + "output.csv", "a") as f:
             writer = csv.writer(f)
             writer.writerow(row)
-
-    def run(self):
+    
+    def create_file(self):
         if not os.path.exists(self.output_folder):
             os.makedirs(self.output_folder)
-        
-        self.write_row(["solution_method", "spatial_simplification", "ode_method", "stations_per_cell", 
-                             "delta_t_ratio", "delta_t", "time", "std_time", "error"])
 
+        with open(self.output_folder + "output.csv", "x") as f:
+            writer = csv.writer(f)
+            writer.writerow(["model", "solution_method", "spatial_simplification", "ode_method", "stations_per_cell", 
+                             "delta_t_ratio", "delta_t", "time", "std_time", "error"])
+    
+    def save_model(self, repetition, model):
+        with open(self.output_folder + "model_{}".format(repetition), "xb") as f:
+            pickle.dump(model, f)
+
+
+    def run(self):
+        self.create_file()
         try:
             for repetition in range(self.configuration.repetitions_per_point):
                 model = self.configuration.generate_model()
                 print(f"Repetition: {repetition}, n stations: {model.n_stations}")
+
+                self.save_model(repetition, model)
 
                 for ode_method in self.configuration.ode_methods:
                     full_res = self.run_full(model, ode_method)
@@ -426,9 +440,11 @@ class Experiment:
 
                         iter_res = self.run_iteration(model, ode_method)
 
-                        error = get_accuracy_score(full_res[0], full_res[1], iter_res[0], res)
+                        error = get_accuracy_score(full_res[0], full_res[1], iter_res[0], iter_res[1])
 
-                        self.write_row(["traj_iteration", "none", ode_method, stations_per_cell, 0, 0, iter_res[2], full_res[2], error])
+                        #print(f"Error: {error}")
+
+                        self.write_row([repetition, "traj_iteration", "none", ode_method, stations_per_cell, 0, 0, iter_res[2], full_res[2], error])
 
                         for delta_t_ratio in self.configuration.delta_t_ratio:
                             delta_t = model.get_dt_from_ratio(delta_t_ratio)
@@ -436,8 +452,8 @@ class Experiment:
 
                             error = get_accuracy_score(full_res[0], full_res[1], disc_res[0], disc_res[1])
 
-                            self.write_row(["discrete_step", "none", ode_method, stations_per_cell, delta_t_ratio, delta_t, iter_res[2], full_res[2], error])
-
+                            self.write_row([repetition, "discrete_step", "none", ode_method, stations_per_cell, delta_t_ratio, delta_t, iter_res[2], full_res[2], error])
+                        
         except:
-            os.remove(self.output_folder + "output.csv")
+            shutil.rmtree(self.output_folder)
             raise

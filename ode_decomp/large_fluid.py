@@ -37,28 +37,28 @@ class LargeFluid:
             for station_idx in range(self.n_stations):
                 start_cell = self.cell_map[station_idx]
 
-                delay_d_idx   = (start_cell*self.n_cells) + end_cell
-                station_d_idx = (self.n_cells**2) + station_idx
+                #delay_d_idx   = (start_cell*self.n_cells) + end_cell
+                #station_d_idx = (self.n_cells**2) + station_idx
 
-                deriv[delay_d_idx] += self.out_demands[station_idx][end_cell]*min(x[station_d_idx],1)
+                deriv[(start_cell*self.n_cells) + end_cell] += self.out_demands[station_idx][end_cell]*min(x[(self.n_cells**2) + station_idx],1)
 
         # output rate of each delay
         for start_cell in range(self.n_cells):
             for end_cell in range(self.n_cells): 
-                delay_d_idx   = (start_cell*self.n_cells) + end_cell
-                deriv[delay_d_idx] -= (1/self.durations[start_cell][end_cell])*x[delay_d_idx]
+                #delay_d_idx   = (start_cell*self.n_cells) + end_cell
+                deriv[(start_cell*self.n_cells) + end_cell] -= (1/self.durations[start_cell][end_cell])*x[(start_cell*self.n_cells) + end_cell]
                 
         # input into each station from each delay
         for station_idx in range(self.n_stations):
-            station_d_idx = (self.n_cells**2) + station_idx
+            #station_d_idx = (self.n_cells**2) + station_idx
             
             end_cell = self.cell_map[station_idx]
 
             for start_cell in range(self.n_cells): 
-                delay_d_idx = (start_cell*self.n_cells) + end_cell
+                #delay_d_idx = (start_cell*self.n_cells) + end_cell
                 rate = self.in_probabilities[start_cell][station_idx]*(1/self.durations[start_cell][end_cell])
 
-                deriv[station_d_idx] += rate*x[delay_d_idx]
-            deriv[station_d_idx] -= sum(self.out_demands[station_idx])*min(x[station_d_idx],1)
+                deriv[(self.n_cells**2) + station_idx] += rate*x[(start_cell*self.n_cells) + end_cell]
+            deriv[(self.n_cells**2) + station_idx] -= sum(self.out_demands[station_idx])*min(x[(self.n_cells**2) + station_idx],1)
 
         return deriv
