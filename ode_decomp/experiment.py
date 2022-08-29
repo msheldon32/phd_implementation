@@ -171,7 +171,7 @@ class ExperimentConfig:
         self.min_duration   = 0.01
         self.steps_per_dt   = 100
 
-        self.seed = 3#1996
+        self.seed = 1996
 
     
     def generate_stations(self):
@@ -452,7 +452,7 @@ class Experiment:
 
                             error = get_accuracy_score(full_res[0], full_res[1], disc_res[0], disc_res[1])
 
-                            self.write_row([repetition, "discrete_step", "none", ode_method, stations_per_cell, delta_t_ratio, delta_t, iter_res[2], full_res[2], error])
+                            self.write_row([repetition, "discrete_step", "none", ode_method, stations_per_cell, delta_t_ratio, delta_t, disc_res[2], full_res[2], error])
                         
         except:
             shutil.rmtree(self.output_folder)
