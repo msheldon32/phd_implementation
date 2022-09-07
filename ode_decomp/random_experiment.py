@@ -1,14 +1,15 @@
 from experiment import *
 import datetime
 import cProfile
+import sys
 
 def exp_main(seed):
-    experiment_config = ExperimentConfig(seed, (50,75), 6)
+    experiment_config = ExperimentConfig(seed, (50,100), 4)
     experiment        = Experiment(experiment_config)
 
     now = datetime.datetime.now()
 
-    experiment.output_folder = f"experiment_{now.year}_{now.month}_{now.day}/"
+    experiment.output_folder = f"experiment_{now.year}_{now.month}_{now.day}_{seed}/"
 
     experiment.run()
 

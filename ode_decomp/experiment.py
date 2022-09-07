@@ -116,17 +116,19 @@ class ExperimentModel:
                     N = 0
                     for srt_stn in self.cell_to_station[start_cell]:
                         for end_stn in self.cell_to_station[end_cell]:
-                            acc += self.durations[srt_stn][end_stn]
-                            total_acc += self.durations[srt_stn][end_stn]
-                            N += 1
-                            total_N += 1
+                            acc += self.durations[srt_stn][end_stn]*self.demands[srt_stn][end_stn]
+                            total_acc += self.durations[srt_stn][end_stn]*self.demands[srt_stn][end_stn]
+                            N += self.demands[srt_stn][end_stn]
+                            total_N += self.demands[srt_stn][end_stn]
                     if N > 0:
                         self.strict_durations[start_cell][end_cell] = acc/N
+
             for start_cell in range(self.n_cells):
                 for end_cell in range(self.n_cells):
                     if self.strict_durations[start_cell][end_cell] == -1:
                         # use the overall average if there's no information available
                         self.strict_durations[start_cell][end_cell] = total_acc/total_N
+
         return self.strict_durations
     
     def get_in_demands_strict(self):
@@ -182,6 +184,12 @@ class ExperimentModel:
 
                 self.strict_in_probs.append(in_probs_cell)
         return self.strict_in_probs
+    
+    def reset_strict(self):
+        self.strict_durations = None
+        self.strict_in_demands = None
+        self.strict_out_demands = None
+        self.strict_in_probs = None
 
 
 class ExperimentConfig:
@@ -192,8 +200,9 @@ class ExperimentConfig:
         # parameters
         self.ode_methods             = ["RK45", "BDF"]
         self.stations_per_cell       = [5, 10, 15]
+        self.stations_per_cell       = [10, 15]
         self.delta_t_ratio           = [0.1, 0.05, 0.025] # setting delta T based on (x/[average rate])
-        self.epsilon                 = [2, 1, 0.5, 0.25]
+        self.epsilon                 = [2, 1, 0.5]
 
         # random configuration
         self.n_station_range         = n_station_range
@@ -268,7 +277,22 @@ def refit_times(base_t, base_y, alt_t):
     t_map = [min(np.searchsorted(base_t, t), len(base_t)-1) for t in alt_t]
     return base_y[:, t_map]
 
-def get_accuracy_score(base_t, base_y, alt_t, alt_y):
+def sum_accuracy(base_t, base_y, alt_t, alt_y):
+    #print(base_y)
+    #print(alt_y)
+    #plt.plot(base_t, base_y[-3,:])
+    #plt.plot(alt_t,alt_y[-3,:])
+    #plt.plot(base_t, base_y[-2,:])
+    #plt.plot(alt_t,alt_y[-2,:])
+    #plt.plot(base_t, base_y[-1,:])
+    #plt.plot(alt_t,alt_y[-1,:])
+    #plt.show()
+    diff = abs(refit_times(base_t, base_y, alt_t) - alt_y)
+    denom = base_y[:,0].sum()*len(alt_t)*2
+    #return (diff/total_val).max()
+    return (diff/denom).sum()
+
+def max_accuracy(base_t, base_y, alt_t, alt_y):
     diff = abs(refit_times(base_t, base_y, alt_t) - alt_y)
     total_val = base_y[:,0].sum()
     return (diff/total_val).max()
@@ -297,18 +321,22 @@ class Experiment:
         print(f"Full Model finished, time: {toc-tic}.")
         return [[x for x in x_t.t], x_t.y, toc-tic]
     
-    def run_iteration(self, model, ode_method):
+    def run_iteration(self, model, ode_method, epsilons):
         print("Running Trajectory-Based Iteration")
+
+        all_res = []
 
         tic = time.perf_counter()
 
         n_entries = model.n_stations**2 + model.n_stations
 
+        cur_epsilon = 0
+
         x_res = []
 
         starting_vector = [
             [0 for i in range(len(model.cell_to_station[cell_idx]) * model.n_stations)] +
-            [x for i, x in enumerate(model.starting_bps) if i in model.cell_to_station[cell_idx]]
+            [x for i, x in enumerate(model.starting_bps) if i in list(model.cell_to_station[cell_idx])]
                 for cell_idx in range(model.n_cells)
         ]
                 
@@ -359,15 +387,22 @@ class Experiment:
             trajectories = new_trajectories
 
             if iter_no > 0:
-                if (abs(x_res[-1] - x_res[-2])).max() < self.configuration.iter_tolerance:
+                error_score = (abs(x_res[-1] - x_res[-2])).max()
+                while cur_epsilon < len(epsilons):
+                    if error_score < epsilons[cur_epsilon]:
+                        toc = time.perf_counter()
+                        all_res.append([time_points, x_res[-1], toc-tic, n_iterations])
+                        cur_epsilon += 1
+                    else:
+                        break
+                
+                if cur_epsilon >= len(epsilons):
                     break
-                print(f"Iteration complete, time: {time.perf_counter()-tic}, error: {(abs(x_res[-1] - x_res[-2])).max() }")
-        
+                print(f"Iteration complete, time: {time.perf_counter()-tic}, error: {error_score}")
 
-        toc = time.perf_counter()
         print(f"Trajectory-Based Iteration finished, time: {toc-tic}.")
 
-        return [time_points, x_res[-1], toc-tic, n_iterations]
+        return all_res
     
     def run_discrete(self, model, ode_method, step_size):
         print("Running Discrete-Step Submodeling")
@@ -380,7 +415,7 @@ class Experiment:
 
         starting_vector = [
             [0 for i in range(len(model.cell_to_station[cell_idx]) * model.n_stations)] +
-            [x for i, x in enumerate(model.starting_bps) if i in model.cell_to_station[cell_idx]]
+            [x for i, x in enumerate(model.starting_bps) if i in list(model.cell_to_station[cell_idx])]
                 for cell_idx in range(model.n_cells)
         ]
                 
@@ -448,6 +483,161 @@ class Experiment:
         print(f"Discrete-Step Submodeling finished, time: {toc-tic}")
         return [time_points, x_arr, toc-tic]
     
+    def run_iteration_strict(self, model, ode_method, epsilons):
+        print("Running Trajectory-Based Iteration")
+
+        all_res = []
+
+        tic = time.perf_counter()
+
+        n_entries = model.n_cells**2 + model.n_stations
+
+        cur_epsilon = 0
+
+        x_res = []
+
+        starting_vector = [
+            [0.0 for i in range(model.n_cells)] +
+            [float(x) for i, x in enumerate(model.starting_bps) if i in list(model.cell_to_station[cell_idx])]
+                for cell_idx in range(model.n_cells)
+        ]
+                
+        traj_cells = [spatial_decomp_strict.StrictTrajCell(cell_idx, sorted(list(model.cell_to_station[cell_idx])), 
+                                    model.get_durations_strict(),
+                                    model.get_in_demands_strict()[cell_idx], 
+                                    model.get_in_probs_strict()[cell_idx], model.get_out_demands_strict()[cell_idx])
+                            for cell_idx in range(model.n_cells)]
+
+        n_time_points = self.configuration.time_end*TIME_POINTS_PER_HOUR
+        time_points = [(i*self.configuration.time_end)/n_time_points for i in range(n_time_points+1)]
+        trajectories = [[np.zeros(n_time_points+1) for j in range(model.n_cells)] for i in range(model.n_cells)]
+        
+        for traj_cell in traj_cells:
+            traj_cell.set_timestep(self.configuration.time_end/n_time_points)
+
+        station_vals = []
+
+        n_iterations = 0
+
+        for iter_no in range(self.configuration.max_iterations):
+            n_iterations = iter_no + 1
+
+            for i,tc in enumerate(traj_cells):
+                tc.set_trajectories(trajectories[i])
+
+            new_trajectories = copy.deepcopy(trajectories)
+
+            total_bikes = 0
+
+            x_iter = np.array([[0.0 for i in range(n_time_points+1)] for i in range(n_entries)])
+
+            for cell_idx in range(model.n_cells):
+                x_t = spi.solve_ivp(traj_cells[cell_idx].dxdt_array, [0, self.configuration.time_end], starting_vector[cell_idx], 
+                                        t_eval=time_points, 
+                                        method=ode_method, atol=ATOL)
+
+                x_iter[traj_cells[cell_idx].get_idx(), :] = x_t.y
+                
+
+                for dst_cell in range(model.n_cells):
+                    new_trajectories[cell_idx][dst_cell] = x_t.y[dst_cell, :]
+                total_bikes += sum(x_t.y[:,-1])
+            
+            x_res.append(x_iter)
+
+            trajectories = new_trajectories
+
+            if iter_no > 0:
+                error_score = (abs(x_res[-1] - x_res[-2])).max()
+                while cur_epsilon < len(epsilons):
+                    if error_score < epsilons[cur_epsilon]:
+                        toc = time.perf_counter()
+                        all_res.append([time_points, x_res[-1], toc-tic, n_iterations])
+                        cur_epsilon += 1
+                    else:
+                        break
+                
+                if cur_epsilon >= len(epsilons):
+                    break
+                print(f"Iteration complete, time: {time.perf_counter()-tic}, error: {error_score}")
+
+        print(f"Trajectory-Based Iteration finished, time: {toc-tic}.")
+
+        return all_res
+    
+    def run_discrete_strict(self, model, ode_method, step_size):
+        print("Running Discrete-Step Submodeling")
+
+        tic = time.perf_counter()
+
+        n_entries = model.n_cells**2 + model.n_stations
+
+        x_arr = np.array([])
+
+        current_vector = [
+            [0.0 for i in range(model.n_cells)] +
+            [float(x) for i, x in enumerate(model.starting_bps) if i in list(model.cell_to_station[cell_idx])]
+                for cell_idx in range(model.n_cells)
+        ]
+                
+        traj_cells = [spatial_decomp_strict.StrictTrajCell(cell_idx, sorted(list(model.cell_to_station[cell_idx])), 
+                                    model.get_durations_strict(),
+                                    model.get_in_demands_strict()[cell_idx], 
+                                    model.get_in_probs_strict()[cell_idx], model.get_out_demands_strict()[cell_idx])
+                            for cell_idx in range(model.n_cells)]
+
+        trajectories = [[0 for j in range(model.n_cells)] for i in range(model.n_cells)]
+
+        station_vals = [[] for i in range(model.n_stations)]
+
+        time_points = []
+
+        t = 0
+
+        
+        while t < self.configuration.time_end:
+            sub_time_points = [t+(i*(step_size/self.configuration.steps_per_dt)) for i in range(self.configuration.steps_per_dt)]
+
+            if len(sub_time_points) == 0:
+                sub_time_points.append(t)
+
+            time_points += sub_time_points
+            
+            new_trajectories = copy.deepcopy(trajectories)
+            new_vector = copy.deepcopy(current_vector)
+
+
+            x_iter = np.array([[0.0 for x in range(len(sub_time_points))] for i in range(n_entries)])
+
+            for cell_idx in range(model.n_cells):
+                traj_cells[cell_idx].set_trajectories(trajectories[cell_idx])
+
+                x_t = spi.solve_ivp(traj_cells[cell_idx].dxdt_const, [t, t+step_size], current_vector[cell_idx], 
+                                        t_eval = sub_time_points,
+                                        method=ode_method, atol=ATOL)
+
+                x_iter[traj_cells[cell_idx].get_idx(), :] = x_t.y
+
+                for i, station_id in enumerate(traj_cells[cell_idx].stations):
+                    sy_idx = model.n_cells+i
+                    current_vector[cell_idx][sy_idx] = float(x_t.y[sy_idx, -1])
+
+                for dst_cell in range(model.n_cells):
+                    last_val = float(x_t.y[dst_cell, -1])
+                    new_trajectories[cell_idx][dst_cell] = last_val
+
+            if x_arr.size == 0:
+                x_arr = x_iter
+            else:
+                x_arr = np.concatenate([x_arr, x_iter], axis=1)
+
+            trajectories = new_trajectories
+
+            t += step_size
+        toc = time.perf_counter()
+        print(f"Discrete-Step Submodeling finished, time: {toc-tic}")
+        return [time_points, x_arr, toc-tic]
+    
     def write_row(self, row):
         with open(self.output_folder + "output.csv", "a") as f:
             writer = csv.writer(f)
@@ -460,7 +650,7 @@ class Experiment:
         with open(self.output_folder + "output.csv", "x") as f:
             writer = csv.writer(f)
             writer.writerow(["model", "solution_method", "spatial_simplification", "ode_method", "stations_per_cell", 
-                             "delta_t_ratio_or_epsilon", "delta_t", "time", "std_time", "error"])
+                             "delta_t_ratio_or_epsilon", "delta_t_or_n_iterations", "time", "std_time", "error_sum_metric", "error_max_metric"])
     
     def save_model(self, repetition, model):
         with open(self.output_folder + "model_{}".format(repetition), "xb") as f:
@@ -472,6 +662,7 @@ class Experiment:
         try:
             for repetition in range(self.configuration.repetitions_per_point):
                 model = self.configuration.generate_model()
+                n_stations = model.n_stations
                 print(f"Repetition: {repetition}, n stations: {model.n_stations}")
 
                 self.save_model(repetition, model)
@@ -479,24 +670,38 @@ class Experiment:
                 for ode_method in self.configuration.ode_methods:
                     full_res = self.run_full(model, ode_method)
 
-                    model.generate_cells(stations_per_cell)
 
                     for stations_per_cell in self.configuration.stations_per_cell:
-                        for epsilon in self.configuration.epsilon:
-                            self.configuration.iter_tolerance = epsilon
-                            iter_res = self.run_iteration(model, ode_method)
+                        model.reset_strict()
+                        model.generate_cells(stations_per_cell)
+                        
+                        strict_res = self.run_iteration_strict(model, ode_method, self.configuration.epsilon)
 
-                            error = get_accuracy_score(full_res[0], full_res[1], iter_res[0], iter_res[1])
+                        for epsilon, iter_res in zip(self.configuration.epsilon, strict_res):
+                            sum_error = sum_accuracy(full_res[0], full_res[1][-model.n_stations:,:], iter_res[0], iter_res[1][-model.n_stations:,:])
+                            max_error = max_accuracy(full_res[0], full_res[1][-model.n_stations:,:], iter_res[0], iter_res[1][-model.n_stations:,:])
+                            self.write_row([repetition, n_stations, "traj_iteration", "strict", ode_method, stations_per_cell, epsilon, iter_res[3], iter_res[2], full_res[2], sum_error, max_error])
 
-                            self.write_row([repetition, "traj_iteration", "none", ode_method, stations_per_cell, epsilon, 0, iter_res[2], full_res[2], error])
+                        all_res = self.run_iteration(model, ode_method, self.configuration.epsilon)
+
+                        for epsilon, iter_res in zip(self.configuration.epsilon, all_res):
+                            sum_error = sum_accuracy(full_res[0], full_res[1][-model.n_stations:,:], iter_res[0], iter_res[1][-model.n_stations:,:])
+                            max_error = max_accuracy(full_res[0], full_res[1][-model.n_stations:,:], iter_res[0], iter_res[1][-model.n_stations:,:])
+                            self.write_row([repetition, n_stations, "traj_iteration", "none", ode_method, stations_per_cell, epsilon, iter_res[3], iter_res[2], full_res[2], sum_error, max_error])
+
 
                         for delta_t_ratio in self.configuration.delta_t_ratio:
                             delta_t = model.get_dt_from_ratio(delta_t_ratio)
+
+                            disc_res_strict = self.run_discrete_strict(model, ode_method, delta_t)
+                            sum_error = sum_accuracy(full_res[0], full_res[1][-model.n_stations:,:], disc_res_strict[0], disc_res_strict[1][-model.n_stations:,:])
+                            max_error = max_accuracy(full_res[0], full_res[1][-model.n_stations:,:], disc_res_strict[0], disc_res_strict[1][-model.n_stations:,:])
+                            self.write_row([repetition, n_stations, "discrete_step", "strict", ode_method, stations_per_cell, delta_t_ratio, delta_t, disc_res_strict[2], full_res[2], sum_error, max_error])
+
                             disc_res = self.run_discrete(model, ode_method, delta_t)
-
-                            error = get_accuracy_score(full_res[0], full_res[1], disc_res[0], disc_res[1])
-
-                            self.write_row([repetition, "discrete_step", "none", ode_method, stations_per_cell, delta_t_ratio, delta_t, disc_res[2], full_res[2], error])
+                            sum_error = sum_accuracy(full_res[0], full_res[1][-model.n_stations:,:], disc_res[0], disc_res[1][-model.n_stations:,:])
+                            max_error = max_accuracy(full_res[0], full_res[1][-model.n_stations:,:], disc_res[0], disc_res[1][-model.n_stations:,:])
+                            self.write_row([repetition, n_stations, "discrete_step", "none", ode_method, stations_per_cell, delta_t_ratio, delta_t, disc_res[2], full_res[2], sum_error, max_error])
                         
         except:
             shutil.rmtree(self.output_folder)
