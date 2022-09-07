@@ -131,33 +131,72 @@ class ExperimentModel:
     
     def get_in_demands_strict(self):
         if not self.strict_in_demands:
-            raise Exception("Not implemented")
+            self.strict_in_demands = []
+            # for each cell,
+            # find the total_demand from each cell to each station
+            for cell_idx in range(self.n_cells):
+                in_demands_cell = [[0 for i in range(len(self.cell_to_station[cell_idx]))] for j in range(self.n_cells)]
+                for start_cell in range(self.n_cells):
+                    for end_idx, end_stn in enumerate(self.cell_to_station[cell_idx]):
+                        total_demand = 0
+                        for srt_stn in self.cell_to_station[start_cell]:
+                            total_demand += self.demands[srt_stn][end_stn]
+                        in_demands_cell[start_cell][end_idx] = total_demand
+                self.strict_in_demands.append(in_demands_cell)
         return self.strict_in_demands
     
     def get_out_demands_strict(self):
         if not self.strict_out_demands:
-            raise Exception("Not implemented")
+            self.strict_out_demands = []
+            # for each cell,
+            # find the total_demand from each station to each cell
+            for cell_idx in range(self.n_cells):
+                out_demands_cell = [[0 for i in range(self.n_cells)] for j in range(len(self.cell_to_station[cell_idx]))]
+                for end_cell in range(self.n_cells):
+                    for srt_idx, srt_stn in enumerate(self.cell_to_station[cell_idx]):
+                        total_demand = 0
+                        for end_stn in self.cell_to_station[end_cell]:
+                            total_demand += self.demands[srt_stn][end_stn]
+                        out_demands_cell[srt_idx][end_cell] = total_demand
+                self.strict_out_demands.append(out_demands_cell)
         return self.strict_out_demands
     
     def get_in_probs_strict(self):
         if not self.strict_in_probs:
-            raise Exception("Not implemented")
+            self.strict_in_probs = []
+
+            in_demands = self.get_in_demands_strict()
+
+            for cell_idx in range(self.n_cells):
+                in_probs_cell = [[0 for i in range(len(self.cell_to_station[cell_idx]))] for j in range(self.n_cells)]
+
+                for start_cell in range(self.n_cells):
+                    total_demand = sum(in_demands[cell_idx][start_cell])
+
+                    if total_demand == 0:
+                        in_probs_cell[start_cell][0] = 1
+                        continue
+
+                    for end_idx, end_stn in enumerate(self.cell_to_station[cell_idx]):
+                        in_probs_cell[start_cell][end_idx] = in_demands[cell_idx][start_cell][end_idx] / total_demand
+
+                self.strict_in_probs.append(in_probs_cell)
         return self.strict_in_probs
 
 
 class ExperimentConfig:
-    def __init__(self):
+    def __init__(self, n_station_range=(100, 150)):
         # meta
         self.repetitions_per_point = 50
 
         # parameters
-        #self.ode_methods             = ["BDF"]
         self.ode_methods             = ["RK45", "BDF"]
         self.stations_per_cell       = [5, 10, 15]
         self.delta_t_ratio           = [0.1, 0.05, 0.025] # setting delta T based on (x/[average rate])
+        self.epsilon                 = [8, 4, 2, 1, 0.5, 0.25]
 
         # random configuration
-        self.n_station_range         = [100, 150]
+        self.n_station_range         = n_station_range
         self.x_location_range        = [0, 1]
         self.y_location_range        = [0, 1]
         self.station_demand_range    = [0, 0.5]
@@ -167,7 +206,7 @@ class ExperimentConfig:
         # constants
         self.max_iterations = 100
         self.iter_tolerance = 1
-        self.time_end       = 4
+        self.time_end       = 1#4
         self.min_duration   = 0.01
         self.steps_per_dt   = 100
 
@@ -286,7 +325,11 @@ class Experiment:
 
         station_vals = []
 
+        n_iterations = 0
+
         for iter_no in range(self.configuration.max_iterations):
+            n_iterations = iter_no + 1
+
             for tc in traj_cells:
                 tc.set_trajectories(trajectories)
 
@@ -318,12 +361,13 @@ class Experiment:
             if iter_no > 0:
                 if (abs(x_res[-1] - x_res[-2])).max() < self.configuration.iter_tolerance:
                     break
+                print(f"Iteration complete, time: {time.perf_counter()-tic}, error: {(abs(x_res[-1] - x_res[-2])).max() }")
         
 
         toc = time.perf_counter()
         print(f"Trajectory-Based Iteration finished, time: {toc-tic}.")
 
-        return [time_points, x_res, toc-tic]
+        return [time_points, x_res, toc-tic, n_iterations]
     
     def run_discrete(self, model, ode_method, step_size):
         print("Running Discrete-Step Submodeling")
@@ -418,6 +462,15 @@ class Experiment:
             writer.writerow(["model", "solution_method", "spatial_simplification", "ode_method", "stations_per_cell", 
                              "delta_t_ratio", "delta_t", "time", "std_time", "error"])
     
+    def create_file_iter(self):
+        if not os.path.exists(self.output_folder):
+            os.makedirs(self.output_folder)
+
+        with open(self.output_folder + "output.csv", "x") as f:
+            writer = csv.writer(f)
+            writer.writerow(["model", "solution_method", "spatial_simplification", "ode_method", "stations_per_cell", 
+                             "epsilon", "n_iterations", "time", "std_time", "error"])
+    
     def save_model(self, repetition, model):
         with open(self.output_folder + "model_{}".format(repetition), "xb") as f:
             pickle.dump(model, f)
@@ -454,6 +507,31 @@ class Experiment:
 
                             self.write_row([repetition, "discrete_step", "none", ode_method, stations_per_cell, delta_t_ratio, delta_t, disc_res[2], full_res[2], error])
                         
+        except:
+            shutil.rmtree(self.output_folder)
+            raise
+
+    def run_traj (self):
+        self.create_file_iter()
+        try:
+            for repetition in range(self.configuration.repetitions_per_point):
+                model = self.configuration.generate_model()
+                print(f"Repetition: {repetition}, n stations: {model.n_stations}")
+
+                self.save_model(repetition, model)
+
+                for ode_method in self.configuration.ode_methods:
+                    full_res = self.run_full(model, ode_method)
+
+                    for epsilon in self.configuration.epsilon:
+                        model.generate_cells(5)
+                        self.configuration.iter_tolerance = epsilon
+
+                        iter_res = self.run_iteration(model, ode_method)
+
+                        error = get_accuracy_score(full_res[0], full_res[1], iter_res[0], iter_res[1])
+
+                        self.write_row([repetition, "traj_iteration", "none", ode_method, epsilon, iter_res[3], iter_res[2], full_res[2], error])
         except:
             shutil.rmtree(self.output_folder)
             raise
