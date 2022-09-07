@@ -2,8 +2,8 @@ from experiment import *
 import datetime
 import cProfile
 
-def exp_main():
-    experiment_config = ExperimentConfig()
+def exp_main(seed):
+    experiment_config = ExperimentConfig(seed, (50,75), 6)
     experiment        = Experiment(experiment_config)
 
     now = datetime.datetime.now()
@@ -14,4 +14,4 @@ def exp_main():
 
 if __name__ == "__main__":
     #cProfile.run("exp_main()")
-    exp_main()
+    exp_main(int(sys.argv[1]))

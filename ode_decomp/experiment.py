@@ -185,7 +185,7 @@ class ExperimentModel:
 
 
 class ExperimentConfig:
-    def __init__(self, n_station_range=(100, 150)):
+    def __init__(self, seed, n_station_range, time_end):
         # meta
         self.repetitions_per_point = 50
 
@@ -193,7 +193,7 @@ class ExperimentConfig:
         self.ode_methods             = ["RK45", "BDF"]
         self.stations_per_cell       = [5, 10, 15]
         self.delta_t_ratio           = [0.1, 0.05, 0.025] # setting delta T based on (x/[average rate])
-        self.epsilon                 = [8, 4, 2, 1, 0.5, 0.25]
+        self.epsilon                 = [2, 1, 0.5, 0.25]
 
         # random configuration
         self.n_station_range         = n_station_range
@@ -206,11 +206,11 @@ class ExperimentConfig:
         # constants
         self.max_iterations = 100
         self.iter_tolerance = 1
-        self.time_end       = 1#4
+        self.time_end       = time_end
         self.min_duration   = 0.01
         self.steps_per_dt   = 100
 
-        self.seed = 1996
+        self.seed = seed
 
     
     def generate_stations(self):
@@ -249,7 +249,7 @@ class ExperimentConfig:
     def generate_bps(self, stations):
         n_stations = len(stations)
 
-        bps = [generate_dis_uniform(self.bps_range) for i in range(n_stations)]
+        bps = [float(generate_dis_uniform(self.bps_range)) for i in range(n_stations)]
         return bps
 
     def generate_model(self):
@@ -337,7 +337,7 @@ class Experiment:
 
             total_bikes = 0
 
-            x_iter = np.array([[0 for i in range(n_time_points+1)] for i in range(n_entries)])
+            x_iter = np.array([[0.0 for i in range(n_time_points+1)] for i in range(n_entries)])
 
             for cell_idx in range(model.n_cells):
                 x_t = spi.solve_ivp(traj_cells[cell_idx].dxdt_array, [0, self.configuration.time_end], starting_vector[cell_idx], 
@@ -367,7 +367,7 @@ class Experiment:
         toc = time.perf_counter()
         print(f"Trajectory-Based Iteration finished, time: {toc-tic}.")
 
-        return [time_points, x_res, toc-tic, n_iterations]
+        return [time_points, x_res[-1], toc-tic, n_iterations]
     
     def run_discrete(self, model, ode_method, step_size):
         print("Running Discrete-Step Submodeling")
@@ -409,7 +409,7 @@ class Experiment:
             new_vector = copy.deepcopy(current_vector)
 
 
-            x_iter = np.array([[0 for x in range(len(sub_time_points))] for i in range(n_entries)])
+            x_iter = np.array([[0.0 for x in range(len(sub_time_points))] for i in range(n_entries)])
             
 
             for cell_idx in range(model.n_cells):
@@ -460,16 +460,7 @@ class Experiment:
         with open(self.output_folder + "output.csv", "x") as f:
             writer = csv.writer(f)
             writer.writerow(["model", "solution_method", "spatial_simplification", "ode_method", "stations_per_cell", 
-                             "delta_t_ratio", "delta_t", "time", "std_time", "error"])
-    
-    def create_file_iter(self):
-        if not os.path.exists(self.output_folder):
-            os.makedirs(self.output_folder)
-
-        with open(self.output_folder + "output.csv", "x") as f:
-            writer = csv.writer(f)
-            writer.writerow(["model", "solution_method", "spatial_simplification", "ode_method", "stations_per_cell", 
-                             "epsilon", "n_iterations", "time", "std_time", "error"])
+                             "delta_t_ratio_or_epsilon", "delta_t", "time", "std_time", "error"])
     
     def save_model(self, repetition, model):
         with open(self.output_folder + "model_{}".format(repetition), "xb") as f:
@@ -488,16 +479,16 @@ class Experiment:
                 for ode_method in self.configuration.ode_methods:
                     full_res = self.run_full(model, ode_method)
 
+                    model.generate_cells(stations_per_cell)
+
                     for stations_per_cell in self.configuration.stations_per_cell:
-                        model.generate_cells(stations_per_cell)
+                        for epsilon in self.configuration.epsilon:
+                            self.configuration.iter_tolerance = epsilon
+                            iter_res = self.run_iteration(model, ode_method)
 
-                        iter_res = self.run_iteration(model, ode_method)
+                            error = get_accuracy_score(full_res[0], full_res[1], iter_res[0], iter_res[1])
 
-                        error = get_accuracy_score(full_res[0], full_res[1], iter_res[0], iter_res[1])
-
-                        #print(f"Error: {error}")
-
-                        self.write_row([repetition, "traj_iteration", "none", ode_method, stations_per_cell, 0, 0, iter_res[2], full_res[2], error])
+                            self.write_row([repetition, "traj_iteration", "none", ode_method, stations_per_cell, epsilon, 0, iter_res[2], full_res[2], error])
 
                         for delta_t_ratio in self.configuration.delta_t_ratio:
                             delta_t = model.get_dt_from_ratio(delta_t_ratio)
@@ -507,31 +498,6 @@ class Experiment:
 
                             self.write_row([repetition, "discrete_step", "none", ode_method, stations_per_cell, delta_t_ratio, delta_t, disc_res[2], full_res[2], error])
                         
-        except:
-            shutil.rmtree(self.output_folder)
-            raise
-
-    def run_traj (self):
-        self.create_file_iter()
-        try:
-            for repetition in range(self.configuration.repetitions_per_point):
-                model = self.configuration.generate_model()
-                print(f"Repetition: {repetition}, n stations: {model.n_stations}")
-
-                self.save_model(repetition, model)
-
-                for ode_method in self.configuration.ode_methods:
-                    full_res = self.run_full(model, ode_method)
-
-                    for epsilon in self.configuration.epsilon:
-                        model.generate_cells(5)
-                        self.configuration.iter_tolerance = epsilon
-
-                        iter_res = self.run_iteration(model, ode_method)
-
-                        error = get_accuracy_score(full_res[0], full_res[1], iter_res[0], iter_res[1])
-
-                        self.write_row([repetition, "traj_iteration", "none", ode_method, epsilon, iter_res[3], iter_res[2], full_res[2], error])
         except:
             shutil.rmtree(self.output_folder)
             raise
