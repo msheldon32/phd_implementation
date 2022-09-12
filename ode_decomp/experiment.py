@@ -200,7 +200,6 @@ class ExperimentConfig:
         # parameters
         self.ode_methods             = ["RK45", "BDF"]
         self.stations_per_cell       = [5, 10, 15]
-        self.stations_per_cell       = [10, 15]
         self.delta_t_ratio           = [0.1, 0.05, 0.025] # setting delta T based on (x/[average rate])
         self.epsilon                 = [2, 1, 0.5]
 
@@ -251,6 +250,8 @@ class ExperimentConfig:
 
         for i, src_stn in enumerate(stations):
             for j, dst_stn in enumerate(stations):
+                distance = euclidian_distance(src_stn, dst_stn)
+                eps = generate_gaussian(self.noise_moments_distance)
                 demands[i][j] = generate_uniform(self.station_demand_range)
         
         return demands
@@ -278,15 +279,16 @@ def refit_times(base_t, base_y, alt_t):
     return base_y[:, t_map]
 
 def sum_accuracy(base_t, base_y, alt_t, alt_y):
+    #HOOK
     #print(base_y)
     #print(alt_y)
-    #plt.plot(base_t, base_y[-3,:])
-    #plt.plot(alt_t,alt_y[-3,:])
+    plt.plot(base_t, base_y[0,:])
+    plt.plot(alt_t,alt_y[0,:])
     #plt.plot(base_t, base_y[-2,:])
     #plt.plot(alt_t,alt_y[-2,:])
-    #plt.plot(base_t, base_y[-1,:])
-    #plt.plot(alt_t,alt_y[-1,:])
-    #plt.show()
+    plt.plot(base_t, base_y[-1,:])
+    plt.plot(alt_t,alt_y[-1,:])
+    plt.show()
     diff = abs(refit_times(base_t, base_y, alt_t) - alt_y)
     denom = base_y[:,0].sum()*len(alt_t)*2
     #return (diff/total_val).max()
@@ -320,8 +322,10 @@ class Experiment:
         toc = time.perf_counter()
         print(f"Full Model finished, time: {toc-tic}.")
         return [[x for x in x_t.t], x_t.y, toc-tic]
+
+
     
-    def run_iteration(self, model, ode_method, epsilons):
+    def run_iteration(self, model, ode_method, epsilons, h_analysis=False):
         print("Running Trajectory-Based Iteration")
 
         all_res = []
@@ -333,6 +337,9 @@ class Experiment:
         cur_epsilon = 0
 
         x_res = []
+
+        h_cells = {}
+        h_time  = 0
 
         starting_vector = [
             [0 for i in range(len(model.cell_to_station[cell_idx]) * model.n_stations)] +
@@ -355,6 +362,11 @@ class Experiment:
 
         n_iterations = 0
 
+        non_h_idx = []
+
+        if h_analysis:
+            non_h_idx = np.array([True for i in range(n_entries)])
+
         for iter_no in range(self.configuration.max_iterations):
             n_iterations = iter_no + 1
 
@@ -363,15 +375,16 @@ class Experiment:
 
             new_trajectories = copy.deepcopy(trajectories)
 
-            total_bikes = 0
-
             x_iter = np.array([[0.0 for i in range(n_time_points+1)] for i in range(n_entries)])
 
             for cell_idx in range(model.n_cells):
+                if h_analysis and cell_idx in h_cells:
+                    x_iter[traj_cells[cell_idx].get_idx(), :] = 0.0
+                    continue
+
                 x_t = spi.solve_ivp(traj_cells[cell_idx].dxdt_array, [0, self.configuration.time_end], starting_vector[cell_idx], 
                                         t_eval=time_points, 
                                         method=ode_method, atol=ATOL)
-                x_iter[traj_cells[cell_idx].get_idx(), :] = x_t.y
                 
 
                 for i, src_stn in enumerate(traj_cells[cell_idx].stations):
@@ -380,25 +393,71 @@ class Experiment:
                     for dst_stn in range(model.n_stations):
                         y_idx = traj_cells[cell_idx].get_delay_idx(i, dst_stn)
                         new_trajectories[src_stn][dst_stn] = x_t.y[y_idx, :]
-                total_bikes += sum(x_t.y[:,-1])
+
+                if h_analysis:
+                    s_ct = traj_cells[cell_idx].s_in_cell
+                    
+                    if not (x_t.y[-s_ct:, :] < 1).any():
+                        print(f"added h cell {cell_idx}")
+
+                        h_cells[cell_idx] = iter_no
+                        x_res[-1][traj_cells[cell_idx].get_idx(), :] = 0.0
+                        x_iter[traj_cells[cell_idx].get_idx(), :] = 0.0
+
+                        non_h_idx[traj_cells[cell_idx].get_idx()] = False
+
+                        continue
+                    if not (x_t.y[-traj_cells[cell_idx].s_in_cell:, :] > 1).any():
+                        print(f"Found l cell {cell_idx}")
+                
+                x_iter[traj_cells[cell_idx].get_idx(), :] = x_t.y
             
             x_res.append(x_iter)
 
             trajectories = new_trajectories
 
             if iter_no > 0:
-                error_score = (abs(x_res[-1] - x_res[-2])).max()
+                if h_analysis:
+                    error_score = (abs(x_res[-1][non_h_idx,:] - x_res[-2][non_h_idx,:])).max()
+                else:
+                    error_score = (abs(x_res[-1] - x_res[-2])).max()
+
+                h_rec = 0
+
+                if h_analysis and cur_epsilon < len(epsilons):
+                    h_tic  = time.perf_counter()
+
+                    # reconcile all h cells
+                    for cell_idx in h_cells.keys():
+                        x_t = spi.solve_ivp(traj_cells[cell_idx].dxdt_array, [0, self.configuration.time_end], starting_vector[cell_idx], 
+                                                t_eval=time_points, 
+                                                method=ode_method, atol=ATOL)
+
+                        x_iter[traj_cells[cell_idx].get_idx(), :] = x_t.y
+                        
+
+                        for i, src_stn in enumerate(traj_cells[cell_idx].stations):
+                            sy_idx = traj_cells[cell_idx].get_station_idx(i)
+                            
+                            for dst_stn in range(model.n_stations):
+                                y_idx = traj_cells[cell_idx].get_delay_idx(i, dst_stn)
+                                new_trajectories[src_stn][dst_stn] = x_t.y[y_idx, :]
+
+                    h_toc  = time.perf_counter()
+                    h_rec  = h_toc - h_tic
+                    h_time += h_rec
+
                 while cur_epsilon < len(epsilons):
                     if error_score < epsilons[cur_epsilon]:
                         toc = time.perf_counter()
-                        all_res.append([time_points, x_res[-1], toc-tic, n_iterations])
+                        all_res.append([time_points, x_res[-1], toc-tic-h_time + h_rec, n_iterations])
                         cur_epsilon += 1
                     else:
                         break
                 
+                print(f"Iteration complete, time: {time.perf_counter()-tic}, error: {error_score}")
                 if cur_epsilon >= len(epsilons):
                     break
-                print(f"Iteration complete, time: {time.perf_counter()-tic}, error: {error_score}")
 
         print(f"Trajectory-Based Iteration finished, time: {toc-tic}.")
 
@@ -675,18 +734,26 @@ class Experiment:
                         model.reset_strict()
                         model.generate_cells(stations_per_cell)
                         
+                        h_res = self.run_iteration(model, ode_method, self.configuration.epsilon, h_analysis=True)
+
+                        #for epsilon, iter_res in zip(self.configuration.epsilon, h_res):
+                        #    sum_error = sum_accuracy(full_res[0], full_res[1][(-model.n_stations+1):,:], iter_res[0], iter_res[1][(-model.n_stations+1):,:])
+                        #    max_error = max_accuracy(full_res[0], full_res[1][(-model.n_stations+1):,:], iter_res[0], iter_res[1][(-model.n_stations+1):,:])
+                        #    self.write_row([repetition, n_stations, "traj_iteration", "h", ode_method, stations_per_cell, epsilon, iter_res[3], iter_res[2], full_res[2], sum_error, max_error])
+                        #continue # HOOK
+                        
                         strict_res = self.run_iteration_strict(model, ode_method, self.configuration.epsilon)
 
                         for epsilon, iter_res in zip(self.configuration.epsilon, strict_res):
-                            sum_error = sum_accuracy(full_res[0], full_res[1][-model.n_stations:,:], iter_res[0], iter_res[1][-model.n_stations:,:])
-                            max_error = max_accuracy(full_res[0], full_res[1][-model.n_stations:,:], iter_res[0], iter_res[1][-model.n_stations:,:])
+                            sum_error = sum_accuracy(full_res[0], full_res[1][(-model.n_stations+1):,:], iter_res[0], iter_res[1][(-model.n_stations+1):,:])
+                            max_error = max_accuracy(full_res[0], full_res[1][(-model.n_stations+1):,:], iter_res[0], iter_res[1][(-model.n_stations+1):,:])
                             self.write_row([repetition, n_stations, "traj_iteration", "strict", ode_method, stations_per_cell, epsilon, iter_res[3], iter_res[2], full_res[2], sum_error, max_error])
 
                         all_res = self.run_iteration(model, ode_method, self.configuration.epsilon)
 
                         for epsilon, iter_res in zip(self.configuration.epsilon, all_res):
-                            sum_error = sum_accuracy(full_res[0], full_res[1][-model.n_stations:,:], iter_res[0], iter_res[1][-model.n_stations:,:])
-                            max_error = max_accuracy(full_res[0], full_res[1][-model.n_stations:,:], iter_res[0], iter_res[1][-model.n_stations:,:])
+                            sum_error = sum_accuracy(full_res[0], full_res[1][(-model.n_stations+1):,:], iter_res[0], iter_res[1][(-model.n_stations+1):,:])
+                            max_error = max_accuracy(full_res[0], full_res[1][(-model.n_stations+1):,:], iter_res[0], iter_res[1][(-model.n_stations+1):,:])
                             self.write_row([repetition, n_stations, "traj_iteration", "none", ode_method, stations_per_cell, epsilon, iter_res[3], iter_res[2], full_res[2], sum_error, max_error])
 
 
@@ -694,13 +761,13 @@ class Experiment:
                             delta_t = model.get_dt_from_ratio(delta_t_ratio)
 
                             disc_res_strict = self.run_discrete_strict(model, ode_method, delta_t)
-                            sum_error = sum_accuracy(full_res[0], full_res[1][-model.n_stations:,:], disc_res_strict[0], disc_res_strict[1][-model.n_stations:,:])
-                            max_error = max_accuracy(full_res[0], full_res[1][-model.n_stations:,:], disc_res_strict[0], disc_res_strict[1][-model.n_stations:,:])
+                            sum_error = sum_accuracy(full_res[0], full_res[1][(-model.n_stations+1):,:], disc_res_strict[0], disc_res_strict[1][(-model.n_stations+1):,:])
+                            max_error = max_accuracy(full_res[0], full_res[1][(-model.n_stations+1):,:], disc_res_strict[0], disc_res_strict[1][(-model.n_stations+1):,:])
                             self.write_row([repetition, n_stations, "discrete_step", "strict", ode_method, stations_per_cell, delta_t_ratio, delta_t, disc_res_strict[2], full_res[2], sum_error, max_error])
 
                             disc_res = self.run_discrete(model, ode_method, delta_t)
-                            sum_error = sum_accuracy(full_res[0], full_res[1][-model.n_stations:,:], disc_res[0], disc_res[1][-model.n_stations:,:])
-                            max_error = max_accuracy(full_res[0], full_res[1][-model.n_stations:,:], disc_res[0], disc_res[1][-model.n_stations:,:])
+                            sum_error = sum_accuracy(full_res[0], full_res[1][(-model.n_stations+1):,:], disc_res[0], disc_res[1][(-model.n_stations+1):,:])
+                            max_error = max_accuracy(full_res[0], full_res[1][(-model.n_stations+1):,:], disc_res[0], disc_res[1][(-model.n_stations+1):,:])
                             self.write_row([repetition, n_stations, "discrete_step", "none", ode_method, stations_per_cell, delta_t_ratio, delta_t, disc_res[2], full_res[2], sum_error, max_error])
                         
         except:
