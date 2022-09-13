@@ -21,7 +21,7 @@ class StrictTrajCell:
         self.durations = durations
         self.in_probabilities = in_probabilities
         self.out_demands = out_demands
-    
+
         self.trajectories = []
 
         self.tstep = 0
@@ -152,40 +152,31 @@ class StrictTrajCellCox:
         self.mu = mu
         self.phi = phi
 
-        self.n_phases = [len(self.mu[i][self.cell_idx]) for i in range(self.n_cells)]
+        self.n_phases_in = [len(self.mu[i][self.cell_idx]) for i in range(self.n_cells)]
+        self.n_phases_out = [len(self.mu[self.cell_idx][i]) for i in range(self.n_cells)]
 
         self.x_idx = [0 for i in range(self.n_cells)]
+        self.x_in_idx = [0 for i in range(self.n_cells)]
         self.station_offset = 0
+        self.in_offset = 0
+    
 
         for end_cell in range(self.n_cells):
-            self.x_idx[end_cell] = self.x_idx
-            self.station_offset += self.n_phases[end_cell]
+            self.x_idx[end_cell] = self.station_offset
+            self.station_offset += self.n_phases_out[end_cell]
+
+            self.x_in_idx[end_cell] = self.in_offset
+            self.in_offset += self.n_phases_in[end_cell]
 
         self.in_probabilities = in_probabilities
         self.out_demands = out_demands
-
-        if in_demands != None:
-            total_rate_in  = 0
-            total_rate_out = 0
-            for start_cell in range(self.n_cells):
-                if start_cell == cell_idx:
-                    continue
-                total_rate_in += in_demands[start_cell][cell_idx]
-
-            for end_cell in range(self.n_cells):
-                if start_cell == cell_idx:
-                    continue
-                total_rate_out += in_demands[cell_idx][end_cell]
-            if total_rate_out == 0:
-                self.io_rate = 1
-            else:
-                self.io_rate = total_rate_in/total_rate_out
-            self.first_iteration = True
-        else:
-            self.io_rate = 1
-            self.first_iteration = False
     
         self.trajectories = []
+
+        self.tstep = 0
+
+    def set_timestep(self, tstep):
+        self.tstep = tstep
     
     def set_trajectories(self, trajectories):
         self.trajectories = trajectories
@@ -200,23 +191,80 @@ class StrictTrajCellCox:
                 s_idx = j + self.n_cells
                 deriv[s_idx] += self.out_demands[j][end_cell]*min(x[s_idx],1)
             
-            for phase in range(self.n_phases[end_cell]):
-                deriv[d_idx + phase] -= self.mu[self.cell_idx][end_cell] * x[d_idx+phase]
-
-        ################
-            
+            for phase in range(self.n_phases_out[end_cell]):
+                deriv[d_idx + phase] -= self.mu[self.cell_idx][end_cell][phase] * x[d_idx+phase]
+        
         for j, station_idx in enumerate(self.stations):
-            #d_idx = j + self.n_cells
-
             station_demand = sum(self.out_demands[j])
 
-            for i in range(self.n_cells):                    
-                rate = self.in_probabilities[i][j]*(1/self.durations[i][self.cell_idx])
-                if i == self.cell_idx:
-                    deriv[j + self.n_cells] += rate*x[self.cell_idx]
-                else:
-                    deriv[j + self.n_cells] += rate*self.trajectories[i](t)
-            deriv[j + self.n_cells] -= station_demand*min(x[j + self.n_cells],1)
+            deriv[j + self.station_offset] -= station_demand*min(x[j + self.station_offset],1)
+
+            for start_cell in range(self.n_cells):
+                for phase in range(self.n_phases_in[start_cell]):
+                    rate = self.in_probabilities[start_cell][j]*self.mu[start_cell][self.cell_idx][phase]*self.phi[start_cell][self.cell_idx][phase]
+                    if start_cell == self.cell_idx:
+                        deriv[j + self.station_offset] += rate*x[self.x_idx[self.cell_idx]+phase]
+                    else:
+                        deriv[j + self.station_offset] += rate*self.trajectories[self.x_in_idx[self.cell_idx]+phase](t)
+
+        return deriv
+    
+    def dxdt_const(self, t, x):
+        deriv = [0 for i in range(self.station_offset+self.s_in_cell)]
+        
+        for end_cell in range(self.n_cells):
+            d_idx = self.x_idx[end_cell]
+
+            for j, station_idx in enumerate(self.stations):
+                s_idx = j + self.n_cells
+                deriv[s_idx] += self.out_demands[j][end_cell]*min(x[s_idx],1)
+            
+            for phase in range(self.n_phases_out[end_cell]):
+                deriv[d_idx + phase] -= self.mu[self.cell_idx][end_cell][phase] * x[d_idx+phase]
+        
+        for j, station_idx in enumerate(self.stations):
+            station_demand = sum(self.out_demands[j])
+
+            deriv[j + self.station_offset] -= station_demand*min(x[j + self.station_offset],1)
+
+            for start_cell in range(self.n_cells):
+                for phase in range(self.n_phases_in[start_cell]):
+                    rate = self.in_probabilities[start_cell][j]*self.mu[start_cell][self.cell_idx][phase]*self.phi[start_cell][self.cell_idx][phase]
+
+                    if start_cell == self.cell_idx:
+                        deriv[j + self.station_offset] += rate*x[self.x_idx[self.cell_idx]+phase]
+                    else:
+                        print(len(self.trajectories))
+                        print(self.x_in_idx[self.cell_idx]+phase)
+                        deriv[j + self.station_offset] += rate*self.trajectories[self.x_in_idx[self.cell_idx]+phase]
+
+        return deriv
+    
+    def dxdt_array(self, t, x):
+        deriv = [0 for i in range(self.station_offset+self.s_in_cell)]
+        
+        for end_cell in range(self.n_cells):
+            d_idx = self.x_idx[end_cell]
+
+            for j, station_idx in enumerate(self.stations):
+                s_idx = j + self.n_cells
+                deriv[s_idx] += self.out_demands[j][end_cell]*min(x[s_idx],1)
+            
+            for phase in range(self.n_phases_out[end_cell]):
+                deriv[d_idx + phase] -= self.mu[self.cell_idx][end_cell][phase] * x[d_idx+phase]
+        
+        for j, station_idx in enumerate(self.stations):
+            station_demand = sum(self.out_demands[j])
+
+            deriv[j + self.station_offset] -= station_demand*min(x[j + self.station_offset],1)
+
+            for start_cell in range(self.n_cells):
+                for phase in range(self.n_phases_in[start_cell]):
+                    rate = self.in_probabilities[start_cell][j]*self.mu[start_cell][self.cell_idx][phase]*self.phi[start_cell][self.cell_idx][phase]
+                    if start_cell == self.cell_idx:
+                        deriv[j + self.station_offset] += rate*x[self.x_idx[self.cell_idx]+phase]
+                    else:
+                        deriv[j + self.station_offset] += rate*self.trajectories[self.x_in_idx[self.cell_idx]+phase][int(t//self.tstep)]
 
         return deriv
 

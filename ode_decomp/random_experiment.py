@@ -4,7 +4,7 @@ import cProfile
 import sys
 
 def exp_main(seed):
-    experiment_config = ExperimentConfig(seed, (50,100), 8)
+    experiment_config = ExperimentConfig(seed, (50,100), 4)
     experiment        = Experiment(experiment_config)
 
     now = datetime.datetime.now()
