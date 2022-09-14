@@ -31,8 +31,7 @@ import pickle
 # Parameters
 TIME_POINTS_PER_HOUR = 100
 ATOL = 10**(-6)
-
-
+RATE_MULTIPLIER = 1
 
 def get_cox_data():
     durations = pd.read_csv("oslo2/cell_distances.csv")
@@ -48,14 +47,14 @@ def get_cox_data():
         end_cell   = int(row["end_cell"])
 
         if row["n"] == 1:
-            mu[start_cell][end_cell]  = [float(row["lambda"])]
+            mu[start_cell][end_cell]  = [float(row["lambda"])*RATE_MULTIPLIER]
             phi[start_cell][end_cell] = [1.0]
         elif row["n"] == 2:
-            mu[start_cell][end_cell]  = [float(row["mu1"]), float(row["mu2"])]
+            mu[start_cell][end_cell]  = [float(row["mu1"]) * RATE_MULTIPLIER, float(row["mu2"]) * RATE_MULTIPLIER]
             phi[start_cell][end_cell] = [float(row["phi1"]), 1.0]
         else:
             erlang_phases = int(row["n"])
-            lam = float(row["lambda"])
+            lam = float(row["lambda"]) * RATE_MULTIPLIER
             mu[start_cell][end_cell]  = [lam for i in range(erlang_phases)]
             phi[start_cell][end_cell] = [0.0 for i in range(erlang_phases-1)] + [1.0]
 
@@ -90,8 +89,8 @@ def get_demands(cell_to_station, station_to_cell):
         end_cell = station_to_cell[end_station]
         end_station = cell_to_station[end_cell].index(end_station)
 
-        in_demands[end_cell][start_cell][end_station] = float(row["prob"])
-
+        in_probabilities[end_cell][start_cell][end_station] = float(row["prob"])
+    
 
 
     # start_cell => station => end_cell => demand
@@ -124,9 +123,9 @@ def run_discrete(model_data, traj_cells, ode_method, step_size):
     x_arr = np.array([])
 
     delay_phase_ct = [sum([len(x) for x in mu[i]]) for i in range(model_data.n_cells)] # number of phases in the process that starts at i
-    in_phase_ct    = [sum([len(x[end_cell]) for x in mu]) for end_cell in range(model_data.n_cells)] # number of phases in the process that starts at i
     
-    trajectories = [[0 for j in range(in_phase_ct[end_cell])] for end_cell in range(model_data.n_cells)]
+    
+    trajectories = [[0 for j in range(traj_cells[end_cell].in_offset)] for end_cell in range(model_data.n_cells)]
 
     current_vector = [
         [0.0 for i in range(delay_phase_ct[cell_idx])] +
@@ -156,9 +155,10 @@ def run_discrete(model_data, traj_cells, ode_method, step_size):
         x_iter = np.array([[0.0 for x in range(len(sub_time_points))] for i in range(n_entries)])
 
         for cell_idx in range(model_data.n_cells):
-            if cell_idx % 10 == 0:
-                print(f"cell: {cell_idx}")
+            if cell_idx % 20 == 0:
+                print(f"Cell: {cell_idx}")
             traj_cells[cell_idx].set_trajectories(trajectories[cell_idx])
+            #print(trajectories[cell_idx])
 
             x_t = spi.solve_ivp(traj_cells[cell_idx].dxdt_const, [t, t+step_size], current_vector[cell_idx], 
                                     t_eval = sub_time_points,
@@ -170,16 +170,15 @@ def run_discrete(model_data, traj_cells, ode_method, step_size):
             for i, station_id in enumerate(traj_cells[cell_idx].stations):
                 sy_idx = delay_phase_ct[cell_idx]+i
                 current_vector[cell_idx][sy_idx] = float(x_t.y[sy_idx, -1])
-
-            #FIX: trajectory updates should be to the next cell
+                
             for next_cell in range(model_data.n_cells):
-                for phase in range(len(mu[cell_idx][next_cell])):
+                for phase, phase_rate in enumerate(mu[cell_idx][next_cell]):
                     phase_qty_idx = traj_cells[cell_idx].x_idx[next_cell] + phase
+                    
                     last_val = float(x_t.y[phase_qty_idx, -1])
                     current_vector[cell_idx][phase_qty_idx] = last_val
-
-                    for next_cell in range(model_data.n_cells):
-                        new_trajectories[next_cell][traj_cells[cell_idx].x_in_idx[cell_idx] + phase] = last_val
+                    new_trajectories[next_cell][traj_cells[next_cell].x_in_idx[cell_idx] + phase] = last_val
+                    #print(last_val)
 
         if x_arr.size == 0:
             x_arr = x_iter
@@ -191,7 +190,7 @@ def run_discrete(model_data, traj_cells, ode_method, step_size):
         t += step_size
     toc = time.perf_counter()
     print(f"Discrete-Step Submodeling finished, time: {toc-tic}")
-    return [time_points, x_arr, toc-tic]
+    return [time_points, x_arr, toc-tic, current_vector]
 
 class ModelData:
     def __init__(self, n_stations, n_cells, starting_bps, mu):
@@ -201,7 +200,7 @@ class ModelData:
         self.mu = mu
         self.time_end = 4
         self.steps_per_dt = 100
-
+        
 if __name__ == "__main__":
     # TO DO:
     #    [ ] accurate bps
@@ -239,6 +238,17 @@ if __name__ == "__main__":
     # run model
     starting_bps = get_starting_bps()
     model_data = ModelData(n_stations, n_cells, starting_bps, mu)
-    time_points, x_arr, time = run_discrete(model_data, traj_cells, "RK45", 0.1)
+    time_points, x_arr, time, last_vector = run_discrete(model_data, traj_cells, "RK45", 0.3)
 
-    print(x_arr[:, -1])
+    station_res = [0 for i in range(n_stations)]
+
+    cell_start = 0
+
+    total_bikes = 0
+
+    for cell_idx, traj_cell in enumerate(traj_cells):
+        total_bikes += sum(last_vector[cell_idx])
+        for station_cell_idx, station_idx in enumerate(cell_to_station[cell_idx]):
+            station_res[station_idx] = last_vector[cell_idx][traj_cell.station_offset + station_cell_idx]
+    
+    print(station_res)

@@ -100,7 +100,12 @@ class StrictTrajCell:
             for j, station_idx in enumerate(self.stations):
                 assert j < self.s_in_cell
                 deriv[i] += self.out_demands[j][i]*min(x[j + self.n_cells],1)
+                
+                
             deriv[i] -= (1/self.durations[self.cell_idx][i])*x[i]
+            #print("---------------")
+            #print(self.durations[self.cell_idx][i])
+            #print(1/self.durations[self.cell_idx][i])
             
         for j, station_idx in enumerate(self.stations):
             #d_idx = j + self.n_cells
@@ -108,15 +113,16 @@ class StrictTrajCell:
             station_demand = sum(self.out_demands[j])
 
             
-            for i in range(self.n_cells):                    
+            for i in range(self.n_cells):
                 rate = self.in_probabilities[i][j]*(1/self.durations[i][self.cell_idx])
                 if i == self.cell_idx:
                     deriv[j + self.n_cells] += rate*x[self.cell_idx]
                 else:
                     deriv[j + self.n_cells] += rate*self.trajectories[i][int(t//self.tstep)]
-                    
+            #print(deriv[j+self.n_cells])
             deriv[j + self.n_cells] -= station_demand*min(x[j + self.n_cells],1)
-        assert(len(deriv) == len(x))
+        #assert(len(deriv) == len(x))
+        #raise Exception()
         return deriv
 
 def get_traj_fn(traj_t, traj_x):
@@ -159,7 +165,8 @@ class StrictTrajCellCox:
         self.x_in_idx = [0 for i in range(self.n_cells)]
         self.station_offset = 0
         self.in_offset = 0
-    
+
+        self.in_demands = in_demands
 
         for end_cell in range(self.n_cells):
             self.x_idx[end_cell] = self.station_offset
@@ -188,11 +195,14 @@ class StrictTrajCellCox:
             d_idx = self.x_idx[end_cell]
 
             for j, station_idx in enumerate(self.stations):
-                s_idx = j + self.n_cells
-                deriv[s_idx] += self.out_demands[j][end_cell]*min(x[s_idx],1)
+                s_idx = j + self.station_offset
+                deriv[d_idx] += self.out_demands[j][end_cell]*min(x[s_idx],1)
             
             for phase in range(self.n_phases_out[end_cell]):
                 deriv[d_idx + phase] -= self.mu[self.cell_idx][end_cell][phase] * x[d_idx+phase]
+                
+                if phase < self.n_phases_out[end_cell]-1:
+                    deriv[d_idx + phase + 1] += self.mu[self.cell_idx][end_cell][phase] * (1-self.phi[self.cell_idx][end_cell][phase]) * x[d_idx+phase]
         
         for j, station_idx in enumerate(self.stations):
             station_demand = sum(self.out_demands[j])
@@ -205,7 +215,7 @@ class StrictTrajCellCox:
                     if start_cell == self.cell_idx:
                         deriv[j + self.station_offset] += rate*x[self.x_idx[self.cell_idx]+phase]
                     else:
-                        deriv[j + self.station_offset] += rate*self.trajectories[self.x_in_idx[self.cell_idx]+phase](t)
+                        deriv[j + self.station_offset] += rate*self.trajectories[self.x_in_idx[start_cell]+phase](t)
 
         return deriv
     
@@ -216,28 +226,32 @@ class StrictTrajCellCox:
             d_idx = self.x_idx[end_cell]
 
             for j, station_idx in enumerate(self.stations):
-                s_idx = j + self.n_cells
-                deriv[s_idx] += self.out_demands[j][end_cell]*min(x[s_idx],1)
+                deriv[d_idx] += self.out_demands[j][end_cell]*min(x[j + self.station_offset],1)
             
             for phase in range(self.n_phases_out[end_cell]):
                 deriv[d_idx + phase] -= self.mu[self.cell_idx][end_cell][phase] * x[d_idx+phase]
-        
+                
+                if phase < self.n_phases_out[end_cell]-1:
+                    deriv[d_idx + phase + 1] += self.mu[self.cell_idx][end_cell][phase] * (1-self.phi[self.cell_idx][end_cell][phase]) * x[d_idx+phase]
+
         for j, station_idx in enumerate(self.stations):
             station_demand = sum(self.out_demands[j])
 
             deriv[j + self.station_offset] -= station_demand*min(x[j + self.station_offset],1)
 
             for start_cell in range(self.n_cells):
+                # hook
+                #print(sum(self.in_probabilities[start_cell]))
+                #assert 0.99 < sum(self.in_probabilities[start_cell]) < 1.01
+
                 for phase in range(self.n_phases_in[start_cell]):
                     rate = self.in_probabilities[start_cell][j]*self.mu[start_cell][self.cell_idx][phase]*self.phi[start_cell][self.cell_idx][phase]
 
                     if start_cell == self.cell_idx:
                         deriv[j + self.station_offset] += rate*x[self.x_idx[self.cell_idx]+phase]
                     else:
-                        print(len(self.trajectories))
-                        print(self.x_in_idx[self.cell_idx]+phase)
-                        deriv[j + self.station_offset] += rate*self.trajectories[self.x_in_idx[self.cell_idx]+phase]
-
+                        deriv[j + self.station_offset] += rate*self.trajectories[self.x_in_idx[start_cell]+phase]
+                        
         return deriv
     
     def dxdt_array(self, t, x):
@@ -247,11 +261,14 @@ class StrictTrajCellCox:
             d_idx = self.x_idx[end_cell]
 
             for j, station_idx in enumerate(self.stations):
-                s_idx = j + self.n_cells
-                deriv[s_idx] += self.out_demands[j][end_cell]*min(x[s_idx],1)
+                s_idx = j + self.station_offset
+                deriv[d_idx] += self.out_demands[j][end_cell]*min(x[s_idx],1)
             
             for phase in range(self.n_phases_out[end_cell]):
                 deriv[d_idx + phase] -= self.mu[self.cell_idx][end_cell][phase] * x[d_idx+phase]
+                
+                if phase < self.n_phases_out[end_cell]-1:
+                    deriv[d_idx + phase + 1] += self.mu[self.cell_idx][end_cell][phase] * (1-self.phi[self.cell_idx][end_cell][phase]) * x[d_idx+phase]
         
         for j, station_idx in enumerate(self.stations):
             station_demand = sum(self.out_demands[j])
@@ -264,7 +281,7 @@ class StrictTrajCellCox:
                     if start_cell == self.cell_idx:
                         deriv[j + self.station_offset] += rate*x[self.x_idx[self.cell_idx]+phase]
                     else:
-                        deriv[j + self.station_offset] += rate*self.trajectories[self.x_in_idx[self.cell_idx]+phase][int(t//self.tstep)]
+                        deriv[j + self.station_offset] += rate*self.trajectories[self.x_in_idx[start_cell]+phase][int(t//self.tstep)]
 
         return deriv
 
