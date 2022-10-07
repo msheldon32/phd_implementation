@@ -32,6 +32,7 @@ import pickle
 TIME_POINTS_PER_HOUR = 100
 ATOL = 10**(-6)
 RATE_MULTIPLIER = 1
+HOURS = [11,12,13]
 
 def get_cox_data():
     durations = pd.read_csv("oslo2/cell_distances.csv")
@@ -109,6 +110,147 @@ def get_demands(cell_to_station, station_to_cell):
 
     return [in_demands, in_probabilities, out_demands]
 
+def run_simulation(model_data, n_runs):
+    print("Running simulation..")
+
+    tic = time.perf_counter()
+
+    current_vector_list = []
+    hr_vector_list = []
+
+    for run in range(n_runs):
+        n_entries = model_data.n_cells**2 + model_data.n_stations
+
+        x_arr = np.array([])
+
+        delay_phase_ct = [sum([len(x) for x in mu[i]]) for i in range(model_data.n_cells)] # number of phases in the process that starts at i
+        
+        delay_offset = [] # start_cell -> end_cell->idx
+        station_offset = [] # start_cell -> idx of station 0
+
+        for start_cell in range(model_data.n_cells):
+            sc_delay_offset = []
+            cur_offset = 0
+
+            for end_cell in range(model_data.n_cells):
+                sc_delay_offset.append(cur_offset)
+                cur_offset += len(mu[start_cell][end_cell])
+
+            delay_offset.append(sc_delay_offset)
+            station_offset.append(cur_offset)
+
+        current_vector = [
+            [0.0 for i in range(delay_phase_ct[cell_idx])] +
+            [float(x) for i, x in enumerate(starting_bps) if i in list(cell_to_station[cell_idx])]
+                for cell_idx in range(model_data.n_cells)
+        ]
+
+
+        
+        time_points = []
+
+        t = 0
+
+        hr_vectors = []
+
+        
+        while t < model_data.time_end:
+            total_rate = 0
+            for start_cell, sc_data in enumerate(model_data.mu):
+                for end_cell, ec_data in enumerate(sc_data):
+                    for phase_no, mu_val in enumerate(ec_data):
+                        phase_rate = mu_val * current_vector[start_cell][delay_offset[start_cell][end_cell] + phase_no]
+                        total_rate += phase_rate
+
+            for start_cell, sc_data in enumerate(model_data.out_demands):
+                for station_idx, st_data in enumerate(sc_data):
+                    for end_cell, lam_val in enumerate(st_data):
+                        dep_rate = lam_val if current_vector[start_cell][station_offset[start_cell] + station_idx] >= 1 else 0
+                        total_rate += dep_rate
+            
+            cdf_val = random.random()
+            c_prob = 0
+            found_event = False
+
+            for start_cell, sc_data in enumerate(model_data.mu):
+                for end_cell, ec_data in enumerate(sc_data):
+                    for phase_no, mu_val in enumerate(ec_data):
+                        phase_rate = mu_val * current_vector[start_cell][delay_offset[start_cell][end_cell] + phase_no]
+                        c_prob += (phase_rate/total_rate)
+
+                        if c_prob >= cdf_val:
+                            found_event = True
+
+                            if random.random() <= model_data.phi[start_cell][end_cell][phase_no]:
+                                # departure
+                                current_vector[start_cell][delay_offset[start_cell][end_cell] + phase_no] -= 1
+
+                                station_cdf_val = random.random()
+                                station_c_prob = 0
+
+                                for station_idx, station_prob in enumerate(model_data.in_probabilities[end_cell][start_cell]):
+                                    station_c_prob += station_prob
+                                    if station_c_prob >= station_cdf_val:
+                                        current_vector[end_cell][station_offset[end_cell] + station_idx] += 1
+                                        break
+
+                            else:
+                                # update next phase
+                                current_vector[start_cell][delay_offset[start_cell][end_cell] + phase_no] -= 1
+                                current_vector[start_cell][delay_offset[start_cell][end_cell] + phase_no + 1] += 1
+
+                            break
+                    if found_event:
+                        break
+                if found_event:
+                    break
+
+            if not found_event:
+                for start_cell, sc_data in enumerate(model_data.out_demands):
+                    for station_idx, st_data in enumerate(sc_data):
+                        for end_cell, lam_val in enumerate(st_data):
+                            dep_rate = lam_val if current_vector[start_cell][station_offset[start_cell] + station_idx] >= 1 else 0
+
+                            c_prob += (dep_rate/total_rate)
+
+                            if c_prob >= cdf_val:
+                                # depart and add to delay at first phase 
+                                found_event = True
+                                current_vector[start_cell][station_offset[start_cell] + station_idx] -= 1
+                                current_vector[start_cell][delay_offset[start_cell][end_cell] + phase_no] += 1
+                                break
+
+                        if found_event:
+                            break
+                    if found_event:
+                        break
+
+
+            if 0.99 < t < 1.01 or 1.99 < t < 2.01 or 2.99 < t < 3.01:
+                hr_vectors.append(copy.deepcopy(current_vector))
+
+            t += -math.log(random.random())/total_rate
+        current_vector_list.append(current_vector)
+        hr_vector_list.append(hr_vectors)
+
+    current_vector_mean = copy.deepcopy(current_vector)
+    hr_vectors_mean = copy.deepcopy(hr_vectors)
+
+    for cell_idx, cell_vec in enumerate(current_vector):
+        for stn_id, stn_val in enumerate(cell_vec):
+            current_vector_mean[cell_idx][stn_id] = sum([run_vec[cell_idx][stn_id] for run_vec in current_vector_list])/n_runs
+
+    # HOOK - there is a bug here but it needs to be fixed
+    #for hr_idx, hr_vec in enumerate(hr_vectors):
+    #    for cell_idx, cell_vec in enumerate(hr_vec):
+    #        for stn_id, stn_val in enumerate(cell_vec):
+    #            hr_vectors_mean[hr_idx][cell_idx][stn_id] = sum([run_vec[hr_idx][cell_idx][stn_id] for run_vec in hr_vector_list])/n_runs
+
+    toc = time.perf_counter()
+    print(f"Simulation finished, time: {toc-tic}")
+    return [time_points, x_arr, toc-tic, current_vector_mean, hr_vectors_mean]
+
+
 def get_starting_bps():
     initial_loads = pd.read_csv("oslo2/initial_loads.csv")
     return list(initial_loads["start_level"])
@@ -137,6 +279,8 @@ def run_discrete(model_data, traj_cells, ode_method, step_size):
     time_points = []
 
     t = 0
+
+    hr_vectors = []
 
     
     while t < model_data.time_end:
@@ -187,17 +331,26 @@ def run_discrete(model_data, traj_cells, ode_method, step_size):
 
         trajectories = new_trajectories
 
+        if 0.99 < t < 1.01 or 1.99 < t < 2.01 or 2.99 < t < 3.01:
+            hr_vectors.append(copy.deepcopy(current_vector))
+
         t += step_size
+
+
     toc = time.perf_counter()
     print(f"Discrete-Step Submodeling finished, time: {toc-tic}")
-    return [time_points, x_arr, toc-tic, current_vector]
+    return [time_points, x_arr, toc-tic, current_vector, hr_vectors]
 
 class ModelData:
-    def __init__(self, n_stations, n_cells, starting_bps, mu):
+    def __init__(self, n_stations, n_cells, starting_bps, mu, phi, in_demands, in_probabilities, out_demands):
         self.n_stations = n_stations
         self.n_cells = n_cells
         self.starting_bps = starting_bps, 
         self.mu = mu
+        self.phi = phi
+        self.in_demands = in_demands
+        self.in_probabilities = in_probabilities
+        self.out_demands = out_demands
         self.time_end = 4
         self.steps_per_dt = 100
         
@@ -237,10 +390,14 @@ if __name__ == "__main__":
 
     # run model
     starting_bps = get_starting_bps()
-    model_data = ModelData(n_stations, n_cells, starting_bps, mu)
-    time_points, x_arr, time, last_vector = run_discrete(model_data, traj_cells, "RK45", 0.3)
-
+    model_data = ModelData(n_stations, n_cells, starting_bps, mu, phi, in_demands, in_probabilities, out_demands)
+    time_points, x_arr, time_val, last_vector_sim, hr_vectors_sim = run_simulation(model_data,6)
+    time_points, x_arr, time_val, last_vector, hr_vectors = run_discrete(model_data, traj_cells, "RK45", 0.5) # HOOK
+ 
     station_res = [0 for i in range(n_stations)]
+    hourly_res = [[0 for i in range(n_stations)] for hr in HOURS]
+    station_simres = [0 for i in range(n_stations)]
+    hourly_simres = [[0 for i in range(n_stations)] for hr in HOURS]
 
     cell_start = 0
 
@@ -250,5 +407,19 @@ if __name__ == "__main__":
         total_bikes += sum(last_vector[cell_idx])
         for station_cell_idx, station_idx in enumerate(cell_to_station[cell_idx]):
             station_res[station_idx] = last_vector[cell_idx][traj_cell.station_offset + station_cell_idx]
-    
-    print(station_res)
+            station_simres[station_idx] = last_vector_sim[cell_idx][traj_cell.station_offset + station_cell_idx]
+            for hour_idx, hr in enumerate(HOURS):
+                # HOOK
+                #hourly_res[hour_idx][station_idx] = hr_vectors[hour_idx][cell_idx][traj_cell.station_offset + station_cell_idx]
+                hourly_simres[hour_idx][station_idx] = hr_vectors_sim[hour_idx][cell_idx][traj_cell.station_offset + station_cell_idx]
+
+
+    with open ("oslo_hr", "w") as f:
+        json.dump(hourly_res, f)
+    with open ("oslo_final", "w") as f:
+        json.dump(station_res, f)
+
+    with open ("oslo_hr_sim", "w") as f:
+        json.dump(hourly_simres, f)
+    with open ("oslo_final_sim", "w") as f:
+        json.dump(station_simres, f)

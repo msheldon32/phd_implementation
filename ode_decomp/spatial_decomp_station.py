@@ -31,6 +31,7 @@ class TrajCell:
         self.cell_to_station = cell_to_station
     
         self.trajectories = []
+        self.last_states = []
 
         self.total_rate = [0 for i in range(self.n_stations)]
 
@@ -42,6 +43,9 @@ class TrajCell:
     
     def set_trajectories(self, trajectories):
         self.trajectories = trajectories
+
+    def set_last_states(self, last_states):
+        self.last_states = last_states
     
     def get_delay_idx(self, i_idx, d_idx):
         # i_idx: index of the source station in self.stations (e.g. the internal index)
@@ -98,7 +102,7 @@ class TrajCell:
                     #src_d_idx = (self.station_rev[src_station]*self.n_stations) + dst_station
                     deriv[d_idx] += rate*x[(self.station_rev[src_station]*self.n_stations) + dst_station]
                 else:
-                    deriv[d_idx] += rate*self.trajectories[src_station][dst_station]
+                    deriv[d_idx] += rate*self.last_states[src_station][dst_station]
             
             deriv[d_idx] -= self.total_rate[j]*min(x[d_idx],1)
 
