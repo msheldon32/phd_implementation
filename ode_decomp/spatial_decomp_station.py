@@ -10,12 +10,171 @@ from datetime import datetime
 import random
 import sqlite3
 import gc
+import time
+import copy
+
+import scipy.integrate as spi
+
+
+# Parameters
+TIME_POINTS_PER_HOUR = 100
+ATOL = 10**(-6)
+
+
+class SuperCell:
+    def __init__(self, model, children="none"):
+        self.children = []
+        if self.children != "none":
+            self.children = children
+        self.n_cells = len(self.children)
+        self.model = model
+    
+    def solve_iteration(self, n_entries, configuration, starting_vector, ode_method, epsilon, selected_cells="all"):
+        print("Running Trajectory-Based Iteration")
+
+        if selected_cells == "all":
+            selected_cells = [i for i in range(self.n_cells)]
+
+        all_res = []
+
+        tic = time.perf_counter()
+
+        cur_epsilon = 0
+
+        x_res = []
+
+        n_time_points = configuration.time_end*TIME_POINTS_PER_HOUR
+        time_points = [(i*configuration.time_end)/n_time_points for i in range(n_time_points+1)]
+        trajectories = [[np.zeros(n_time_points+1) for j in range(self.model.n_stations)] for i in range(self.model.n_stations)]
+        
+        for traj_cell in self.children:
+            traj_cell.set_timestep(configuration.time_end/n_time_points)
+
+        station_vals = []
+
+        n_iterations = 0
+
+        non_h_idx = []
+
+        for iter_no in range(configuration.max_iterations):
+            n_iterations = iter_no + 1
+
+            for tc in self.children:
+                tc.set_trajectories(trajectories)
+
+            new_trajectories = copy.deepcopy(trajectories)
+
+            x_iter = np.array([[0.0 for i in range(n_time_points+1)] for i in range(n_entries)])
+
+            for cell_idx in selected_cells:
+                traj_cell = self.children[cell_idx]
+                x_t = spi.solve_ivp(traj_cell.dxdt_array, [0, configuration.time_end], starting_vector[cell_idx], 
+                                        t_eval=time_points, 
+                                        method=ode_method, atol=ATOL)
+                
+
+                for i, src_stn in enumerate(traj_cell.stations):
+                    sy_idx = traj_cell.get_station_idx(i)
+                    
+                    for dst_stn in range(self.model.n_stations):
+                        y_idx = traj_cell.get_delay_idx(i, dst_stn)
+                        new_trajectories[src_stn][dst_stn] = x_t.y[y_idx, :]
+                
+                x_iter[traj_cell.get_idx(), :] = x_t.y
+            
+            x_res.append(x_iter)
+
+            trajectories = new_trajectories
+
+            if iter_no > 0:
+                error_score = (abs(x_res[-1] - x_res[-2])).max()
+            else:
+                error_score = abs(x_res[-1]).max()
+
+            if error_score < epsilon:
+                break
+            
+            print(f"Iteration complete, time: {time.perf_counter()-tic}, error: {error_score}")
+        toc = time.perf_counter()
+        print(f"Trajectory-Based Iteration finished, time: {toc-tic}.")
+
+        return [time_points, x_res[-1], toc-tic]
+
+    def solve_discrete_step(self, configuration, starting_vector, ode_method, step_size, selected_cells="all"):
+        tic = time.perf_counter()
+
+        if selected_cells == "all":
+            selected_cells = [i for i in range(self.n_cells)]
+
+
+        last_states = [[0 for j in range(self.model.n_stations)] for i in range(self.model.n_stations)]
+
+        time_points = []
+        station_vals = []
+
+
+        current_vector = copy.deepcopy(starting_vector)
+
+        t = 0
+
+
+        while t < configuration.time_end:
+            sub_time_points = [t+(i*(step_size/configuration.steps_per_dt)) for i in range(configuration.steps_per_dt)]
+            if len(sub_time_points) == 0:
+                sub_time_points.append(t)
+            time_points += sub_time_points
+            
+            new_lstates = copy.deepcopy(last_states)
+            new_vector = copy.deepcopy(current_vector)
+
+            for cell_idx in selected_cells:
+                traj_cell = self.children[cell_idx]
+                # stop here..
+                traj_cell.set_last_states(last_states)
+
+                x_t = spi.solve_ivp(traj_cell.dxdt_const, [t, t+step_size], current_vector[cell_idx], 
+                                        t_eval = sub_time_points,
+                                        method=ode_method, atol=ATOL)
+
+                for i, src_stn in enumerate(traj_cell.stations):
+                    sy_idx = traj_cell.get_station_idx(i)
+                    
+                    station_vals[src_stn] += [comp.get_traj_fn(x_t.t, x_t.y[sy_idx,:])(t) for t in sub_time_points]
+                    
+                    new_vector[cell_idx][sy_idx] = float(x_t.y[sy_idx, -1])
+
+                    for dst_stn in range(self.model.n_stations):
+                        y_idx = traj_cell.get_delay_idx(i, dst_stn)
+                        last_val = float(x_t.y[y_idx, -1])
+                        new_vector[cell_idx][y_idx] = last_val
+                        new_lstates[src_stn][dst_stn] = last_val
+
+            last_states = new_lstates
+            current_vector = new_vector
+
+            t += step_size
+
+        toc = time.perf_counter()
+        print(f"Discrete-Step Submodeling finished, time: {toc-tic}")
+        return [time_points, toc-tic]
+
+def get_cell_idx(cell_idx, n_stations, cell_to_station):
+    out_list = []
+
+    stations = list(cell_to_station[cell_idx])
+
+    for j, src_station in enumerate(stations):
+        for dst_station in range(n_stations):
+            out_list.append(src_station*n_stations + dst_station)
+
+    out_list += [(n_stations**2) + i for i in stations]
+    return out_list
 
 class TrajCell:
     def __init__(self, cell_idx, station_to_cell, cell_to_station, stations, durations, demands):
         self.cell_idx = cell_idx
         self.n_cells = len(cell_to_station)
-        self.n_stations = len(durations)
+        self.n_stations = len(durations) # n stations in the whole model
 
         self.s_in_cell = len(stations)
         self.stations = stations
