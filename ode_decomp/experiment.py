@@ -966,21 +966,12 @@ class Experiment:
                     for stations_per_cell in self.configuration.stations_per_cell:
                         model.reset_strict()
                         model.generate_cells(stations_per_cell)
-                        """
                         limit_res = self.run_iteration(model, ode_method, [1.0], cell_limit=True)
 
                         for epsilon, iter_res in zip([1.0], limit_res):
-                            sum_error = sum_accuracy(full_res[0], full_res[1][(-model.n_stations):,:], iter_res[0], iter_res[1][(-model.n_stations):,:])
-                            max_error = max_accuracy(full_res[0], full_res[1][(-model.n_stations):,:], iter_res[0], iter_res[1][(-model.n_stations):,:])
-                            self.write_row([repetition, n_stations, "traj_iteration", "none", ode_method, stations_per_cell, epsilon, iter_res[3], iter_res[2], full_res[2], sum_error, max_error])
-
-                        
-                        h_res = self.run_iteration(model, ode_method, self.configuration.epsilon, h_analysis=True)
-
-                        for epsilon, iter_res in zip(self.configuration.epsilon, h_res):
-                            sum_error = sum_accuracy(full_res[0], full_res[1][(-model.n_stations):,:], iter_res[0], iter_res[1][(-model.n_stations):,:])
-                            max_error = max_accuracy(full_res[0], full_res[1][(-model.n_stations):,:], iter_res[0], iter_res[1][(-model.n_stations):,:])
-                            self.write_row([repetition, n_stations, "traj_iteration", "h", ode_method, stations_per_cell, epsilon, iter_res[3], iter_res[2], full_res[2], sum_error, max_error])
+                            sum_error = sum_accuracy(full_res[0], full_res[1], disc_res[0], disc_res[1])
+                            max_error = max_accuracy(full_res[0], full_res[1], disc_res[0], disc_res[1])
+                            self.write_row([repetition, n_stations, "traj_iteration", "limit_res", ode_method, stations_per_cell, epsilon, iter_res[3], iter_res[2], full_res[2], sum_error, max_error])
                         
                         strict_res = self.run_iteration_strict(model, ode_method, self.configuration.epsilon)
 
@@ -992,22 +983,19 @@ class Experiment:
                         all_res = self.run_iteration(model, ode_method, self.configuration.epsilon)
 
                         for epsilon, iter_res in zip(self.configuration.epsilon, all_res):
-                            sum_error = sum_accuracy(full_res[0], full_res[1][(-model.n_stations):,:], iter_res[0], iter_res[1][(-model.n_stations):,:])
-                            max_error = max_accuracy(full_res[0], full_res[1][(-model.n_stations):,:], iter_res[0], iter_res[1][(-model.n_stations):,:])
+                            sum_error = sum_accuracy(full_res[0], full_res[1], disc_res[0], disc_res[1])
+                            max_error = max_accuracy(full_res[0], full_res[1], disc_res[0], disc_res[1])
                             self.write_row([repetition, n_stations, "traj_iteration", "none", ode_method, stations_per_cell, epsilon, iter_res[3], iter_res[2], full_res[2], sum_error, max_error])
 
-                        """
                         for delta_t_ratio in self.configuration.delta_t_ratio:
                             delta_t = model.get_dt_from_ratio(delta_t_ratio)
 
-                            """disc_res_strict = self.run_discrete_strict(model, ode_method, delta_t)
+                            disc_res_strict = self.run_discrete_strict(model, ode_method, delta_t)
                             sum_error = sum_accuracy(full_res[0], full_res[1][(-model.n_stations):,:], disc_res_strict[0], disc_res_strict[1][(-model.n_stations):,:])
                             max_error = max_accuracy(full_res[0], full_res[1][(-model.n_stations):,:], disc_res_strict[0], disc_res_strict[1][(-model.n_stations):,:])
                             self.write_row([repetition, n_stations, "discrete_step", "strict", ode_method, stations_per_cell, delta_t_ratio, delta_t, disc_res_strict[2], full_res[2], sum_error, max_error])
-                            """
                             disc_res = self.run_discrete(model, ode_method, delta_t, inflate=True)
-                            #sum_error = sum_accuracy(full_res[0], full_res[1][(-model.n_stations):,:], disc_res[0], disc_res[1][(-model.n_stations):,:])
-                            #max_error = max_accuracy(full_res[0], full_res[1][(-model.n_stations):,:], disc_res[0], disc_res[1][(-model.n_stations):,:])
+
                             sum_error = sum_accuracy(full_res[0], full_res[1], disc_res[0], disc_res[1])
                             max_error = max_accuracy(full_res[0], full_res[1], disc_res[0], disc_res[1])
                             self.write_row([repetition, n_stations, "discrete_step", "none", ode_method, stations_per_cell, delta_t_ratio, delta_t, disc_res[2], full_res[2], sum_error, max_error])
