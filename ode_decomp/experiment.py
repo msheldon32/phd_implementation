@@ -77,7 +77,7 @@ class ExperimentModel:
 
 
     def ode_export(self, ode_id):
-        starting_values = ["begin init"]
+        starting_values = [f"begin model ode{ode_id}", "begin init"]
 
         for station_id in range(self.n_stations):
             starting_values.append(f"x_{station_id} = {self.starting_bps[station_id]}")
@@ -122,8 +122,12 @@ class ExperimentModel:
 
         divider = ["////////////////////////////////////////////////////////////////////////", "// ODEs"]
 
+        trailer = [f"reduceBDE(reducedFile=\"ode_{ode_id}_bde.ode\")",
+                   f"reduceFDE(reducedFile=\"ode_{ode_id}_fde.ode\")",
+                    "end model"]
+
         with open(f"ode_export/ode_{ode_id}.ode", "w+") as f:
-            for line in starting_values + divider + ode_equations:
+            for line in starting_values + divider + ode_equations + trailer:
                 f.write(line + "\n")
     
     def generate_cells(self, stations_per_cell):
@@ -261,6 +265,7 @@ class ExperimentModel:
         )
         out_model.cell_to_station = self.cell_to_station
         out_model.station_to_cell = self.station_to_cell
+        out_model.n_cells = self.n_cells
 
         return out_model
 
@@ -272,7 +277,7 @@ class ExperimentConfig:
 
         # parameters
         self.ode_methods             = ["RK45", "BDF"]
-        self.stations_per_cell       = [5, 10, 15]
+        self.stations_per_cell       = [5]#, 10, 15]
         self.delta_t_ratio           = [0.1, 0.05, 0.025] # setting delta T based on (x/[average rate])
         self.epsilon                 = [2, 1, 0.5]
 
@@ -281,6 +286,7 @@ class ExperimentConfig:
         self.x_location_range        = [0, 1]
         self.y_location_range        = [0, 1]
         self.station_demand_range    = [0, 0.5]
+        #self.station_demand_range    = [0, 0.05]
         self.noise_moments_distance  = [0, 0.2]
         self.bps_range               = [0, 15]
 
@@ -361,6 +367,10 @@ def max_accuracy(base_t, base_y, alt_t, alt_y):
     diff = abs(refit_times(base_t, base_y, alt_t) - alt_y)
     total_val = base_y[:,0].sum()
     return (diff/total_val).max()
+
+def get_profit(t, y, n_stations, profit, subsidy_profit, subsidized_stations):
+    y_station = y[:, -n_stations:]
+    pass
 
 class Experiment:
     def __init__(self, configuration):
@@ -550,7 +560,11 @@ class Experiment:
 
         return all_res
     
-    def run_discrete(self, model, ode_method, step_size, starting_vector="default"):
+    def run_discrete(self, model, ode_method, step_size, 
+                inflate=False, 
+                false_start=False, 
+                starting_vector="default", 
+                traj_cells="default"):
         print("Running Discrete-Step Submodeling")
 
         tic = time.perf_counter()
@@ -560,26 +574,29 @@ class Experiment:
         x_arr = np.array([])
 
 
-        last_states = [[0 for j in range(model.n_stations)] for i in range(model.n_stations)]
+        last_states = [[float(0) for j in range(model.n_stations)] for i in range(model.n_stations)]
                     
-                
-        traj_cells = [spatial_decomp_station.TrajCell(cell_idx, model.station_to_cell, model.cell_to_station, 
-                                    sorted(list(model.cell_to_station[cell_idx])), model.durations, model.demands)
-                            for cell_idx in range(model.n_cells)]
+        
+        if traj_cells == "default" or True:
+            traj_cells = [spatial_decomp_station.TrajCell(cell_idx, model.station_to_cell, model.cell_to_station, 
+                                        sorted(list(model.cell_to_station[cell_idx])), model.durations, model.demands)
+                                for cell_idx in range(model.n_cells)]
+        with open("traj_output", "w+") as f:
+            f.write(str(traj_cells[0].__dict__))
 
         if starting_vector == "default":
             starting_vector = [
-                [0 for i in range(len(model.cell_to_station[cell_idx]) * model.n_stations)] +
-                [x for i, x in enumerate(model.starting_bps) if i in list(model.cell_to_station[cell_idx])]
+                [float(0) for i in range(len(model.cell_to_station[cell_idx]) * model.n_stations)] +
+                [float(x) for i, x in enumerate(model.starting_bps) if i in list(model.cell_to_station[cell_idx])]
                     for cell_idx in range(model.n_cells)
             ]
         else:
-            # correctly initialize last_states
-            for start_stn in range(model.n_stations):
-                for end_stn in range(model.n_stations):
-                    cell_idx = model.station_to_cell[start_stn]
-                    i_idx = traj_cells[cell_idx].stations.index(start_stn)
-                    last_states[start_stn][end_stn] = starting_vector[cell_idx][traj_cells[cell_idx].get_delay_idx(i_idx, end_stn)]
+            for cell_idx in range(model.n_cells):
+                for i, start_stn in enumerate(traj_cells[cell_idx].stations):
+                    for end_stn in range(model.n_stations):
+                        delay_idx = traj_cells[cell_idx].get_delay_idx(i, end_stn)
+                        last_states[start_stn][end_stn] = starting_vector[cell_idx][delay_idx]
+
         print("last state sum: ")
         print(sum([sum(x) for x in last_states]))
         print("delay_sum")
@@ -595,10 +612,15 @@ class Experiment:
 
         t = 0
 
+        n_bikes = sum([sum(x) for x in starting_vector])
+
         
         while t < self.configuration.time_end:
             print(f"t: {t}") # HOOK
-            sub_time_points = [t+(i*(step_size/self.configuration.steps_per_dt)) for i in range(self.configuration.steps_per_dt)]
+            
+            #n_st = self.configuration.steps_per_dt
+            n_st = math.ceil(TIME_POINTS_PER_HOUR * step_size)
+            sub_time_points = [t+(i*(step_size/n_st)) for i in range(n_st)]
             if len(sub_time_points) == 0:
                 sub_time_points.append(t)
             time_points += sub_time_points
@@ -615,9 +637,11 @@ class Experiment:
 
                 x_t = spi.solve_ivp(traj_cells[cell_idx].dxdt_const, [t, t+step_size], current_vector[cell_idx], 
                                         t_eval = sub_time_points,
-                                        method=ode_method, atol=ATOL)
+                                        method=ode_method, 
+                                        atol=ATOL)
 
                 x_iter[traj_cells[cell_idx].get_idx(), :] = x_t.y
+
 
                 for i, src_stn in enumerate(traj_cells[cell_idx].stations):
                     sy_idx = traj_cells[cell_idx].get_station_idx(i)
@@ -630,8 +654,30 @@ class Experiment:
                         y_idx = traj_cells[cell_idx].get_delay_idx(i, dst_stn)
                         last_val = float(x_t.y[y_idx, -1])
                         new_vector[cell_idx][y_idx] = last_val
-                        delay_rate = 1/model.durations[src_stn][dst_stn]
                         new_lstates[src_stn][dst_stn] = last_val
+
+            if t == 0 and false_start:
+                end_bikes = sum([sum(x) for x in new_vector])
+                loss_ptg = float(n_bikes-end_bikes)/float(n_bikes)
+                inflation_factor = 1/(1-loss_ptg)
+                for cell_idx in range(model.n_cells):
+                    current_vector[cell_idx] = [x * inflation_factor for x in starting_vector[cell_idx]]
+                if abs(loss_ptg) < 0.005:
+                    false_start = False
+                else:
+                    time_points = []
+                    continue
+
+            if inflate:
+                end_bikes = sum([sum(x) for x in new_vector])
+                # do loss by number of bikes in delays
+                loss_ptg = float(n_bikes-end_bikes)/n_bikes
+                inflation_factor = 1/(1-loss_ptg)
+                for start_stn in range(model.n_stations):
+                    for end_stn in range(model.n_stations):
+                        new_lstates[start_stn][end_stn] *= inflation_factor
+                for cell_idx in range(model.n_cells):
+                    new_vector[cell_idx] = [x * inflation_factor for x in new_vector[cell_idx]]
 
             if x_arr.size == 0:
                 x_arr = x_iter
@@ -641,12 +687,16 @@ class Experiment:
             last_states = new_lstates
             current_vector = new_vector
 
+            print(x_iter[:,-1].sum())
+
             t += step_size
         toc = time.perf_counter()
         print(f"Discrete-Step Submodeling finished, time: {toc-tic}")
         print(f"Last state sum: {sum([sum(x) for x in last_states])}")
-        return [time_points, x_arr, toc-tic]
-    
+        return [time_points, x_arr, toc-tic, current_vector, traj_cells]
+
+
+
     def run_iteration_strict(self, model, ode_method, epsilons):
         print("Running Trajectory-Based Iteration")
 
@@ -814,7 +864,7 @@ class Experiment:
 
         with open(f"{self.output_folder}output{ext}.csv", "x") as f:
             writer = csv.writer(f)
-            writer.writerow(["model", "solution_method", "spatial_simplification", "ode_method", "stations_per_cell", 
+            writer.writerow(["model", "n_stations", "solution_method", "spatial_simplification", "ode_method", "stations_per_cell", 
                              "delta_t_ratio_or_epsilon", "delta_t_or_n_iterations", "time", "std_time", "error_sum_metric", "error_max_metric"])
     
     def save_model(self, repetition, model, ext=""):
@@ -824,19 +874,23 @@ class Experiment:
     def run_control(self):
         self.create_file("_control")
 
-        delta_t_ratio = 0.025
+        delta_t_ratio = 0.05
 
-        n_stages = 1
+        n_stages = 4
         stage_lengths = [4,6,4,10]
 
         n_blending_iterations = 100
 
         stations_per_cell = 5
-        ode_method = "RK45"
+        ode_method = "BDF"
 
         try:
             for repetition in range(self.configuration.repetitions_per_point):
                 models = [self.configuration.generate_model()]
+
+                #full_res = self.run_full(models[0], ode_method)
+                #print("full bikes rem:")
+                #print(sum(full_res[1][:,-1]))
 
                 #models[0].reset_strict()
                 models[0].generate_cells(stations_per_cell)
@@ -857,22 +911,29 @@ class Experiment:
                 disc_res = []
                 stage = 0
 
+                starting_vector = "default"
+
                 for blending_iter_no in range(n_blending_iterations):
-                    if len(disc_res) == 0:
-                        starting_vector = "default"
-                    else:
-                        starting_vector = [
-                            disc_res[-1][spatial_decomp_station.get_cell_idx(x, n_stations, models[stage].cell_to_station),-1] 
-                                for x in range(models[stage].n_cells)]
-                        print(f"starting bikes: {sum([sum(x) for x in starting_vector])}")
+                    #if len(disc_res) == 0:
+                    #    starting_vector = "default"
+                    #else:
+                    #    starting_vector = [
+                    #        disc_res[-1][spatial_decomp_station.get_cell_idx(x, n_stations, models[stage].cell_to_station),-1] 
+                    #            for x in range(models[stage].n_cells)]
+                    #    print(f"starting bikes: {sum([sum(x) for x in starting_vector])}")
                     self.configuration.time_end = stage_lengths[stage]
+
+                    last_vector = disc_res[-1][:,-1] if len(disc_res) != 0 else "default"
+
                     
-                    res = self.run_discrete(models[stage], ode_method, delta_t[stage], starting_vector=starting_vector)
+                    res = self.run_discrete(models[stage], ode_method, delta_t[stage], starting_vector=starting_vector, inflate=True)
 
                     disc_res.append(res[1])
 
+                    starting_vector = res[3]
+
                     print(f"N bikes: {disc_res[-1][:,[-1]].sum()}")
-                    plt.plot(res[0], res[1][0,:])
+                    plt.plot(res[0], res[1][1,:])
                     plt.show()
                     stage += 1
                     stage = stage % n_stages
@@ -905,7 +966,7 @@ class Experiment:
                     for stations_per_cell in self.configuration.stations_per_cell:
                         model.reset_strict()
                         model.generate_cells(stations_per_cell)
-                        
+                        """
                         limit_res = self.run_iteration(model, ode_method, [1.0], cell_limit=True)
 
                         for epsilon, iter_res in zip([1.0], limit_res):
@@ -935,18 +996,20 @@ class Experiment:
                             max_error = max_accuracy(full_res[0], full_res[1][(-model.n_stations):,:], iter_res[0], iter_res[1][(-model.n_stations):,:])
                             self.write_row([repetition, n_stations, "traj_iteration", "none", ode_method, stations_per_cell, epsilon, iter_res[3], iter_res[2], full_res[2], sum_error, max_error])
 
-
+                        """
                         for delta_t_ratio in self.configuration.delta_t_ratio:
                             delta_t = model.get_dt_from_ratio(delta_t_ratio)
 
-                            disc_res_strict = self.run_discrete_strict(model, ode_method, delta_t)
+                            """disc_res_strict = self.run_discrete_strict(model, ode_method, delta_t)
                             sum_error = sum_accuracy(full_res[0], full_res[1][(-model.n_stations):,:], disc_res_strict[0], disc_res_strict[1][(-model.n_stations):,:])
                             max_error = max_accuracy(full_res[0], full_res[1][(-model.n_stations):,:], disc_res_strict[0], disc_res_strict[1][(-model.n_stations):,:])
                             self.write_row([repetition, n_stations, "discrete_step", "strict", ode_method, stations_per_cell, delta_t_ratio, delta_t, disc_res_strict[2], full_res[2], sum_error, max_error])
-
-                            disc_res = self.run_discrete(model, ode_method, delta_t)
-                            sum_error = sum_accuracy(full_res[0], full_res[1][(-model.n_stations):,:], disc_res[0], disc_res[1][(-model.n_stations+1):,:])
-                            max_error = max_accuracy(full_res[0], full_res[1][(-model.n_stations):,:], disc_res[0], disc_res[1][(-model.n_stations):,:])
+                            """
+                            disc_res = self.run_discrete(model, ode_method, delta_t, inflate=True)
+                            #sum_error = sum_accuracy(full_res[0], full_res[1][(-model.n_stations):,:], disc_res[0], disc_res[1][(-model.n_stations):,:])
+                            #max_error = max_accuracy(full_res[0], full_res[1][(-model.n_stations):,:], disc_res[0], disc_res[1][(-model.n_stations):,:])
+                            sum_error = sum_accuracy(full_res[0], full_res[1], disc_res[0], disc_res[1])
+                            max_error = max_accuracy(full_res[0], full_res[1], disc_res[0], disc_res[1])
                             self.write_row([repetition, n_stations, "discrete_step", "none", ode_method, stations_per_cell, delta_t_ratio, delta_t, disc_res[2], full_res[2], sum_error, max_error])
                         
         except:
