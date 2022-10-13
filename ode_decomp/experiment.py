@@ -596,14 +596,6 @@ class Experiment:
                     for end_stn in range(model.n_stations):
                         delay_idx = traj_cells[cell_idx].get_delay_idx(i, end_stn)
                         last_states[start_stn][end_stn] = starting_vector[cell_idx][delay_idx]
-
-        print("last state sum: ")
-        print(sum([sum(x) for x in last_states]))
-        print("delay_sum")
-        print(sum([sum(starting_vector[cell_idx][:-traj_cells[cell_idx].s_in_cell]) for cell_idx in range(model.n_cells)]))
-        print("total_sum")
-        print(sum([sum(starting_vector[cell_idx]) for cell_idx in range(model.n_cells)]))
-
         station_vals = [[] for i in range(model.n_stations)]
 
         time_points = []
@@ -616,8 +608,6 @@ class Experiment:
 
         
         while t < self.configuration.time_end:
-            print(f"t: {t}") # HOOK
-            
             #n_st = self.configuration.steps_per_dt
             n_st = math.ceil(TIME_POINTS_PER_HOUR * step_size)
             sub_time_points = [t+(i*(step_size/n_st)) for i in range(n_st)]
@@ -810,7 +800,6 @@ class Experiment:
 
         
         while t < self.configuration.time_end:
-            print(f"t: {t}") # HOOK
             sub_time_points = [t+(i*(step_size/self.configuration.steps_per_dt)) for i in range(self.configuration.steps_per_dt)]
 
             if len(sub_time_points) == 0:
@@ -952,7 +941,7 @@ class Experiment:
             for repetition in range(self.configuration.repetitions_per_point):
                 model = self.configuration.generate_model()
 
-                model.ode_export(repetition)
+                #model.ode_export(repetition)
                 
                 n_stations = model.n_stations
                 print(f"Repetition: {repetition}, n stations: {model.n_stations}")
