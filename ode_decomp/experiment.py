@@ -17,6 +17,8 @@ import copy
 import csv
 import shutil
 
+import ctypes
+
 import sklearn.cluster
 
 import spatial_decomp_station
@@ -27,6 +29,9 @@ from oslo_data import *
 import large_fluid
 
 import pickle
+
+from multiprocessing import Process, Lock
+import multiprocessing.shared_memory
 
 # Parameters
 TIME_POINTS_PER_HOUR = 100
@@ -74,6 +79,8 @@ class ExperimentModel:
         self.strict_in_demands = None
         self.strict_out_demands = None
         self.strict_in_probs = None
+        self.strict_mu = None
+        self.strict_phi = None
 
 
     def ode_export(self, ode_id):
@@ -157,6 +164,20 @@ class ExperimentModel:
     
     def get_delay_start(self, dly_idx):
         return dly_idx // self.n_stations
+
+    def get_mu_strict(self):
+        if not self.strict_mu:
+            self.strict_mu  = [[[] for j in range(self.n_cells)] for i in range(self.n_cells)]
+            self.strict_phi = [[[] for j in range(self.n_cells)] for i in range(self.n_cells)]
+
+        return self.strict_mu
+
+    def get_mu_strict(self):
+        if not self.strict_phi:
+            self.strict_mu  = [[[] for j in range(self.n_cells)] for i in range(self.n_cells)]
+            self.strict_phi = [[[] for j in range(self.n_cells)] for i in range(self.n_cells)]
+
+        return self.strict_phi
     
     def get_durations_strict(self):
         if not self.strict_durations:
@@ -277,8 +298,8 @@ class ExperimentConfig:
 
         # parameters
         self.ode_methods             = ["RK45", "BDF"]
-        self.stations_per_cell       = [5]#, 10, 15]
-        self.delta_t_ratio           = [0.1, 0.05, 0.025] # setting delta T based on (x/[average rate])
+        self.stations_per_cell       = [5, 10, 15]
+        self.delta_t_ratio           = [0.1, 0.05, 0.025, 0.0125, 0.00625] # setting delta T based on (x/[average rate])
         self.epsilon                 = [2, 1, 0.5]
 
         # random configuration
@@ -391,12 +412,180 @@ class Experiment:
         
         x_t = spi.solve_ivp(comp_model.dxdt, [0, self.configuration.time_end], starting_vector, 
                                 t_eval=time_points, 
-                                method=ode_method, atol=ATOL)
+                                #vectorized=True,
+                                atol=ATOL,
+                                method=ode_method)
         toc = time.perf_counter()
         print(f"Full Model finished, time: {toc-tic}.")
         return [[x for x in x_t.t], x_t.y, toc-tic]
 
+    def run_iteration_parallel(self, model, ode_method, epsilons, starting_vector="default", cell_limit=False, h_analysis=False, prior_iterations ="none"):
+        print("Running Trajectory-Based Iteration (parallelized)")
+        all_res = []
 
+        tic = time.perf_counter()
+
+        n_entries = model.n_stations**2 + model.n_stations
+
+        cur_epsilon = 0
+
+        x_res = []
+
+        if prior_iterations != "none":
+            x_res = prior_iterations
+
+        h_cells = {}
+        limited_cells = set()
+        h_time  = 0
+        
+        if starting_vector == "default":
+            starting_vector = [
+                [0 for i in range(len(model.cell_to_station[cell_idx]) * model.n_stations)] +
+                [x for i, x in enumerate(model.starting_bps) if i in list(model.cell_to_station[cell_idx])]
+                    for cell_idx in range(model.n_cells)
+            ]
+                
+        traj_cells = [spatial_decomp_station.TrajCell(cell_idx, model.station_to_cell, model.cell_to_station, 
+                                    sorted(list(model.cell_to_station[cell_idx])), model.durations, model.demands)
+                            for cell_idx in range(model.n_cells)]
+
+        n_time_points = self.configuration.time_end*TIME_POINTS_PER_HOUR
+        time_points = [(i*self.configuration.time_end)/n_time_points for i in range(n_time_points+1)]
+        trajectories = [[np.zeros(n_time_points+1) for j in range(model.n_stations)] for i in range(model.n_stations)]
+        
+        for traj_cell in traj_cells:
+            traj_cell.set_timestep(self.configuration.time_end/n_time_points)
+
+        station_vals = []
+
+        n_iterations = 0
+
+        non_h_idx = []
+
+        if h_analysis:
+            non_h_idx = np.array([True for i in range(n_entries)])
+
+        for iter_no in range(self.configuration.max_iterations):
+            n_iterations = iter_no + 1
+
+            for tc in traj_cells:
+                tc.set_trajectories(trajectories)
+
+            new_trajectories = copy.deepcopy(trajectories)
+
+            #x_iter = np.array([[0.0 for i in range(n_time_points+1)] for i in range(n_entries)])
+            iwrap = multiprocessing.Array(ctypes.c_double, n_entries*(n_time_points+1))
+            #x_iter = np.frombuffer(x_mp.get_obj())
+            #x_iter = x_iter.reshape((n_time_points + 1, n_entries))
+
+            #iwrap = multiprocessing.Array()
+            twrap = [[multiprocessing.Array(ctypes.c_double, n_time_points+1) for j in range(model.n_stations)] for i in range(model.n_stations)]
+            #iwrap[0] = x_iter
+            #twrap[0] = new_trajectories
+            cell_threads = [None for i in range(model.n_cells)]
+            x_t_cell = [None for i in range(model.n_cells)]
+
+            for cell_idx in range(model.n_cells):
+                if h_analysis and cell_idx in h_cells:
+                    cell_indices = traj_cells[cell_idx].get_idx()
+                    x_iter[cell_indices, :] = 0.0
+                    continue
+                if cell_limit and cell_idx in limited_cells:
+                    cell_indices = traj_cells[cell_idx].get_idx()
+                    if len(x_res) != 0:
+                        x_iter[cell_indices, :] = x_res[-1][cell_indices, :]
+                    else:
+                        x_iter[cell_indices, :] = 0
+                    continue
+
+                trajlock = Lock()
+                xiterlock = Lock()
+
+                def cell_fn(cell_idx, trajwrap, iterwrap, trajlock, xiterlock, x_iter_shape):
+                    cell_indices = traj_cells[cell_idx].get_idx()
+                    x_t = spi.solve_ivp(traj_cells[cell_idx].dxdt_array, [0, self.configuration.time_end], starting_vector[cell_idx], 
+                                            t_eval=time_points, 
+                                            method=ode_method, atol=ATOL)
+                    #print(x_t.y.sum())
+
+                    for i, src_stn in enumerate(traj_cells[cell_idx].stations):
+                        sy_idx = traj_cells[cell_idx].get_station_idx(i)
+                        
+                        for dst_stn in range(model.n_stations):
+                            y_idx = traj_cells[cell_idx].get_delay_idx(i, dst_stn)
+                            #trajlock.acquire()
+                            #new_trajectories = trajwrap[0]
+                            traj = np.frombuffer(twrap[src_stn][dst_stn].get_obj())
+                            traj[:] = x_t.y[y_idx, :]
+                            #trajwrap[0] = new_trajectories
+                            #trajlock.release()
+
+                    xiterlock.acquire()
+                    x_iter = np.frombuffer(iterwrap.get_obj()).reshape(x_iter_shape)
+                    #print(n_time_points)
+                    #print(n_entries*(n_time_points+1))
+                    #print(x_t.y.shape)
+                    x_iter = x_iter.reshape((n_entries, n_time_points + 1)) # reversed flow
+                    x_iter[cell_indices, :] = x_t.y
+                    xiterlock.release()
+
+                    if cell_limit:
+                        raise Exception("need to make limited_cells threadsafe")
+                        if len(x_res) == 0:
+                            error_score = float("inf")
+                        else:
+                            error_score = (abs(x_t.y - x_res[-1][cell_indices,:])).max()
+                        if error_score < epsilons[-1]:
+                            limited_cells.add(cell_idx)
+                
+                cell_threads[cell_idx] = Process(target=cell_fn, 
+                    args=(cell_idx, twrap, iwrap, trajlock, xiterlock, (n_entries, n_time_points + 1)))
+                cell_threads[cell_idx].start()
+
+            for i in range(model.n_cells):
+                if cell_threads[i] == None:
+                    continue
+                cell_threads[i].join()
+            x_iter = np.frombuffer(iwrap.get_obj()).reshape((n_entries, n_time_points + 1))
+            #print(x_iter.sum())
+            x_res.append(x_iter)
+
+            #trajectories = new_trajectories
+            for srt_stn in range(model.n_stations):
+                for dst_stn in range(model.n_stations):
+                    trajectories[srt_stn][dst_stn] = np.frombuffer(twrap[srt_stn][dst_stn].get_obj())
+
+            #iwrap.close()
+            #iwrap.unlink()
+            #twrap.close()
+            #twrap.unlink()
+
+
+            #if iter_no > 0:
+            if len(x_res) == 1:
+                error_score = float("inf")
+            else:
+                print(x_res[-2].sum())
+                print(x_res[-1].sum())
+                error_score = (abs(x_res[-1] - x_res[-2])).max()
+
+            h_rec = 0
+
+            while cur_epsilon < len(epsilons):
+                if error_score < epsilons[cur_epsilon]:
+                    toc = time.perf_counter()
+                    all_res.append([time_points, x_res[-1], toc - tic - h_time + h_rec, n_iterations])
+                    cur_epsilon += 1
+                else:
+                    break
+            
+            print(f"Iteration complete, time: {time.perf_counter()-tic}, error: {error_score}")
+            if cur_epsilon >= len(epsilons):
+                break
+
+        print(f"Trajectory-Based Iteration finished, time: {toc-tic}.")
+
+        return all_res
     
     def run_iteration(self, model, ode_method, epsilons, starting_vector="default", cell_limit=False, h_analysis=False, prior_iterations ="none"):
         print("Running Trajectory-Based Iteration")
@@ -504,8 +693,6 @@ class Experiment:
                         error_score = (abs(x_t.y - x_res[-1][cell_indices,:])).max()
                     if error_score < epsilons[-1]:
                         limited_cells.add(cell_idx)
-                    
-                
             
             x_res.append(x_iter)
 
@@ -769,7 +956,7 @@ class Experiment:
 
         return all_res
     
-    def run_discrete_strict(self, model, ode_method, step_size):
+    def run_discrete_strict(self, model, ode_method, step_size, inflate=False):
         print("Running Discrete-Step Submodeling")
 
         tic = time.perf_counter()
@@ -784,19 +971,23 @@ class Experiment:
                 for cell_idx in range(model.n_cells)
         ]
                 
-        traj_cells = [spatial_decomp_strict.StrictTrajCell(cell_idx, sorted(list(model.cell_to_station[cell_idx])), 
+        traj_cells = [spatial_decomp_strict.StrictTrajCell(cell_idx, 
+                                    sorted(list(model.cell_to_station[cell_idx])), 
                                     model.get_durations_strict(),
                                     model.get_in_demands_strict()[cell_idx], 
                                     model.get_in_probs_strict()[cell_idx], model.get_out_demands_strict()[cell_idx])
                             for cell_idx in range(model.n_cells)]
 
-        trajectories = [[0 for j in range(model.n_cells)] for i in range(model.n_cells)]
+        trajectories = [[float(0) for j in range(model.n_cells)] for i in range(model.n_cells)]
 
         station_vals = [[] for i in range(model.n_stations)]
 
         time_points = []
 
         t = 0
+
+        n_bikes = sum(sum(x) for x in current_vector)
+        print(f"starting with {n_bikes}")
 
         
         while t < self.configuration.time_end:
@@ -824,20 +1015,41 @@ class Experiment:
 
                 for i, station_id in enumerate(traj_cells[cell_idx].stations):
                     sy_idx = model.n_cells+i
-                    current_vector[cell_idx][sy_idx] = float(x_t.y[sy_idx, -1])
+                    new_vector[cell_idx][sy_idx] = float(x_t.y[sy_idx, -1])
 
                 for dst_cell in range(model.n_cells):
                     last_val = float(x_t.y[dst_cell, -1])
                     new_trajectories[dst_cell][cell_idx] = last_val
+
+            end_bikes = sum([sum(x) for x in new_vector])
+            print(f"end bikes: {end_bikes}")
+
+            if inflate:
+                end_bikes = sum([sum(x) for x in new_vector])
+                print(f"end bikes: {end_bikes}")
+                # do loss by number of bikes in delays
+                loss_ptg = float(n_bikes-end_bikes)/n_bikes
+                inflation_factor = 1/(1-loss_ptg)
+                for start_cell in range(model.n_cells):
+                    for end_cell in range(model.n_cells):
+                        new_trajectories[start_cell][end_cell] *= inflation_factor
+                for cell_idx in range(model.n_cells):
+                    new_vector[cell_idx] = [x * inflation_factor for x in new_vector[cell_idx]]
+                end_bikes = sum([sum(x) for x in new_vector])
+                x_iter *= inflation_factor
+                print(f"to: {end_bikes}")
 
             if x_arr.size == 0:
                 x_arr = x_iter
             else:
                 x_arr = np.concatenate([x_arr, x_iter], axis=1)
 
+            curent_vector = new_vector
+
             trajectories = new_trajectories
 
             t += step_size
+
         toc = time.perf_counter()
         print(f"Discrete-Step Submodeling finished, time: {toc-tic}")
         return [time_points, x_arr, toc-tic]
@@ -955,39 +1167,49 @@ class Experiment:
                     for stations_per_cell in self.configuration.stations_per_cell:
                         model.reset_strict()
                         model.generate_cells(stations_per_cell)
-                        limit_res = self.run_iteration(model, ode_method, [1.0], cell_limit=True)
+                        """limit_res = self.run_iteration(model, ode_method, [1.0], cell_limit=True)
 
                         for epsilon, iter_res in zip([1.0], limit_res):
-                            sum_error = sum_accuracy(full_res[0], full_res[1], disc_res[0], disc_res[1])
-                            max_error = max_accuracy(full_res[0], full_res[1], disc_res[0], disc_res[1])
+                            sum_error = sum_accuracy(full_res[0], full_res[1], iter_res[0], iter_res[1])
+                            max_error = max_accuracy(full_res[0], full_res[1], iter_res[0], iter_res[1])
                             self.write_row([repetition, n_stations, "traj_iteration", "limit_res", ode_method, stations_per_cell, epsilon, iter_res[3], iter_res[2], full_res[2], sum_error, max_error])
-                        
-                        strict_res = self.run_iteration_strict(model, ode_method, self.configuration.epsilon)
+                        """           
+
+                        for epsilon in self.configuration.epsilon:
+                            parallel_res = self.run_iteration_parallel(model, ode_method, [epsilon], cell_limit=False)
+
+                            for iter_res in parallel_res:
+                                sum_error = sum_accuracy(full_res[0], full_res[1], iter_res[0], iter_res[1])
+                                max_error = max_accuracy(full_res[0], full_res[1], iter_res[0], iter_res[1])
+                                self.write_row([repetition, n_stations, "traj_iteration", "parallel", ode_method, stations_per_cell, epsilon, iter_res[3], iter_res[2], full_res[2], sum_error, max_error])
+
+                        """strict_res = self.run_iteration_strict(model, ode_method, self.configuration.epsilon)
 
                         for epsilon, iter_res in zip(self.configuration.epsilon, strict_res):
                             sum_error = sum_accuracy(full_res[0], full_res[1][(-model.n_stations):,:], iter_res[0], iter_res[1][(-model.n_stations):,:])
                             max_error = max_accuracy(full_res[0], full_res[1][(-model.n_stations):,:], iter_res[0], iter_res[1][(-model.n_stations):,:])
                             self.write_row([repetition, n_stations, "traj_iteration", "strict", ode_method, stations_per_cell, epsilon, iter_res[3], iter_res[2], full_res[2], sum_error, max_error])
-                        
+                        """
+
                         all_res = self.run_iteration(model, ode_method, self.configuration.epsilon)
 
                         for epsilon, iter_res in zip(self.configuration.epsilon, all_res):
-                            sum_error = sum_accuracy(full_res[0], full_res[1], disc_res[0], disc_res[1])
-                            max_error = max_accuracy(full_res[0], full_res[1], disc_res[0], disc_res[1])
+                            sum_error = sum_accuracy(full_res[0], full_res[1], iter_res[0], iter_res[1])
+                            max_error = max_accuracy(full_res[0], full_res[1], iter_res[0], iter_res[1])
                             self.write_row([repetition, n_stations, "traj_iteration", "none", ode_method, stations_per_cell, epsilon, iter_res[3], iter_res[2], full_res[2], sum_error, max_error])
 
                         for delta_t_ratio in self.configuration.delta_t_ratio:
                             delta_t = model.get_dt_from_ratio(delta_t_ratio)
 
-                            disc_res_strict = self.run_discrete_strict(model, ode_method, delta_t)
+                            disc_res_strict = self.run_discrete_strict(model, ode_method, delta_t, inflate=True)
                             sum_error = sum_accuracy(full_res[0], full_res[1][(-model.n_stations):,:], disc_res_strict[0], disc_res_strict[1][(-model.n_stations):,:])
                             max_error = max_accuracy(full_res[0], full_res[1][(-model.n_stations):,:], disc_res_strict[0], disc_res_strict[1][(-model.n_stations):,:])
                             self.write_row([repetition, n_stations, "discrete_step", "strict", ode_method, stations_per_cell, delta_t_ratio, delta_t, disc_res_strict[2], full_res[2], sum_error, max_error])
-                            disc_res = self.run_discrete(model, ode_method, delta_t, inflate=True)
+                            #disc_res = self.run_discrete(model, ode_method, delta_t, inflate=True)
 
-                            sum_error = sum_accuracy(full_res[0], full_res[1], disc_res[0], disc_res[1])
-                            max_error = max_accuracy(full_res[0], full_res[1], disc_res[0], disc_res[1])
-                            self.write_row([repetition, n_stations, "discrete_step", "none", ode_method, stations_per_cell, delta_t_ratio, delta_t, disc_res[2], full_res[2], sum_error, max_error])
+                            #sum_error = sum_accuracy(full_res[0], full_res[1], disc_res[0], disc_res[1])
+                            #max_error = max_accuracy(full_res[0], full_res[1], disc_res[0], disc_res[1])
+                            #self.write_row([repetition, n_stations, "discrete_step", "none", ode_method, stations_per_cell, delta_t_ratio, delta_t, disc_res[2], full_res[2], sum_error, max_error])
                         
         except:
             shutil.rmtree(self.output_folder)

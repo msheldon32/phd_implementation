@@ -4,7 +4,8 @@ import cProfile
 import sys
 
 def exp_main(seed, control):
-    experiment_config = ExperimentConfig(seed, (50,100), 4)
+    #experiment_config = ExperimentConfig(seed, (50,100), 4)
+    experiment_config = ExperimentConfig(seed, (100,125), 4)
     #experiment_config = ExperimentConfig(seed, (10,15), 4)
     experiment        = Experiment(experiment_config)
 
