@@ -478,7 +478,6 @@ class Experiment:
             x_iter_shape = (n_entries, n_time_points + 1)
 
             for cell_idx in range(model.n_cells):
-
                 lc_lock = Lock()
                 xiterlock = Lock()
 
@@ -523,19 +522,28 @@ class Experiment:
 
                         if error_score < epsilon:
                             lc_lock.acquire()
-                            limited_cells[cell_idx] = 1
+                            limited_cells[cell_idx] = iter_no
                             lc_lock.release()
                         #s_ct = traj_cells[cell_idx].s_in_cell
                         if not (x_t.y[-traj_cells[cell_idx].s_in_cell,:] < 1).any():
                             lc_lock.acquire()
-                            limited_cells[cell_idx] = 1
+                            limited_cells[cell_idx] = iter_no
                             lc_lock.release()
 
                 
-                if cell_limit and cell_idx in limited_cells:
+                if last_iter:
+                    # reverse things on the last iteration, as the limited cells need to be ran again
+                    if cell_idx in limited_cells and limited_cells[cell_idx] < iter_no - 1:
+                        cell_threads[cell_idx] = Process(target=cell_fn, 
+                            args=(cell_idx,))#, twrap, iwrap))#, lc_lock, xiterlock, limited_cells))
+                    else:
+                        cell_threads[cell_idx] = Process(target=limited_cell_fn, 
+                            args=(cell_idx,))#, twrap, iwrap))#, lc_lock, xiterlock))
+
+                elif cell_limit and cell_idx in limited_cells:
                     cell_threads[cell_idx] = Process(target=limited_cell_fn, 
                         args=(cell_idx,))#, twrap, iwrap))#, lc_lock, xiterlock))
-                else:        
+                else:
                     cell_threads[cell_idx] = Process(target=cell_fn, 
                         args=(cell_idx,))#, twrap, iwrap))#, lc_lock, xiterlock, limited_cells))
                 cell_threads[cell_idx].start()
@@ -569,9 +577,8 @@ class Experiment:
             h_rec = 0
             if error_score < epsilon:
                 if cell_limit:
-                    # clear all limited cells and run one last time
+                    # run limited cells one last time
                     last_iter = True
-                    limited_cells = Manager().dict()
                 else:
                     toc = time.perf_counter()
                     all_res.append([time_points, x_res[-1], toc - tic - h_time + h_rec, n_iterations])
