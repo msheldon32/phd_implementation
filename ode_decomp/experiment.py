@@ -30,7 +30,7 @@ import large_fluid
 
 import pickle
 
-from multiprocessing import Process, Lock
+from multiprocessing import Process, Lock, Manager
 import multiprocessing.shared_memory
 
 # Parameters
@@ -300,13 +300,13 @@ class ExperimentConfig:
         self.ode_methods             = ["RK45", "BDF"]
         self.stations_per_cell       = [5, 10, 15]
         self.delta_t_ratio           = [0.1, 0.05, 0.025, 0.0125, 0.00625] # setting delta T based on (x/[average rate])
-        self.epsilon                 = [2, 1, 0.5]
+        self.epsilon                 = [2, 1, 0.5, 0.25, 0.125]
 
         # random configuration
         self.n_station_range         = n_station_range
         self.x_location_range        = [0, 1]
         self.y_location_range        = [0, 1]
-        self.station_demand_range    = [0, 0.5]
+        self.station_demand_range    = [0, 0.05]
         #self.station_demand_range    = [0, 0.05]
         self.noise_moments_distance  = [0, 0.2]
         self.bps_range               = [0, 15]
@@ -419,23 +419,21 @@ class Experiment:
         print(f"Full Model finished, time: {toc-tic}.")
         return [[x for x in x_t.t], x_t.y, toc-tic]
 
-    def run_iteration_parallel(self, model, ode_method, epsilons, starting_vector="default", cell_limit=False, h_analysis=False, prior_iterations ="none"):
-        print("Running Trajectory-Based Iteration (parallelized)")
+    def run_iteration_parallel(self, model, ode_method, epsilon, starting_vector="default", cell_limit=False, prior_iterations ="none"):
+        print(f"Running Trajectory-Based Iteration (parallelized, limit: {cell_limit})")
         all_res = []
 
         tic = time.perf_counter()
 
         n_entries = model.n_stations**2 + model.n_stations
-
-        cur_epsilon = 0
-
         x_res = []
 
         if prior_iterations != "none":
             x_res = prior_iterations
 
         h_cells = {}
-        limited_cells = set()
+        #limited_cells = set()
+        limited_cells = Manager().dict()
         h_time  = 0
         
         if starting_vector == "default":
@@ -462,84 +460,84 @@ class Experiment:
 
         non_h_idx = []
 
-        if h_analysis:
-            non_h_idx = np.array([True for i in range(n_entries)])
+        last_iter = False
 
         for iter_no in range(self.configuration.max_iterations):
             n_iterations = iter_no + 1
 
-            for tc in traj_cells:
-                tc.set_trajectories(trajectories)
-
             new_trajectories = copy.deepcopy(trajectories)
 
-            #x_iter = np.array([[0.0 for i in range(n_time_points+1)] for i in range(n_entries)])
             iwrap = multiprocessing.Array(ctypes.c_double, n_entries*(n_time_points+1))
-            #x_iter = np.frombuffer(x_mp.get_obj())
-            #x_iter = x_iter.reshape((n_time_points + 1, n_entries))
-
-            #iwrap = multiprocessing.Array()
+            
             twrap = [[multiprocessing.Array(ctypes.c_double, n_time_points+1) for j in range(model.n_stations)] for i in range(model.n_stations)]
-            #iwrap[0] = x_iter
-            #twrap[0] = new_trajectories
+
+
             cell_threads = [None for i in range(model.n_cells)]
             x_t_cell = [None for i in range(model.n_cells)]
 
-            for cell_idx in range(model.n_cells):
-                if h_analysis and cell_idx in h_cells:
-                    cell_indices = traj_cells[cell_idx].get_idx()
-                    x_iter[cell_indices, :] = 0.0
-                    continue
-                if cell_limit and cell_idx in limited_cells:
-                    cell_indices = traj_cells[cell_idx].get_idx()
-                    if len(x_res) != 0:
-                        x_iter[cell_indices, :] = x_res[-1][cell_indices, :]
-                    else:
-                        x_iter[cell_indices, :] = 0
-                    continue
+            x_iter_shape = (n_entries, n_time_points + 1)
 
-                trajlock = Lock()
+            for cell_idx in range(model.n_cells):
+
+                lc_lock = Lock()
                 xiterlock = Lock()
 
-                def cell_fn(cell_idx, trajwrap, iterwrap, trajlock, xiterlock, x_iter_shape):
+                def limited_cell_fn(cell_idx):#, trajwrap, iterwrap, lc_lock, xiterlock):
+                    #x_iter = np.frombuffer(iterwrap.get_obj()).reshape(x_iter_shape)
                     cell_indices = traj_cells[cell_idx].get_idx()
+                    if len(x_res) != 0:
+                        np.frombuffer(iwrap.get_obj()).reshape(x_iter_shape)[cell_indices, :] = x_res[-1][cell_indices, :]
+                    else:
+                        np.frombuffer(iwrap.get_obj()).reshape(x_iter_shape)[cell_indices, :] = 0
+
+                    for i, src_stn in enumerate(traj_cells[cell_idx].stations):
+                        for dst_stn in range(model.n_stations):
+                            np.frombuffer(twrap[src_stn][dst_stn].get_obj())[:][:] = trajectories[src_stn][dst_stn]
+
+                def cell_fn(cell_idx):#, trajwrap, iterwrap):#, lc_lock, xiterlock, limited_cells):
+                    traj_cells[cell_idx].set_trajectories(trajectories)
+
+                    #cell_indices = traj_cells[cell_idx].get_idx()
+
                     x_t = spi.solve_ivp(traj_cells[cell_idx].dxdt_array, [0, self.configuration.time_end], starting_vector[cell_idx], 
                                             t_eval=time_points, 
                                             method=ode_method, atol=ATOL)
-                    #print(x_t.y.sum())
 
                     for i, src_stn in enumerate(traj_cells[cell_idx].stations):
-                        sy_idx = traj_cells[cell_idx].get_station_idx(i)
-                        
                         for dst_stn in range(model.n_stations):
-                            y_idx = traj_cells[cell_idx].get_delay_idx(i, dst_stn)
-                            #trajlock.acquire()
-                            #new_trajectories = trajwrap[0]
-                            traj = np.frombuffer(twrap[src_stn][dst_stn].get_obj())
-                            traj[:] = x_t.y[y_idx, :]
-                            #trajwrap[0] = new_trajectories
-                            #trajlock.release()
+                            #y_idx = traj_cells[cell_idx].get_delay_idx(i, dst_stn)
+                            
+                            #traj = np.frombuffer(twrap[src_stn][dst_stn].get_obj())
+                            np.frombuffer(twrap[src_stn][dst_stn].get_obj())[:] = x_t.y[traj_cells[cell_idx].get_delay_idx(i, dst_stn), :]
 
                     xiterlock.acquire()
-                    x_iter = np.frombuffer(iterwrap.get_obj()).reshape(x_iter_shape)
-                    #print(n_time_points)
-                    #print(n_entries*(n_time_points+1))
-                    #print(x_t.y.shape)
-                    x_iter = x_iter.reshape((n_entries, n_time_points + 1)) # reversed flow
-                    x_iter[cell_indices, :] = x_t.y
+                    #x_iter = np.frombuffer(iterwrap.get_obj()).reshape(x_iter_shape)
+                    np.frombuffer(iwrap.get_obj()).reshape(x_iter_shape)[traj_cells[cell_idx].get_idx(), :] = x_t.y
                     xiterlock.release()
 
                     if cell_limit:
-                        raise Exception("need to make limited_cells threadsafe")
                         if len(x_res) == 0:
                             error_score = float("inf")
                         else:
-                            error_score = (abs(x_t.y - x_res[-1][cell_indices,:])).max()
-                        if error_score < epsilons[-1]:
-                            limited_cells.add(cell_idx)
+                            error_score = (abs(x_t.y - x_res[-1][traj_cells[cell_idx].get_idx(),:])).max()
+
+                        if error_score < epsilon:
+                            lc_lock.acquire()
+                            limited_cells[cell_idx] = 1
+                            lc_lock.release()
+                        #s_ct = traj_cells[cell_idx].s_in_cell
+                        if not (x_t.y[-traj_cells[cell_idx].s_in_cell,:] < 1).any():
+                            lc_lock.acquire()
+                            limited_cells[cell_idx] = 1
+                            lc_lock.release()
+
                 
-                cell_threads[cell_idx] = Process(target=cell_fn, 
-                    args=(cell_idx, twrap, iwrap, trajlock, xiterlock, (n_entries, n_time_points + 1)))
+                if cell_limit and cell_idx in limited_cells:
+                    cell_threads[cell_idx] = Process(target=limited_cell_fn, 
+                        args=(cell_idx,))#, twrap, iwrap))#, lc_lock, xiterlock))
+                else:        
+                    cell_threads[cell_idx] = Process(target=cell_fn, 
+                        args=(cell_idx,))#, twrap, iwrap))#, lc_lock, xiterlock, limited_cells))
                 cell_threads[cell_idx].start()
 
             for i in range(model.n_cells):
@@ -550,39 +548,37 @@ class Experiment:
             #print(x_iter.sum())
             x_res.append(x_iter)
 
+            if last_iter:
+                toc = time.perf_counter()
+                all_res.append([time_points, x_res[-1], toc - tic - h_time + h_rec, n_iterations])
+                break
+
             #trajectories = new_trajectories
             for srt_stn in range(model.n_stations):
                 for dst_stn in range(model.n_stations):
                     trajectories[srt_stn][dst_stn] = np.frombuffer(twrap[srt_stn][dst_stn].get_obj())
 
-            #iwrap.close()
-            #iwrap.unlink()
-            #twrap.close()
-            #twrap.unlink()
-
-
             #if iter_no > 0:
             if len(x_res) == 1:
                 error_score = float("inf")
             else:
-                print(x_res[-2].sum())
-                print(x_res[-1].sum())
+                #print(x_res[-2].sum())
+                #print(x_res[-1].sum())
                 error_score = (abs(x_res[-1] - x_res[-2])).max()
 
             h_rec = 0
-
-            while cur_epsilon < len(epsilons):
-                if error_score < epsilons[cur_epsilon]:
+            if error_score < epsilon:
+                if cell_limit:
+                    # clear all limited cells and run one last time
+                    last_iter = True
+                    limited_cells = Manager().dict()
+                else:
                     toc = time.perf_counter()
                     all_res.append([time_points, x_res[-1], toc - tic - h_time + h_rec, n_iterations])
-                    cur_epsilon += 1
-                else:
                     break
             
             print(f"Iteration complete, time: {time.perf_counter()-tic}, error: {error_score}")
-            if cur_epsilon >= len(epsilons):
-                break
-
+            
         print(f"Trajectory-Based Iteration finished, time: {toc-tic}.")
 
         return all_res
@@ -672,7 +668,7 @@ class Experiment:
                     s_ct = traj_cells[cell_idx].s_in_cell
                     
                     if not (x_t.y[-s_ct:, :] < 1).any():
-                        print(f"added h cell {cell_idx}")
+                        #print(f"added h cell {cell_idx}")
 
                         h_cells[cell_idx] = iter_no
                         x_res[-1][cell_indices, :] = 0.0
@@ -681,8 +677,8 @@ class Experiment:
                         non_h_idx[cell_indices] = False
 
                         continue
-                    if not (x_t.y[-traj_cells[cell_idx].s_in_cell:, :] > 1).any():
-                        print(f"Found l cell {cell_idx}")
+                    #if not (x_t.y[-traj_cells[cell_idx].s_in_cell:, :] > 1).any():
+                        #print(f"Found l cell {cell_idx}")
 
                 x_iter[cell_indices, :] = x_t.y
 
@@ -864,7 +860,7 @@ class Experiment:
             last_states = new_lstates
             current_vector = new_vector
 
-            print(x_iter[:,-1].sum())
+            #print(x_iter[:,-1].sum())
 
             t += step_size
         toc = time.perf_counter()
@@ -1176,12 +1172,26 @@ class Experiment:
                         """           
 
                         for epsilon in self.configuration.epsilon:
-                            parallel_res = self.run_iteration_parallel(model, ode_method, [epsilon], cell_limit=False)
+                            parallel_res = self.run_iteration_parallel(model, ode_method, epsilon, cell_limit=False)
 
                             for iter_res in parallel_res:
+                                """plt.plot(full_res[0], full_res[1][0,:])
+                                plt.plot(iter_res[0], iter_res[1][0,:])
+                                plt.show()"""
                                 sum_error = sum_accuracy(full_res[0], full_res[1], iter_res[0], iter_res[1])
                                 max_error = max_accuracy(full_res[0], full_res[1], iter_res[0], iter_res[1])
                                 self.write_row([repetition, n_stations, "traj_iteration", "parallel", ode_method, stations_per_cell, epsilon, iter_res[3], iter_res[2], full_res[2], sum_error, max_error])
+
+
+                            parallel_res = self.run_iteration_parallel(model, ode_method, epsilon, cell_limit=True)
+
+                            for iter_res in parallel_res:
+                                """plt.plot(full_res[0], full_res[1][0,:])
+                                plt.plot(iter_res[0], iter_res[1][0,:])
+                                plt.show()"""
+                                sum_error = sum_accuracy(full_res[0], full_res[1], iter_res[0], iter_res[1])
+                                max_error = max_accuracy(full_res[0], full_res[1], iter_res[0], iter_res[1])
+                                self.write_row([repetition, n_stations, "traj_iteration", "parallel_limit", ode_method, stations_per_cell, epsilon, iter_res[3], iter_res[2], full_res[2], sum_error, max_error])
 
                         """strict_res = self.run_iteration_strict(model, ode_method, self.configuration.epsilon)
 
@@ -1201,15 +1211,16 @@ class Experiment:
                         for delta_t_ratio in self.configuration.delta_t_ratio:
                             delta_t = model.get_dt_from_ratio(delta_t_ratio)
 
-                            disc_res_strict = self.run_discrete_strict(model, ode_method, delta_t, inflate=True)
-                            sum_error = sum_accuracy(full_res[0], full_res[1][(-model.n_stations):,:], disc_res_strict[0], disc_res_strict[1][(-model.n_stations):,:])
-                            max_error = max_accuracy(full_res[0], full_res[1][(-model.n_stations):,:], disc_res_strict[0], disc_res_strict[1][(-model.n_stations):,:])
-                            self.write_row([repetition, n_stations, "discrete_step", "strict", ode_method, stations_per_cell, delta_t_ratio, delta_t, disc_res_strict[2], full_res[2], sum_error, max_error])
-                            #disc_res = self.run_discrete(model, ode_method, delta_t, inflate=True)
+                            #disc_res_strict = self.run_discrete_strict(model, ode_method, delta_t, inflate=True)
+                            #sum_error = sum_accuracy(full_res[0], full_res[1][(-model.n_stations):,:], disc_res_strict[0], disc_res_strict[1][(-model.n_stations):,:])
+                            #max_error = max_accuracy(full_res[0], full_res[1][(-model.n_stations):,:], disc_res_strict[0], disc_res_strict[1][(-model.n_stations):,:])
+                            #self.write_row([repetition, n_stations, "discrete_step", "strict", ode_method, stations_per_cell, delta_t_ratio, delta_t, disc_res_strict[2], full_res[2], sum_error, max_error])
+                            
+                            disc_res = self.run_discrete(model, ode_method, delta_t, inflate=True)
 
-                            #sum_error = sum_accuracy(full_res[0], full_res[1], disc_res[0], disc_res[1])
-                            #max_error = max_accuracy(full_res[0], full_res[1], disc_res[0], disc_res[1])
-                            #self.write_row([repetition, n_stations, "discrete_step", "none", ode_method, stations_per_cell, delta_t_ratio, delta_t, disc_res[2], full_res[2], sum_error, max_error])
+                            sum_error = sum_accuracy(full_res[0], full_res[1], disc_res[0], disc_res[1])
+                            max_error = max_accuracy(full_res[0], full_res[1], disc_res[0], disc_res[1])
+                            self.write_row([repetition, n_stations, "discrete_step", "none", ode_method, stations_per_cell, delta_t_ratio, delta_t, disc_res[2], full_res[2], sum_error, max_error])
                         
         except:
             shutil.rmtree(self.output_folder)

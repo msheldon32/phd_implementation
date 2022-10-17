@@ -234,8 +234,8 @@ class TrajCell:
         deriv = [0 for i in range((self.n_stations*self.s_in_cell)+self.s_in_cell)]
         
         # inline re-implementation for speed
-        get_delay_idx = lambda i_idx, d_idx: (i_idx*self.n_stations) + d_idx
-        get_station_idx = lambda i_idx: (self.n_stations * self.s_in_cell) + i_idx
+        #get_delay_idx = lambda i_idx, d_idx: (i_idx*self.n_stations) + d_idx
+        #get_station_idx = lambda i_idx: (self.n_stations * self.s_in_cell) + i_idx
 
         # derive output delays
         for j, src_station in enumerate(self.stations):
