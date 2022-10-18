@@ -477,6 +477,8 @@ class Experiment:
 
             x_iter_shape = (n_entries, n_time_points + 1)
 
+            finished_cells = Manager().dict()
+
             for cell_idx in range(model.n_cells):
                 lc_lock = Lock()
                 xiterlock = Lock()
@@ -492,6 +494,8 @@ class Experiment:
                     for i, src_stn in enumerate(traj_cells[cell_idx].stations):
                         for dst_stn in range(model.n_stations):
                             np.frombuffer(twrap[src_stn][dst_stn].get_obj())[:][:] = trajectories[src_stn][dst_stn]
+
+                    finished_cells[cell_idx] = True
 
                 def cell_fn(cell_idx):#, trajwrap, iterwrap):#, lc_lock, xiterlock, limited_cells):
                     traj_cells[cell_idx].set_trajectories(trajectories)
@@ -530,6 +534,8 @@ class Experiment:
                             limited_cells[cell_idx] = iter_no
                             lc_lock.release()
 
+                    finished_cells[cell_idx] = True
+
                 
                 if last_iter:
                     # reverse things on the last iteration, as the limited cells need to be ran again
@@ -546,14 +552,38 @@ class Experiment:
                 else:
                     cell_threads[cell_idx] = Process(target=cell_fn, 
                         args=(cell_idx,))#, twrap, iwrap))#, lc_lock, xiterlock, limited_cells))
-                cell_threads[cell_idx].start()
 
-            for i in range(model.n_cells):
-                if cell_threads[i] == None:
-                    continue
-                cell_threads[i].join()
+            n_cores_avail = 3
+            running_cells = set()
+            cell_iter = 0
+            while cell_iter < model.n_cells:
+                if len(running_cells) < n_cores_avail:
+                    cell_threads[cell_iter].start()
+                    running_cells.add(cell_iter)
+                    #print(f"created thread for {cell_iter}")
+                    cell_iter += 1
+                else:
+                    cell_to_remove = -1
+                    for c in running_cells:
+                        if c in finished_cells:
+                            cell_threads[c].join()
+                            #print(f"removed thread for {c}")
+                            cell_to_remove = c
+                            break
+                    if cell_to_remove != -1:
+                        running_cells.remove(c)
+            while len(running_cells) > 0:
+                cell_to_remove = -1
+                for c in running_cells:
+                    if c in finished_cells:
+                        cell_threads[c].join()
+                        #print(f"removed thread for {c}")
+                        cell_to_remove = c
+                        break
+                if cell_to_remove != -1:
+                    running_cells.remove(c)
+
             x_iter = np.frombuffer(iwrap.get_obj()).reshape((n_entries, n_time_points + 1))
-            #print(x_iter.sum())
             x_res.append(x_iter)
 
             if last_iter:
