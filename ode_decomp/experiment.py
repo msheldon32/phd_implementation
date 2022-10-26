@@ -462,15 +462,61 @@ class Experiment:
 
         last_iter = False
 
+        def limited_cell_fn(cell_idx, trajwrap, iterwrap):#, lc_lock, xiterlock):
+            #x_iter = np.frombuffer(iterwrap.get_obj()).reshape(x_iter_shape)
+            cell_indices = traj_cells[cell_idx].get_idx()
+            if len(x_res) != 0:
+                np.frombuffer(iterwrap.get_obj()).reshape(x_iter_shape)[cell_indices, :] = x_res[-1][cell_indices, :]
+            else:
+                np.frombuffer(iterwrap.get_obj()).reshape(x_iter_shape)[cell_indices, :] = 0
+
+            for i, src_stn in enumerate(traj_cells[cell_idx].stations):
+                for dst_stn in range(model.n_stations):
+                    np.frombuffer(trajwrap[src_stn][dst_stn].get_obj())[:][:] = trajectories[src_stn][dst_stn]
+
+            finished_cells[cell_idx] = True
+
+        def cell_fn(cell_idx, trajwrap, iterwrap):#, lc_lock, xiterlock, limited_cells):
+            traj_cells[cell_idx].set_trajectories(trajectories)
+
+            #cell_indices = traj_cells[cell_idx].get_idx()
+
+            x_t = spi.solve_ivp(traj_cells[cell_idx].dxdt_array, [0, self.configuration.time_end], starting_vector[cell_idx], 
+                                    t_eval=time_points, 
+                                    method=ode_method, atol=ATOL)
+
+            for i, src_stn in enumerate(traj_cells[cell_idx].stations):
+                for dst_stn in range(model.n_stations):
+                    #y_idx = traj_cells[cell_idx].get_delay_idx(i, dst_stn)
+                    
+                    #traj = np.frombuffer(twrap[src_stn][dst_stn].get_obj())
+                    np.frombuffer(trajwrap[src_stn][dst_stn].get_obj())[:] = x_t.y[traj_cells[cell_idx].get_delay_idx(i, dst_stn), :]
+
+            xiterlock.acquire()
+            #x_iter = np.frombuffer(iterwrap.get_obj()).reshape(x_iter_shape)
+            np.frombuffer(iterwrap.get_obj()).reshape(x_iter_shape)[traj_cells[cell_idx].get_idx(), :] = x_t.y
+            xiterlock.release()
+
+            if cell_limit:
+                if len(x_res) == 0:
+                    error_score = float("inf")
+                else:
+                    error_score = (abs(x_t.y - x_res[-1][traj_cells[cell_idx].get_idx(),:])).max()
+
+                if error_score < epsilon:
+                    lc_lock.acquire()
+                    limited_cells[cell_idx] = iter_no
+                    lc_lock.release()
+                #s_ct = traj_cells[cell_idx].s_in_cell
+                if not (x_t.y[-traj_cells[cell_idx].s_in_cell,:] < 1).any():
+                    lc_lock.acquire()
+                    limited_cells[cell_idx] = iter_no
+                    lc_lock.release()
+
+            finished_cells[cell_idx] = True
+
         for iter_no in range(self.configuration.max_iterations):
             n_iterations = iter_no + 1
-
-            new_trajectories = copy.deepcopy(trajectories)
-
-            iwrap = multiprocessing.Array(ctypes.c_double, n_entries*(n_time_points+1))
-            
-            twrap = [[multiprocessing.Array(ctypes.c_double, n_time_points+1) for j in range(model.n_stations)] for i in range(model.n_stations)]
-
 
             cell_threads = [None for i in range(model.n_cells)]
             x_t_cell = [None for i in range(model.n_cells)]
@@ -479,79 +525,28 @@ class Experiment:
 
             finished_cells = Manager().dict()
 
+            iwrap = multiprocessing.Array(ctypes.c_float, int(n_entries*(n_time_points+1)))
+            twrap = [[multiprocessing.Array(ctypes.c_float, n_time_points+1) for j in range(model.n_stations)] for i in range(model.n_stations)]
+
             for cell_idx in range(model.n_cells):
                 lc_lock = Lock()
                 xiterlock = Lock()
 
-                def limited_cell_fn(cell_idx):#, trajwrap, iterwrap, lc_lock, xiterlock):
-                    #x_iter = np.frombuffer(iterwrap.get_obj()).reshape(x_iter_shape)
-                    cell_indices = traj_cells[cell_idx].get_idx()
-                    if len(x_res) != 0:
-                        np.frombuffer(iwrap.get_obj()).reshape(x_iter_shape)[cell_indices, :] = x_res[-1][cell_indices, :]
-                    else:
-                        np.frombuffer(iwrap.get_obj()).reshape(x_iter_shape)[cell_indices, :] = 0
-
-                    for i, src_stn in enumerate(traj_cells[cell_idx].stations):
-                        for dst_stn in range(model.n_stations):
-                            np.frombuffer(twrap[src_stn][dst_stn].get_obj())[:][:] = trajectories[src_stn][dst_stn]
-
-                    finished_cells[cell_idx] = True
-
-                def cell_fn(cell_idx):#, trajwrap, iterwrap):#, lc_lock, xiterlock, limited_cells):
-                    traj_cells[cell_idx].set_trajectories(trajectories)
-
-                    #cell_indices = traj_cells[cell_idx].get_idx()
-
-                    x_t = spi.solve_ivp(traj_cells[cell_idx].dxdt_array, [0, self.configuration.time_end], starting_vector[cell_idx], 
-                                            t_eval=time_points, 
-                                            method=ode_method, atol=ATOL)
-
-                    for i, src_stn in enumerate(traj_cells[cell_idx].stations):
-                        for dst_stn in range(model.n_stations):
-                            #y_idx = traj_cells[cell_idx].get_delay_idx(i, dst_stn)
-                            
-                            #traj = np.frombuffer(twrap[src_stn][dst_stn].get_obj())
-                            np.frombuffer(twrap[src_stn][dst_stn].get_obj())[:] = x_t.y[traj_cells[cell_idx].get_delay_idx(i, dst_stn), :]
-
-                    xiterlock.acquire()
-                    #x_iter = np.frombuffer(iterwrap.get_obj()).reshape(x_iter_shape)
-                    np.frombuffer(iwrap.get_obj()).reshape(x_iter_shape)[traj_cells[cell_idx].get_idx(), :] = x_t.y
-                    xiterlock.release()
-
-                    if cell_limit:
-                        if len(x_res) == 0:
-                            error_score = float("inf")
-                        else:
-                            error_score = (abs(x_t.y - x_res[-1][traj_cells[cell_idx].get_idx(),:])).max()
-
-                        if error_score < epsilon:
-                            lc_lock.acquire()
-                            limited_cells[cell_idx] = iter_no
-                            lc_lock.release()
-                        #s_ct = traj_cells[cell_idx].s_in_cell
-                        if not (x_t.y[-traj_cells[cell_idx].s_in_cell,:] < 1).any():
-                            lc_lock.acquire()
-                            limited_cells[cell_idx] = iter_no
-                            lc_lock.release()
-
-                    finished_cells[cell_idx] = True
-
-                
                 if last_iter:
                     # reverse things on the last iteration, as the limited cells need to be ran again
                     if cell_idx in limited_cells and limited_cells[cell_idx] < iter_no - 1:
                         cell_threads[cell_idx] = Process(target=cell_fn, 
-                            args=(cell_idx,))#, twrap, iwrap))#, lc_lock, xiterlock, limited_cells))
+                            args=(cell_idx, twrap, iwrap))#, lc_lock, xiterlock, limited_cells))
                     else:
                         cell_threads[cell_idx] = Process(target=limited_cell_fn, 
-                            args=(cell_idx,))#, twrap, iwrap))#, lc_lock, xiterlock))
+                            args=(cell_idx, twrap, iwrap))#, lc_lock, xiterlock))
 
                 elif cell_limit and cell_idx in limited_cells:
                     cell_threads[cell_idx] = Process(target=limited_cell_fn, 
-                        args=(cell_idx,))#, twrap, iwrap))#, lc_lock, xiterlock))
+                        args=(cell_idx, twrap, iwrap))#, lc_lock, xiterlock))
                 else:
                     cell_threads[cell_idx] = Process(target=cell_fn, 
-                        args=(cell_idx,))#, twrap, iwrap))#, lc_lock, xiterlock, limited_cells))
+                        args=(cell_idx, twrap, iwrap))#, lc_lock, xiterlock, limited_cells))
 
             n_cores_avail = 3
             running_cells = set()

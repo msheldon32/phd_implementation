@@ -166,6 +166,8 @@ class StrictTrajCellCox:
         self.station_offset = 0
         self.in_offset = 0
 
+        self.prices = [1 for i in range(self.s_in_cell)]
+
         self.in_demands = in_demands
 
         for end_cell in range(self.n_cells):
@@ -181,6 +183,22 @@ class StrictTrajCellCox:
         self.trajectories = []
 
         self.tstep = 0
+
+        self.cache = {}
+    
+    def cache(self):
+        self.cache["out_demands"] = self.out_demands
+        self.cache["prices"] = self.prices
+    
+    def uncache(self):
+        self.out_demands = self.cache["out_demands"]
+        self.prices = self.cache["prices"]
+    
+    def set_subsidy(self, station):
+        # halve price, multiple
+        for end_cell in range(self.n_cells):
+            self.out_demands[station][end_cell] *= 2
+            self.prices[station] /= 2
 
     def set_timestep(self, tstep):
         self.tstep = tstep
@@ -219,6 +237,23 @@ class StrictTrajCellCox:
 
         return deriv
     
+    def x_size(self):
+        return self.station_offset+self.s_in_cell
+    
+    def get_idx(self):
+        raise Exception("not implemented..")
+        # need to update this to add in coxian-distributed delays
+        out_list = []
+
+        for dst_cell in range(self.n_cells):
+                out_list.append(self.n_cells*self.cell_idx + dst_cell)
+
+        out_list += [(self.n_cells**2) + i for i in self.stations]
+        return out_list
+    
+    def set_prices(self, prices):
+        self.prices = prices
+    
     def dxdt_const(self, t, x):
         deriv = [0 for i in range(self.station_offset+self.s_in_cell)]
         
@@ -255,13 +290,16 @@ class StrictTrajCellCox:
         return deriv
     
     def dxdt_array(self, t, x):
-        deriv = [0 for i in range(self.station_offset+self.s_in_cell)]
+        deriv = [0 for i in range(self.station_offset+self.s_in_cell + 1)]
+
+        reward = 0
         
         for end_cell in range(self.n_cells):
             d_idx = self.x_idx[end_cell]
 
             for j, station_idx in enumerate(self.stations):
                 s_idx = j + self.station_offset
+                
                 deriv[d_idx] += self.out_demands[j][end_cell]*min(x[s_idx],1)
             
             for phase in range(self.n_phases_out[end_cell]):
@@ -282,6 +320,150 @@ class StrictTrajCellCox:
                         deriv[j + self.station_offset] += rate*x[self.x_idx[self.cell_idx]+phase]
                     else:
                         deriv[j + self.station_offset] += rate*self.trajectories[self.x_in_idx[start_cell]+phase][int(t//self.tstep)]
+
+        deriv[-1] = reward
+
+        return deriv
+
+def get_traj_fn(traj_t, traj_x):
+    traj_map = {
+        t: x
+            for t, x in zip(traj_t, traj_x)
+    }
+
+    def traj_fn(t):
+        if t == 0:
+            return traj_x[0]
+        elif t in traj_map:
+            return traj_map[t]
+            
+        np_idx = np.searchsorted(traj_t, t)
+        after_t = traj_t[np_idx]
+        if after_t == t or np_idx == 0:
+            return traj_x[np_idx]
+        prev_t = traj_t[np_idx-1]
+        after_weight = (t-prev_t)/(after_t-prev_t)
+        return traj_x[np_idx-1]*(1-after_weight) + traj_x[np_idx]*(after_weight)
+    return traj_fn
+
+
+
+class StrictTrajCellCoxControl:
+    def __init__(self, cell_idx, stations, mu, phi, in_demands, in_probabilities, out_demands):
+        """
+            Note:
+                denominate everything by hour - start_hour
+        """
+        self.n_cells = len(in_demands)
+        self.stations = stations
+        self.s_in_cell = len(stations)
+
+        self.cell_idx = cell_idx
+        
+        self.mu = mu
+        self.phi = phi
+
+        self.n_phases_in = [len(self.mu[0][i][self.cell_idx]) for i in range(self.n_cells)]
+        self.n_phases_out = [len(self.mu[0][self.cell_idx][i]) for i in range(self.n_cells)]
+
+        self.x_idx = [0 for i in range(self.n_cells)]
+        self.x_in_idx = [0 for i in range(self.n_cells)]
+        self.station_offset = 0
+        self.in_offset = 0
+
+        self.prices = [1 for i in range(self.s_in_cell)]
+
+        self.in_demands = in_demands
+
+        for end_cell in range(self.n_cells):
+            self.x_idx[end_cell] = self.station_offset
+            self.station_offset += self.n_phases_out[end_cell]
+
+            self.x_in_idx[end_cell] = self.in_offset
+            self.in_offset += self.n_phases_in[end_cell]
+
+        self.in_probabilities = in_probabilities
+        self.out_demands = out_demands
+    
+        self.trajectories = []
+
+        self.tstep = 0
+
+        self.cache = {}
+    
+    def cache(self):
+        self.cache["out_demands"] = self.out_demands
+        self.cache["prices"] = self.prices
+    
+    def uncache(self):
+        self.out_demands = self.cache["out_demands"]
+        self.prices = self.cache["prices"]
+    
+    def set_subsidy(self, station):
+        # halve price, multiple
+        for end_cell in range(self.n_cells):
+            self.out_demands[station][end_cell] *= 2
+            self.prices[station] /= 2
+
+    def set_timestep(self, tstep):
+        self.tstep = tstep
+    
+    def set_trajectories(self, trajectories):
+        self.trajectories = trajectories
+    
+    def x_size(self):
+        return self.station_offset+self.s_in_cell
+    
+    def get_idx(self):
+        raise Exception("not implemented..")
+        # need to update this to add in coxian-distributed delays
+        out_list = []
+
+        for dst_cell in range(self.n_cells):
+                out_list.append(self.n_cells*self.cell_idx + dst_cell)
+
+        out_list += [(self.n_cells**2) + i for i in self.stations]
+        return out_list
+    
+    def set_prices(self, prices):
+        self.prices = prices
+        
+    
+    def dxdt_array(self, t, x):
+        hr = floor(t)
+
+        deriv = [0 for i in range(self.station_offset+self.s_in_cell + 1)]
+
+        reward = 0
+        
+        for end_cell in range(self.n_cells):
+            d_idx = self.x_idx[end_cell]
+
+            for j, station_idx in enumerate(self.stations):
+                s_idx = j + self.station_offset
+                
+                deriv[d_idx] += self.out_demands[hr][j][end_cell]*min(x[s_idx],1)
+            
+            for phase in range(self.n_phases_out[end_cell]):
+                deriv[d_idx + phase] -= self.mu[hr][self.cell_idx][end_cell][phase] * x[d_idx+phase]
+                
+                if phase < self.n_phases_out[end_cell]-1:
+                    deriv[d_idx + phase + 1] += self.mu[hr][self.cell_idx][end_cell][phase] * (1-self.phi[hr][self.cell_idx][end_cell][phase]) * x[d_idx+phase]
+        
+        for j, station_idx in enumerate(self.stations):
+            station_demand = sum(self.out_demands[hr][j])
+
+            deriv[j + self.station_offset] -= station_demand*min(x[j + self.station_offset],1)
+
+            for start_cell in range(self.n_cells):
+                for phase in range(self.n_phases_in[start_cell]):
+                    rate = self.in_probabilities[hr][start_cell][j]*self.mu[hr][start_cell][self.cell_idx][phase]*self.phi[hr][start_cell][self.cell_idx][phase]
+                    if start_cell == self.cell_idx:
+                        deriv[j + self.station_offset] += rate*x[self.x_idx[self.cell_idx]+phase]
+                    else:
+                        deriv[j + self.station_offset] += rate*self.trajectories[self.x_in_idx[start_cell]+phase][int(t//self.tstep)]
+
+        deriv[-1] = reward
 
         return deriv
 
