@@ -522,11 +522,7 @@ def run_iteration(model_data, traj_cells, ode_method, epsilon, cell_limit=False,
 def run_control(model_data, traj_cells, ode_method, epsilon, start_lcells="none", cell_limit=False, current_vector="none", trajectories="none", prior_traj="none", time_length="default"):
     print(f"Running Trajectory-Based Control (parallelized, limit: {cell_limit})")
     all_res = []
-
-    # subsidize 2 cells at random
-    for i in range(15):
-        random.choice(traj_cells).subsidize_cell()
-
+    
     if time_length == "default":
         time_length = model_data.time_end
 
