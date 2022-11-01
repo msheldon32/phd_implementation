@@ -74,7 +74,7 @@ def run_control(model_data, traj_cells, ode_method, epsilon, cell_limit=False, c
     total_reward = 0
 
     delay_phase_ct = [sum([len(x) for x in model_data.mu[0][i]]) for i in range(model_data.n_cells)] # number of phases in the process that starts at i
-    profits = [0 for i in range(model_data.n_cells)]
+    profits = multiprocessing.Array(ctypes.c_double, int(model_data.n_cells))
     
     if current_vector == "none":
         current_vector = [
@@ -146,6 +146,7 @@ def run_control(model_data, traj_cells, ode_method, epsilon, cell_limit=False, c
         profitlock.acquire()
         profitwrap.get_obj()[0] += x_t.y[-1,-1] # profit
         profitwrap.get_obj()[1] += x_t.y[-2,-1] # regret
+        profits.get_obj()[cell_idx] = x_t.y[-1,-1]
         profitlock.release()
 
         if cell_limit:
@@ -164,21 +165,18 @@ def run_control(model_data, traj_cells, ode_method, epsilon, cell_limit=False, c
                 limited_cells[cell_idx] = iter_no
                 lc_lock.release()
         elif cell_include:
-            print("elif cell include.......")
             if len(x_res) == 0:
                 error_score = float("inf")
             else:
-                error_score = (abs(x_t.y[:-2,:] - x_res[-1][istart:ident,:])).max()
+                error_score = (abs(x_t.y[:-2,:] - x_res[-1][istart:iend,:])).max()
 
             if error_score < epsilon:
-                print("subeps error score..?????")
                 lc_lock.acquire()
                 del included_cells[cell_idx]
                 lc_lock.release()
             else:
-                print("evaluating next cells...")
-                for next_cell in range(n_cells):
-                    if next_cell == cell_idx or cell_idx in included_cells:
+                for next_cell in range(model_data.n_cells):
+                    if next_cell == cell_idx or next_cell in included_cells:
                         continue
 
                     added = False
@@ -186,7 +184,7 @@ def run_control(model_data, traj_cells, ode_method, epsilon, cell_limit=False, c
                     for phase, phase_rate in enumerate(model_data.mu[0][cell_idx][next_cell]):
                         phase_qty_idx = traj_cells[cell_idx].x_idx[next_cell] + phase
                             
-                        if abs(np.frombuffer(twrap[next_cell][traj_cells[next_cell].x_in_idx[cell_idx] + phase].get_obj())[:] - trajectories[next_cell][traj_cells[next_cell].x_in_idx[cell_idx] + phase]) >= epsilon:
+                        if abs(np.frombuffer(twrap[next_cell][traj_cells[next_cell].x_in_idx[cell_idx] + phase].get_obj())[:] - trajectories[next_cell][traj_cells[next_cell].x_in_idx[cell_idx] + phase]).max() >= epsilon:
                             print("adding in cell...")
                             included_cells[next_cell] = 1
                             added = True
@@ -312,6 +310,8 @@ def run_control(model_data, traj_cells, ode_method, epsilon, cell_limit=False, c
     
     print(f"Trajectory-Based Iteration finished, time: {toc-tic}.")
 
+    profits = list(np.frombuffer(profits.get_obj()))
+
     return [all_res, x_res[-1], trajectories, out_vector, trajectories, total_reward, profits]
 
 
@@ -389,7 +389,7 @@ def run_control_period(start_hour, end_hour, first_vec_iter, subsidies):
 
     starting_bps = get_oslo_data.get_starting_bps()
     model_data = ModelData(n_stations, n_cells, starting_bps, mu, phi, in_demands, in_probabilities, out_demands)
-    ares, lastres, trajectories, last_vector_iter, trajectories, total_reward, new_profits = run_control(model_data, traj_cells, "RK45", 0.001, trajectories=trajectories, 
+    ares, lastres, trajectories, last_vector_iter, trajectories, total_reward, new_profits = run_control(model_data, traj_cells, "RK45", 0.5, trajectories=trajectories, 
                     prior_res=lastres, cell_inc=subsidies, current_vector=first_vec_iter, time_length=float(end_hour-start_hour))
     profit_delta = sum([x - profits[i] for i, x in enumerate(new_profits) if new_profits[i] != 0])
     print(f"reward: {total_reward}, delta: {profit_delta}, new reward: {total_reward + profit_delta}")
