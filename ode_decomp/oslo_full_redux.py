@@ -369,7 +369,7 @@ def run_iteration(model_data, traj_cells, ode_method, epsilon, cell_limit=False,
 
         #cell_indices = traj_cells[cell_idx].get_idx()
 
-        x_t = spi.solve_ivp(traj_cells[cell_idx].dxdt_array, [0, model_data.time_end], list(current_vector[cell_idx])  + [0],
+        x_t = spi.solve_ivp(traj_cells[cell_idx].dxdt_array, [0, model_data.time_end], list(current_vector[cell_idx])  + [0,0],
                                 t_eval=time_points, 
                                 method=ode_method, atol=ATOL)
     
@@ -390,14 +390,14 @@ def run_iteration(model_data, traj_cells, ode_method, epsilon, cell_limit=False,
 
         xiterlock.acquire()
         #x_iter = np.frombuffer(iterwrap.get_obj()).reshape(x_iter_shape)
-        np.frombuffer(iwrap.get_obj()).reshape(x_iter_shape)[istart:iend, :] = x_t.y[:-1,:]
+        np.frombuffer(iwrap.get_obj()).reshape(x_iter_shape)[istart:iend, :] = x_t.y[:-2,:]
         xiterlock.release()
 
         if cell_limit:
             if len(x_res) == 0:
                 error_score = float("inf")
             else:
-                error_score = (abs(x_t.y - x_res[-1][traj_cells[cell_idx].get_idx(),:])).max()
+                error_score = (abs(x_t.y[:-2] - x_res[-1][traj_cells[cell_idx].get_idx(),:])).max()
 
             if error_score < epsilon:
                 lc_lock.acquire()
@@ -519,24 +519,32 @@ def run_iteration(model_data, traj_cells, ode_method, epsilon, cell_limit=False,
     return all_res, out_vector
 
 
-def run_control(model_data, traj_cells, ode_method, epsilon, cell_limit=False, current_vector="none", prior_iterations ="none"):
+def run_control(model_data, traj_cells, ode_method, epsilon, start_lcells="none", cell_limit=False, current_vector="none", trajectories="none", prior_traj="none", time_length="default"):
     print(f"Running Trajectory-Based Control (parallelized, limit: {cell_limit})")
     all_res = []
+
+    # subsidize 2 cells at random
+    for i in range(15):
+        random.choice(traj_cells).subsidize_cell()
+
+    if time_length == "default":
+        time_length = model_data.time_end
 
     tic = time.perf_counter()
 
     n_entries = model_data.n_stations**2 + model_data.n_stations
     x_res = []
 
-    if prior_iterations != "none":
-        x_res = prior_iterations
-
     h_cells = {}
     
     limited_cells = Manager().dict()
     h_time  = 0
 
-    delay_phase_ct = [sum([len(x) for x in model_data.mu[i]]) for i in range(model_data.n_cells)] # number of phases in the process that starts at i
+    if start_lcells != "none":
+        for k, v in start_lcells.items():
+            limited_cells[k] = v
+
+    delay_phase_ct = [sum([len(x) for x in model_data.mu[0][i]]) for i in range(model_data.n_cells)] # number of phases in the process that starts at i
     
     if current_vector == "none":
         current_vector = [
@@ -552,13 +560,14 @@ def run_control(model_data, traj_cells, ode_method, epsilon, cell_limit=False, c
         cur_x_idx += traj_cell.x_size()
     x_idx_cell.append(cur_x_idx)
 
-    n_time_points = int(model_data.time_end*TIME_POINTS_PER_HOUR)
-    time_points = [(i*model_data.time_end)/n_time_points for i in range(n_time_points+1)]
+    n_time_points = int(time_length*TIME_POINTS_PER_HOUR)
+    time_points = [(i*time_length)/n_time_points for i in range(n_time_points+1)]
     
-    trajectories = [[np.zeros(n_time_points+1) for start_cell in range(traj_cells[end_cell].in_offset)] for end_cell in range(model_data.n_cells)]
+    if trajectories == "none":
+        trajectories = [[np.zeros(n_time_points+1) for start_cell in range(traj_cells[end_cell].in_offset)] for end_cell in range(model_data.n_cells)]
     
     for traj_cell in traj_cells:
-        traj_cell.set_timestep(model_data.time_end/n_time_points)
+        traj_cell.set_timestep(time_length/n_time_points)
 
     station_vals = []
 
@@ -591,7 +600,7 @@ def run_control(model_data, traj_cells, ode_method, epsilon, cell_limit=False, c
 
         #cell_indices = traj_cells[cell_idx].get_idx()
 
-        x_t = spi.solve_ivp(traj_cells[cell_idx].dxdt_array, [0, model_data.time_end], list(current_vector[cell_idx])  + [0],
+        x_t = spi.solve_ivp(traj_cells[cell_idx].dxdt_array, [0, time_length], list(current_vector[cell_idx]) + [0,0],
                                 t_eval=time_points, 
                                 method=ode_method, atol=ATOL)
     
@@ -600,26 +609,33 @@ def run_control(model_data, traj_cells, ode_method, epsilon, cell_limit=False, c
         #x_t.y = x_t.y[:, :-1]
                 
         for next_cell in range(model_data.n_cells):
-            for phase, phase_rate in enumerate(model_data.mu[cell_idx][next_cell]):
+            for phase, phase_rate in enumerate(model_data.mu[0][cell_idx][next_cell]):
                 #y_idx = traj_cells[cell_idx].get_delay_idx(i, dst_stn)
                 
                 #traj = np.frombuffer(twrap[src_stn][dst_stn].get_obj())
                 phase_qty_idx = traj_cells[cell_idx].x_idx[next_cell] + phase
 
                 #print(np.frombuffer(twrap[next_cell][traj_cells[next_cell].x_in_idx[cell_idx] + phase].get_obj()))
+
+                #print(x_t.y[phase_qty_idx, :])
                     
                 np.frombuffer(twrap[next_cell][traj_cells[next_cell].x_in_idx[cell_idx] + phase].get_obj())[:] = x_t.y[phase_qty_idx, :]
 
         xiterlock.acquire()
         #x_iter = np.frombuffer(iterwrap.get_obj()).reshape(x_iter_shape)
-        np.frombuffer(iwrap.get_obj()).reshape(x_iter_shape)[istart:iend, :] = x_t.y[:-1,:]
+        np.frombuffer(iwrap.get_obj()).reshape(x_iter_shape)[istart:iend, :] = x_t.y[:-2,:]
         xiterlock.release()
+
+        profitlock.acquire()
+        profitwrap.get_obj()[0] += x_t.y[-1,-1] # profit
+        profitwrap.get_obj()[1] += x_t.y[-2,-1] # regret
+        profitlock.release()
 
         if cell_limit:
             if len(x_res) == 0:
                 error_score = float("inf")
             else:
-                error_score = (abs(x_t.y - x_res[-1][traj_cells[cell_idx].get_idx(),:])).max()
+                error_score = (abs(x_t.y[:-2,:] - x_res[-1][traj_cells[cell_idx].get_idx(),:])).max()
 
             if error_score < epsilon:
                 lc_lock.acquire()
@@ -640,7 +656,7 @@ def run_control(model_data, traj_cells, ode_method, epsilon, cell_limit=False, c
 
         iwrap = multiprocessing.Array(ctypes.c_double, int(n_entries*(n_time_points+1)))
         twrap = [[multiprocessing.Array(ctypes.c_double, n_time_points+1) for j in range(traj_cells[i].in_offset)] for i in range(model_data.n_cells)]
-        pwrap = []
+        pwrap = multiprocessing.Array(ctypes.c_double, 2) 
 
 
         cell_threads = [None for i in range(model_data.n_cells)]
@@ -653,6 +669,7 @@ def run_control(model_data, traj_cells, ode_method, epsilon, cell_limit=False, c
         for cell_idx in range(model_data.n_cells):
             lc_lock = Lock()
             xiterlock = Lock()
+            profitlock = Lock()
             
             if last_iter:
                 # reverse things on the last iteration, as the limited cells need to be ran again
@@ -719,6 +736,8 @@ def run_control(model_data, traj_cells, ode_method, epsilon, cell_limit=False, c
         else:
             error_score = (abs(x_res[-1] - x_res[-2])).max()
 
+        print(f"Reward: {pwrap.get_obj()[0]}, regret: {pwrap.get_obj()[1]}")
+
         h_rec = 0
         if error_score < epsilon:
             if cell_limit:
@@ -738,7 +757,7 @@ def run_control(model_data, traj_cells, ode_method, epsilon, cell_limit=False, c
     
     print(f"Trajectory-Based Iteration finished, time: {toc-tic}.")
 
-    return all_res, out_vector
+    return [all_res, out_vector, trajectories]
 
 def run_discrete(model_data, traj_cells, ode_method, step_size, inflate=True, current_vector="none"):
     print("Running Discrete-Step Submodeling")
@@ -847,7 +866,7 @@ class ModelData:
         self.max_iterations = 100
 
 def run_control_period(start_hour, end_hour, first_vec_iter, first_vec_disc, first_vec_sim):
-    print(f"running hour: {hour}")
+    print(f"running hours: {start_hour} -> {end_hour}")
     # demands
     in_demands = []
     in_probabilities = []
@@ -856,11 +875,11 @@ def run_control_period(start_hour, end_hour, first_vec_iter, first_vec_disc, fir
     mu = []
     phi = []
 
-    for hr in range(start_hour, end_hour):
+    for hr in range(start_hour, end_hour+1): # need an extra hour of data since solve_ivp sometimes calls the end of the time interval
         in_demands_hr, in_probabilities_hr, out_demands_hr = get_demands(hr, cell_to_station, station_to_cell)
 
         # phase processes
-        mu_hr, phi_hr = get_cox_data(hour, len(cell_to_station))
+        mu_hr, phi_hr = get_cox_data(hr, len(cell_to_station))
 
 
         in_demands.append(in_demands_hr)
@@ -873,7 +892,7 @@ def run_control_period(start_hour, end_hour, first_vec_iter, first_vec_disc, fir
 
     # build StrictTrajCellCox for each station cell
     # go from [hr][cell_idx] -> [cell_idx][hr]
-    rev_hr_cell = lambda x, cell_idx = [xhr[cell_idx] for xhr in x]
+    rev_hr_cell = lambda x, cell_idx: [xhr[cell_idx] for xhr in x]
     traj_cells = [
         spatial_decomp_strict.StrictTrajCellCoxControl(cell_idx, 
             cell_to_station[cell_idx], 
@@ -888,12 +907,9 @@ def run_control_period(start_hour, end_hour, first_vec_iter, first_vec_disc, fir
     # run model
     starting_bps = get_starting_bps()
     model_data = ModelData(n_stations, n_cells, starting_bps, mu, phi, in_demands, in_probabilities, out_demands)
-    ares, last_vector_iter = run_control(model_data, traj_cells, "RK45", 0.5, current_vector=first_vec_iter) # HOOK
-    #time_points, x_arr, time_val, last_vector_sim = run_simulation(model_data,1, current_vector=first_vec_sim)
-    #time_points, x_arr, time_val, last_vector_disc = run_discrete(model_data, traj_cells, "RK45", 0.5, current_vector=first_vec_disc) # HOOK
- 
-    station_discres = [0 for i in range(n_stations)]
-    station_simres = [0 for i in range(n_stations)]
+    ares, last_vector_iter = run_control(model_data, traj_cells, "RK45", 0.5, current_vector=first_vec_iter, time_length=float(end_hour-start_hour))
+
+
     station_iterres = [0 for i in range(n_stations)]
 
     cell_start = 0
@@ -901,23 +917,13 @@ def run_control_period(start_hour, end_hour, first_vec_iter, first_vec_disc, fir
     total_bikes = 0
 
     for cell_idx, traj_cell in enumerate(traj_cells):
-        #total_bikes += sum(last_vector_disc[cell_idx])
         for station_cell_idx, station_idx in enumerate(cell_to_station[cell_idx]):
-            #station_discres[station_idx] = last_vector_disc[cell_idx][traj_cell.station_offset + station_cell_idx]
-            station_simres[station_idx] = last_vector_sim[cell_idx][traj_cell.station_offset + station_cell_idx]
             station_iterres[station_idx] = last_vector_iter[cell_idx][traj_cell.station_offset + station_cell_idx]
 
-    with open(f"{out_folder}/res_disc_{hour+1}", "w") as f:
-        json.dump(station_discres, f)
-            
-    with open(f"{out_folder}/res_sim_{hour+1}", "w") as f:
-        json.dump(station_simres, f)
-            
-    with open(f"{out_folder}/res_iter_{hour+1}", "w") as f:
-        #print(station_iterres)
+    with open(f"{out_folder}/res_iter_control_{start_hour}_{end_hour}", "w") as f:
         json.dump(station_iterres, f)
     last_vector_disc = None
-    return [last_vector_iter, last_vector_disc, last_vector_sim]
+    return [last_vector_iter]
 
 def run_hour(hour, first_vec_iter, first_vec_disc, first_vec_sim):
     print(f"running hour: {hour}")
@@ -990,10 +996,10 @@ if __name__ == "__main__":
     l_disc = "none"
     l_sim = "none"
 
-    run_control(16,20,l_iter, l_disc, l_sim)
+    run_control_period(16,20,l_iter, l_disc, l_sim)
 
-    #for hr in range(5, 21):
-    #    l_iter, l_disc, l_sim = run_hour(hr,l_iter, l_disc, l_sim)
+    for hr in range(16, 21):
+        l_iter, l_disc, l_sim = run_hour(hr,l_iter, l_disc, l_sim)
     """with open ("oslo_hr", "w") as f:
         json.dump(hourly_res, f)
     with open ("oslo_final", "w") as f:

@@ -197,7 +197,7 @@ class StrictTrajCellCox:
     def set_subsidy(self, station):
         # halve price, multiple
         for end_cell in range(self.n_cells):
-            self.out_demands[station][end_cell] *= 2
+            self.out_demands[station][end_cell] *= 1.5
             self.prices[station] /= 2
 
     def set_timestep(self, tstep):
@@ -290,9 +290,10 @@ class StrictTrajCellCox:
         return deriv
     
     def dxdt_array(self, t, x):
-        deriv = [0 for i in range(self.station_offset+self.s_in_cell + 1)]
+        deriv = [0 for i in range(self.station_offset+self.s_in_cell + 2)]
 
         reward = 0
+        regret = 0
         
         for end_cell in range(self.n_cells):
             d_idx = self.x_idx[end_cell]
@@ -311,6 +312,10 @@ class StrictTrajCellCox:
         for j, station_idx in enumerate(self.stations):
             station_demand = sum(self.out_demands[j])
 
+            # integrate over prices and lost trips
+            reward += self.prices[j]*station_demand*min(x[j + self.station_offset],1)
+            regret += max(1-(station_demand*min(x[j + self.station_offset],1)),0)
+
             deriv[j + self.station_offset] -= station_demand*min(x[j + self.station_offset],1)
 
             for start_cell in range(self.n_cells):
@@ -321,6 +326,7 @@ class StrictTrajCellCox:
                     else:
                         deriv[j + self.station_offset] += rate*self.trajectories[self.x_in_idx[start_cell]+phase][int(t//self.tstep)]
 
+        deriv[-2] = regret
         deriv[-1] = reward
 
         return deriv
@@ -354,7 +360,8 @@ class StrictTrajCellCoxControl:
             Note:
                 denominate everything by hour - start_hour
         """
-        self.n_cells = len(in_demands)
+        self.n_cells = len(in_demands[0])
+        self.n_hours = len(in_demands)
         self.stations = stations
         self.s_in_cell = len(stations)
 
@@ -401,9 +408,14 @@ class StrictTrajCellCoxControl:
     
     def set_subsidy(self, station):
         # halve price, multiple
-        for end_cell in range(self.n_cells):
-            self.out_demands[station][end_cell] *= 2
-            self.prices[station] /= 2
+        for hr in range(self.n_hours):
+            for end_cell in range(self.n_cells):
+                self.out_demands[hr][station][end_cell] *= 1.5
+                self.prices[station] /= 2
+    
+    def subsidize_cell(self):
+        for stn in range(self.s_in_cell):
+            self.set_subsidy(stn)
 
     def set_timestep(self, tstep):
         self.tstep = tstep
@@ -430,10 +442,13 @@ class StrictTrajCellCoxControl:
         
     
     def dxdt_array(self, t, x):
-        hr = floor(t)
+        hr = math.floor(t)
 
-        deriv = [0 for i in range(self.station_offset+self.s_in_cell + 1)]
+        deriv = [0 for i in range(self.station_offset+self.s_in_cell+2)]
 
+        #print(len(deriv))
+
+        regret = 0
         reward = 0
         
         for end_cell in range(self.n_cells):
@@ -455,6 +470,10 @@ class StrictTrajCellCoxControl:
 
             deriv[j + self.station_offset] -= station_demand*min(x[j + self.station_offset],1)
 
+            # integrate over prices and lost trips
+            reward += self.prices[j]*station_demand*min(x[j + self.station_offset],1)
+            regret += max(1-(station_demand*min(x[j + self.station_offset],1)),0)
+
             for start_cell in range(self.n_cells):
                 for phase in range(self.n_phases_in[start_cell]):
                     rate = self.in_probabilities[hr][start_cell][j]*self.mu[hr][start_cell][self.cell_idx][phase]*self.phi[hr][start_cell][self.cell_idx][phase]
@@ -464,6 +483,7 @@ class StrictTrajCellCoxControl:
                         deriv[j + self.station_offset] += rate*self.trajectories[self.x_in_idx[start_cell]+phase][int(t//self.tstep)]
 
         deriv[-1] = reward
+        deriv[-2] = regret
 
         return deriv
 
