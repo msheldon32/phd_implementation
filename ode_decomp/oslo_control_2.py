@@ -6,6 +6,7 @@ import sklearn
 import math
 import re
 import os
+import os.path
 from datetime import datetime
 import random
 import sqlite3
@@ -179,7 +180,6 @@ def run_control(model_data, traj_cells, ode_method, epsilon, cell_limit=False, c
                     if next_cell == cell_idx or next_cell in included_cells:
                         continue
 
-                    added = False
 
                     for phase, phase_rate in enumerate(model_data.mu[0][cell_idx][next_cell]):
                         phase_qty_idx = traj_cells[cell_idx].x_idx[next_cell] + phase
@@ -189,8 +189,6 @@ def run_control(model_data, traj_cells, ode_method, epsilon, cell_limit=False, c
                             included_cells[next_cell] = 1
                             added = True
                             break
-                    if added:
-                        break
 
 
         finished_cells[cell_idx] = True
@@ -312,7 +310,7 @@ def run_control(model_data, traj_cells, ode_method, epsilon, cell_limit=False, c
 
     profits = list(np.frombuffer(profits.get_obj()))
 
-    return [all_res, x_res[-1], trajectories, out_vector, trajectories, total_reward, profits]
+    return [all_res, x_res[-1], trajectories, out_vector, total_reward, profits]
 
 
 class ModelData:
@@ -330,12 +328,16 @@ class ModelData:
         self.const_bike_load = 6
         self.max_iterations = 100
 
-def run_control_period(start_hour, end_hour, first_vec_iter, subsidies):
+def run_control_period(start_hour, end_hour, first_vec_iter, prices,
+            finite_difference_x = 0.1, finite_difference_price=0.01):
     print(f"running hours: {start_hour} -> {end_hour}")
+
     # demands
     in_demands = []
     in_probabilities = []
     out_demands = []
+    station_iterres = [0 for i in range(n_stations)]
+    station_sampres = [0 for i in range(n_stations)]
 
     mu = []
     phi = []
@@ -353,6 +355,17 @@ def run_control_period(start_hour, end_hour, first_vec_iter, subsidies):
         
         mu.append(mu_hr)
         phi.append(phi_hr)
+
+    starting_bps = get_oslo_data.get_starting_bps()
+    model_data = ModelData(n_stations, n_cells, starting_bps, mu, phi, in_demands, in_probabilities, out_demands)
+
+    if first_vec_iter == "none":
+        delay_phase_ct = [sum([len(x) for x in model_data.mu[0][i]]) for i in range(model_data.n_cells)] # number of phases in the process that starts at i
+        first_vec_iter = [
+            [0.0 for i in range(delay_phase_ct[cell_idx])] +
+            [float(x) for i, x in enumerate(model_data.starting_bps) if i in list(cell_to_station[cell_idx])]
+                for cell_idx in range(model_data.n_cells)
+        ]
         
 
     # build StrictTrajCellCox for each station cell
@@ -368,49 +381,58 @@ def run_control_period(start_hour, end_hour, first_vec_iter, subsidies):
 
             for cell_idx in range(n_cells)
     ]
-
-    # return [all_res, x_res[-1], trajectories, out_vector, trajectories, total_reward, profits]
+    
+    for i, traj_cell in enumerate(traj_cells):
+        traj_cell.set_price(prices[i])
 
     # run initial model
-    starting_bps = get_oslo_data.get_starting_bps()
-    model_data = ModelData(n_stations, n_cells, starting_bps, mu, phi, in_demands, in_probabilities, out_demands)
-    ares, lastres, trajectories, last_vector_iter, trajectories, total_reward, profits = run_control(model_data, traj_cells, "RK45", 0.5, current_vector=first_vec_iter, time_length=float(end_hour-start_hour))
+    filename = "control_res/res_{}_{}".format(start_hour,end_hour)
 
-    print(f"reward (no subsidies): {total_reward}")
+    if os.path.isfile(filename):
+        with open(filename, "rb") as f:
+            ares, lastres, trajectories, last_vector_iter, trajectories, total_reward, profits = pickle.load(f)
+    else:
+        ares, lastres, trajectories, last_vector_iter, total_reward, profits = run_control(model_data, traj_cells, "RK45", 0.5, current_vector=first_vec_iter, time_length=float(end_hour-start_hour))
 
+        print(f"reward: {total_reward}")
 
-
-
-    # run model with subsidies
-    print("trying with subsidies (with include)..")
-
-    for cell_idx in subsidies:
-        traj_cells[cell_idx].subsidize_cell()
-
-    starting_bps = get_oslo_data.get_starting_bps()
-    model_data = ModelData(n_stations, n_cells, starting_bps, mu, phi, in_demands, in_probabilities, out_demands)
-    ares, lastres, trajectories, last_vector_iter, trajectories, total_reward, new_profits = run_control(model_data, traj_cells, "RK45", 0.5, trajectories=trajectories, 
-                    prior_res=lastres, cell_inc=subsidies, current_vector=first_vec_iter, time_length=float(end_hour-start_hour))
-    profit_delta = sum([x - profits[i] for i, x in enumerate(new_profits) if new_profits[i] != 0])
-    print(f"reward: {total_reward}, delta: {profit_delta}, new reward: {total_reward + profit_delta}")
+        with open(filename, "xb") as f:
+            pickle.dump([ares, lastres, trajectories, last_vector_iter, trajectories, total_reward, profits],f)
 
 
+    for cell_idx, traj_cell in enumerate(traj_cells):
+        for station_cell_idx, station_idx in enumerate(cell_to_station[cell_idx]):
+            station_iterres[station_idx] = last_vector_iter[cell_idx][traj_cell.station_offset + station_cell_idx]
 
 
-    # run model with subsidies
-    print("trying with subsidies (no include)..")
+    # estimate derivatives based on x_0
+    dprofit_dx = []
+    dxf_dx = []
 
-    starting_bps = get_oslo_data.get_starting_bps()
-    model_data = ModelData(n_stations, n_cells, starting_bps, mu, phi, in_demands, in_probabilities, out_demands)
-    ares, lastres, trajectories, last_vector_iter, trajectories, total_reward, profits = run_control(model_data, traj_cells, "RK45", 0.5, current_vector=first_vec_iter, time_length=float(end_hour-start_hour))
-    print(f"reward: {total_reward}")
+    for cell_idx in range(n_cells):
+        x0_total = sum(first_vec_iter[cell_idx])
+        inf_factor = 1 + (finite_difference_x/x0_total)
+        starting_vec = [(x if i != cell_idx else [pt*inf_factor for pt in x]) for i, x in enumerate(first_vec_iter)]
+        ares, lastres, sample_trajectories, sample_last_vector, new_total_reward, new_profits = run_control(model_data, traj_cells, "RK45", 0.1, trajectories=trajectories, 
+                        prior_res=lastres, cell_inc=[cell_idx], current_vector=starting_vec, time_length=float(end_hour-start_hour))
 
+        dprofit_dx.append(sum([x - profits[i] for i, x in enumerate(new_profits) if new_profits[i] != 0]))
+        dxf_dx.append([(sum(sample_last_vector[i]) - sum(last_vector_iter[i])  if new_profits[i] != 0 else 0) for i in range(n_cells)])
+    
+    dprofit_dp = []
+    dxf_dp = []
 
-    station_iterres = [0 for i in range(n_stations)]
+    for cell_idx in range(n_cells):
+        traj_cells[cell_idx].set_price(traj_cells[cell_idx].price + finite_difference_price)
 
-    cell_start = 0
+        starting_vec = [(x if i != cell_idx else x) for i, x in enumerate(first_vec_iter)]
+        ares, lastres, sample_trajectories, sample_last_vector, new_total_reward, new_profits = run_control(model_data, traj_cells, "RK45", 0.1, trajectories=trajectories, 
+                        prior_res=lastres, cell_inc=[cell_idx], current_vector=first_vec_iter, time_length=float(end_hour-start_hour))
 
-    total_bikes = 0
+        dprofit_dp.append(sum([x - profits[i] for i, x in enumerate(new_profits) if new_profits[i] != 0]))
+        dxf_dp.append([(sum(sample_last_vector[i]) - sum(last_vector_iter[i])  if new_profits[i] != 0 else 0) for i in range(n_cells)])
+
+        traj_cells[cell_idx].set_price(traj_cells[cell_idx].price - finite_difference_price)
 
     for cell_idx, traj_cell in enumerate(traj_cells):
         for station_cell_idx, station_idx in enumerate(cell_to_station[cell_idx]):
@@ -419,9 +441,14 @@ def run_control_period(start_hour, end_hour, first_vec_iter, subsidies):
     with open(f"{out_folder}/res_iter_control_{start_hour}_{end_hour}", "w") as f:
         json.dump(station_iterres, f)
         
-    return [station_iterres, last_vector_iter]
+    return [station_iterres, last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp]
 
-
+# what we need:
+#   derivatives:
+#       final state vs initial state <- surrogate modeling
+#       reward vs initial state      <- surrogate modeling
+#       final state vs price         <- estimate via sum of delays
+#       reward vs price              <- estimate via prior reward and departure transform
 
 if __name__ == "__main__":
     stations = pd.read_csv(f"{data_folder}/stations.csv").rename({"Unnamed: 0": "index"}, axis=1)
@@ -434,4 +461,5 @@ if __name__ == "__main__":
         station_to_cell[int(row["index"])] = int(row["cell"])
 
     # start_hour, end_hour, first_vec_iter, subsidies
-    run_control_period(16,20,"none", [random.randrange(n_cells), random.randrange(n_cells), random.randrange(n_cells)])
+    prices = [1.0 for i in range(n_cells)]
+    res, last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp = run_control_period(5,10,"none", prices)

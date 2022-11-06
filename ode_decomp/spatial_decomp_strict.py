@@ -199,6 +199,11 @@ class StrictTrajCellCox:
         for end_cell in range(self.n_cells):
             self.out_demands[station][end_cell] *= 1.5
             self.prices[station] /= 2
+    
+    def remove_subsidy(self, station):
+        for end_cell in range(self.n_cells):
+            self.out_demands[station][end_cell] /= 1.5
+            self.prices[station] *= 2
 
     def set_timestep(self, tstep):
         self.tstep = tstep
@@ -378,7 +383,8 @@ class StrictTrajCellCoxControl:
         self.station_offset = 0
         self.in_offset = 0
 
-        self.prices = [1 for i in range(self.s_in_cell)]
+        self.prices = [1.0 for i in range(self.s_in_cell)]
+        self.price = 1.0
 
         self.in_demands = in_demands
 
@@ -397,25 +403,52 @@ class StrictTrajCellCoxControl:
         self.tstep = 0
 
         self.cache = {}
+        self.setcache()
     
-    def cache(self):
+    def setcache(self):
         self.cache["out_demands"] = self.out_demands
         self.cache["prices"] = self.prices
+        self.cache["price"] = self.price
     
     def uncache(self):
         self.out_demands = self.cache["out_demands"]
         self.prices = self.cache["prices"]
-    
-    def set_subsidy(self, station):
-        # halve price, multiple
+        self.price = self.cache["price"]
+
+    def set_price(self, price):
+        price = max(min(price, 2),0) # bound price between 0, 2
+        self.uncache()
+
+        self.prices = [price for stn in range(self.s_in_cell)]
+        self.price = price
+
         for hr in range(self.n_hours):
             for end_cell in range(self.n_cells):
-                self.out_demands[hr][station][end_cell] *= 1.5
-                self.prices[station] /= 2
+                for stn in range(self.s_in_cell):
+                    self.out_demands[hr][stn][end_cell] += self.out_demands[hr][stn][end_cell]*(1-self.price)
+
+    
+    def set_subsidy(self, station):
+        # halve price, multiply demand
+        self.prices[station] *= 0.75
+        for hr in range(self.n_hours):
+            for end_cell in range(self.n_cells):
+                self.out_demands[hr][station][end_cell] *= 1.25
+    
+    def remove_subsidy(self, station):
+        # halve price, multiply demand
+        self.prices[station] /= 0.75
+        for hr in range(self.n_hours):
+            for end_cell in range(self.n_cells):
+                self.out_demands[hr][station][end_cell] /= 1.25
     
     def subsidize_cell(self):
         for stn in range(self.s_in_cell):
             self.set_subsidy(stn)
+    
+    def unsubsidize_cell(self):
+        for stn in range(self.s_in_cell):
+            self.remove_subsidy(stn)
 
     def set_timestep(self, tstep):
         self.tstep = tstep
@@ -481,7 +514,6 @@ class StrictTrajCellCoxControl:
                         deriv[j + self.station_offset] += rate*x[self.x_idx[self.cell_idx]+phase]
                     else:
                         deriv[j + self.station_offset] += rate*self.trajectories[self.x_in_idx[start_cell]+phase][int(t//self.tstep)]
-
         deriv[-1] = reward
         deriv[-2] = regret
 
