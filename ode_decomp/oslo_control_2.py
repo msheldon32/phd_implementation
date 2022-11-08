@@ -461,16 +461,26 @@ def start_step(alpha, vec_iter, last_vector_iter, dprofit_dx, dxf_dx, rebalancin
     #   => cost(xf) ~= sum[rebalancing_cost*log(exp(xf_i-x0-i)+1)]
     #   => in addition, assume dxf_dx0 is constant within each cell
     #   =>  1. let delta_x = xf - x_0, c = rebalancing_cost
-    #       2. dcost/dx0 = c*(exp{delta_x}/exp{delta_x+1})*(dxf/dx0 - 1)
+    #       2. dcost/dx0 = c*(exp{delta_x}/exp{delta_x+1})*(dxf/dx0 - 1) <- when looking at an identical x
+    #       3. dcost/dx0 = c*(exp{delta_x}/exp{delta_x+1})*(dxf/dx0) <- non-identical x
     #   => sum over each cell
 
+    # to fix: dxf_dx is a vector of partial derivatives not a scalar
+
     rebalancing_deriv = [] # this is negative in the actual term
+    exp_terms = []
     for cell_idx in range(n_cells):
         xstart = vec_iter[cell_idx]
         xend   = last_vector_iter[cell_idx]
         exp_xdelta = [math.exp(xf-x0) for x0, xf in zip(xstart, xend)]
         exp_term = [ex/(ex+1) for ex in exp_xdelta]
-        cost_delta = sum([rebalancing_cost*ext*(dxf_dx[cell_idx]-1) for ext in exp_term])
+        exp_terms.append(exp_term)
+    
+    for cell_idx in range(n_cells):
+        cost_delta = 0
+        for other_cell in range(n_cells): 
+            indicator = 1 if cell_idx == other_cell else 0
+            cost_delta = sum([rebalancing_cost*ext*(dxf_dx[cell_idx][other_cell]-indicator) for ext in exp_term[other_cell]])
         rebalancing_deriv.append(cost_delta)
 
     # 2. find overall_gradient w.r.t. starting point
