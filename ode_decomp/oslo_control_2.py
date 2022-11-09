@@ -44,7 +44,7 @@ out_folder = "oslo_out"
 TIME_POINTS_PER_HOUR = 100
 ATOL = 10**(-6)
 RATE_MULTIPLIER = 1
-SOLVER = "BDF"
+SOLVER = "RK45"
 
 
 def run_control(model_data, traj_cells, ode_method, epsilon, cell_limit=False, cell_inc="none", current_vector="none", trajectories="none", prior_res="none", time_length="default"):
@@ -417,8 +417,8 @@ def run_control_period(start_hour, end_hour, first_vec_iter, prices,
         ares, lastres, sample_trajectories, sample_last_vector, new_total_reward, new_profits = run_control(model_data, traj_cells, SOLVER, 0.1, trajectories=trajectories, 
                         prior_res=lastres, cell_inc=[cell_idx], current_vector=starting_vec, time_length=float(end_hour-start_hour))
 
-        dprofit_dx.append(sum([x - profits[i] for i, x in enumerate(new_profits) if new_profits[i] != 0]))
-        dxf_dx.append([(sum(sample_last_vector[i]) - sum(last_vector_iter[i])  if new_profits[i] != 0 else 0) for i in range(n_cells)])
+        dprofit_dx.append(sum([(x - profits[i])/finite_difference_x for i, x in enumerate(new_profits) if new_profits[i] != 0]))
+        dxf_dx.append([((sum(sample_last_vector[i]) - sum(last_vector_iter[i]))/finite_difference_x  if new_profits[i] != 0 else 0) for i in range(n_cells)])
     
     dprofit_dp = []
     dxf_dp = []
@@ -431,8 +431,8 @@ def run_control_period(start_hour, end_hour, first_vec_iter, prices,
             ares, lastres, sample_trajectories, sample_last_vector, new_total_reward, new_profits = run_control(model_data, traj_cells, SOLVER, 0.1, trajectories=trajectories, 
                             prior_res=lastres, cell_inc=[cell_idx], current_vector=first_vec_iter, time_length=float(end_hour-start_hour))
 
-            dprofit_dp.append(sum([x - profits[i] for i, x in enumerate(new_profits) if new_profits[i] != 0]))
-            dxf_dp.append([(sum(sample_last_vector[i]) - sum(last_vector_iter[i])  if new_profits[i] != 0 else 0) for i in range(n_cells)])
+            dprofit_dp.append(sum([(x - profits[i])/finite_difference_price for i, x in enumerate(new_profits) if new_profits[i] != 0]))
+            dxf_dp.append([((sum(sample_last_vector[i]) - sum(last_vector_iter[i]))/finite_difference_price  if new_profits[i] != 0 else 0) for i in range(n_cells)])
 
             traj_cells[cell_idx].set_price(traj_cells[cell_idx].price - finite_difference_price)
 
@@ -564,7 +564,7 @@ def optimize_start(rebalancing_cost):
     iteration = 0
 
     while True:
-        res, last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp, profit, regret = run_control_period(5,20,vec_iter, prices, run_price=False, cache=False)
+        res, last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp, profit, regret = run_control_period(5,20,vec_iter, prices, run_price=False, cache=False, finite_difference_x=0.5, finite_difference_price=0.5)
 
         new_vec_iter, reb_cost = start_step(alpha, vec_iter, last_vector_iter, dprofit_dx, dxf_dx, rebalancing_cost)
 
@@ -574,6 +574,9 @@ def optimize_start(rebalancing_cost):
 
         if os.path.isfile(filename):
             with open(filename, "rb") as f:
+                pickle.dump([vec_iter, last_vector_iter, new_vec_iter, profit, regret, reb_cost], f)
+        else:
+            with open(filename, "xb") as f:
                 pickle.dump([vec_iter, last_vector_iter, new_vec_iter, profit, regret, reb_cost], f)
         
         vec_iter = new_vec_iter
