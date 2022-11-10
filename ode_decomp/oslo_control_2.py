@@ -235,6 +235,7 @@ def run_control(model_data, traj_cells, ode_method, epsilon, cell_limit=False, c
             if last_iter:
                 # reverse things on the last iteration, as the limited cells need to be ran again
                 if cell_idx in limited_cells and limited_cells[cell_idx] < iter_no - 1:
+                    finished_cells[cell_idx] = False
                     cell_threads[cell_idx] = Process(target=cell_fn, 
                         args=(cell_idx, twrap, iwrap, pwrap))#, lc_lock, xiterlock, limited_cells))
                 else:
@@ -251,6 +252,7 @@ def run_control(model_data, traj_cells, ode_method, epsilon, cell_limit=False, c
                 #cell_threads[cell_idx] = Process(target=limited_cell_fn, 
                 #    args=(cell_idx, twrap, iwrap, pwrap))
             else:
+                finished_cells[cell_idx] = False
                 cell_threads[cell_idx] = Process(target=cell_fn, 
                     args=(cell_idx, twrap, iwrap, pwrap))#, lc_lock, xiterlock, limited_cells))
         
