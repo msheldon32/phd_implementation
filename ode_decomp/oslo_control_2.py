@@ -111,8 +111,10 @@ def run_control(model_data, traj_cells, ode_method, epsilon, cell_limit=False, c
 
     last_iter = False
 
+
+
     def limited_cell_fn(cell_idx, trajwrap, iterwrap, profitwrap):
-        istart = x_idx_cell[cell_idx]
+        """istart = x_idx_cell[cell_idx]
         iend = istart + traj_cells[cell_idx].x_size()
         if len(x_res) != 0:
             np.frombuffer(iwrap.get_obj()).reshape(x_iter_shape)[istart:iend, :] = x_res[-1][istart:iend, :]
@@ -122,6 +124,7 @@ def run_control(model_data, traj_cells, ode_method, epsilon, cell_limit=False, c
         for next_cell in range(model_data.n_cells):
             for phase, phase_rate in enumerate(model_data.mu[0][cell_idx][next_cell]):
                 np.frombuffer(twrap[next_cell][traj_cells[next_cell].x_in_idx[cell_idx] + phase].get_obj())[:] = trajectories[next_cell][traj_cells[next_cell].x_in_idx[cell_idx] + phase]
+        """
         finished_cells[cell_idx] = True
 
     def cell_fn(cell_idx, trajwrap, iterwrap, profitwrap):
@@ -204,11 +207,23 @@ def run_control(model_data, traj_cells, ode_method, epsilon, cell_limit=False, c
         twrap = [[multiprocessing.Array(ctypes.c_double, n_time_points+1) for j in range(traj_cells[i].in_offset)] for i in range(model_data.n_cells)]
         pwrap = multiprocessing.Array(ctypes.c_double, 2) 
 
+        x_iter_shape = (n_entries, n_time_points + 1)
+
+        # <HOOK>
+        if len(x_res) != 0:
+            np.frombuffer(iwrap.get_obj()).reshape(x_iter_shape)[:,:] = x_res[-1][:, :]
+        else:
+            np.frombuffer(iwrap.get_obj()).reshape(x_iter_shape)[:, :] = 0
+
+        for cell_idx in range(model_data.n_cells):
+            for next_cell in range(model_data.n_cells):
+                for phase, phase_rate in enumerate(model_data.mu[0][cell_idx][next_cell]):
+                    np.frombuffer(twrap[next_cell][traj_cells[next_cell].x_in_idx[cell_idx] + phase].get_obj())[:] = trajectories[next_cell][traj_cells[next_cell].x_in_idx[cell_idx] + phase]
+        # </HOOK>
+
 
         cell_threads = [None for i in range(model_data.n_cells)]
         x_t_cell = [None for i in range(model_data.n_cells)]
-
-        x_iter_shape = (n_entries, n_time_points + 1)
 
         finished_cells = Manager().dict()
 
@@ -223,29 +238,33 @@ def run_control(model_data, traj_cells, ode_method, epsilon, cell_limit=False, c
                     cell_threads[cell_idx] = Process(target=cell_fn, 
                         args=(cell_idx, twrap, iwrap, pwrap))#, lc_lock, xiterlock, limited_cells))
                 else:
-                    cell_threads[cell_idx] = Process(target=limited_cell_fn, 
-                        args=(cell_idx, twrap, iwrap, prwap))#, lc_lock, xiterlock))
+                    finished_cells[cell_idx] = True
+                    #cell_threads[cell_idx] = Process(target=limited_cell_fn, 
+                    #    args=(cell_idx, twrap, iwrap, prwap))#, lc_lock, xiterlock))
 
             elif cell_limit and cell_idx in limited_cells:
-                cell_threads[cell_idx] = Process(target=limited_cell_fn, 
-                    args=(cell_idx, twrap, iwrap, pwrap))#, lc_lock, xiterlock))
+                finished_cells[cell_idx] = True
+                #cell_threads[cell_idx] = Process(target=limited_cell_fn, 
+                #    args=(cell_idx, twrap, iwrap, pwrap))#, lc_lock, xiterlock))
             elif cell_include and cell_idx not in included_cells:
-                cell_threads[cell_idx] = Process(target=limited_cell_fn, 
-                    args=(cell_idx, twrap, iwrap, pwrap))
+                finished_cells[cell_idx] = True
+                #cell_threads[cell_idx] = Process(target=limited_cell_fn, 
+                #    args=(cell_idx, twrap, iwrap, pwrap))
             else:
                 cell_threads[cell_idx] = Process(target=cell_fn, 
                     args=(cell_idx, twrap, iwrap, pwrap))#, lc_lock, xiterlock, limited_cells))
         
         # matt - innovation - reduce number of threads to number of cores
-        n_cores_avail = 3
+        n_cores_avail = 3 if ode_method == "BDF" else 10
         running_cells = set()
         cell_iter = 0
         while cell_iter < model_data.n_cells:
             if len(running_cells) < n_cores_avail:
-                cell_threads[cell_iter].start()
-                running_cells.add(cell_iter)
-                #print(f"created thread for {cell_iter}")
-                cell_iter += 1
+                if not finished_cells[cell_iter]:
+                    cell_threads[cell_iter].start()
+                    running_cells.add(cell_iter)
+                    #print(f"created thread for {cell_iter}")
+                    cell_iter += 1
             else:
                 cell_to_remove = -1
                 for c in running_cells:
@@ -411,6 +430,7 @@ def run_control_period(start_hour, end_hour, first_vec_iter, prices,
     dxf_dx = []
 
     for cell_idx in range(n_cells):
+        print(f"x0 deriv: {cell_idx}")
         x0_total = sum(first_vec_iter[cell_idx])
         inf_factor = 1 + (finite_difference_x/x0_total) if x0_total != 0 else 1
         starting_vec = [(x if i != cell_idx else [pt*inf_factor for pt in x]) for i, x in enumerate(first_vec_iter)]
@@ -425,6 +445,7 @@ def run_control_period(start_hour, end_hour, first_vec_iter, prices,
 
     if run_price:
         for cell_idx in range(n_cells):
+            print(f"price deriv: {cell_idx}")
             traj_cells[cell_idx].set_price(traj_cells[cell_idx].price + finite_difference_price)
 
             starting_vec = [(x if i != cell_idx else x) for i, x in enumerate(first_vec_iter)]
@@ -636,9 +657,12 @@ def optimize_price(rebalancing_cost):
     original_level = 6.0
     vec_iter = get_first_vec_iter(5,20)
 
-    alpha = 0.1
-    min_alpha = 0.001
+    alpha_x = 0.1
+    min_alpha_x = 0.001
     alpha_decay = 0.99
+
+    alpha_p = 0.01
+    min_alpha_p = 0.001
 
     iteration = 0
 
@@ -652,7 +676,7 @@ def optimize_price(rebalancing_cost):
                 vec_iter, last_vector_iter, profit, new_prices, prices, reb_cost = pickle.load(f)
                 
             prices = new_prices
-            alpha = ((alpha-min_alpha)*alpha_decay) + min_alpha
+            alpha_p = ((alpha_p-min_alpha_p)*alpha_decay) + min_alpha_p
 
             iteration += 1
             continue
@@ -661,7 +685,7 @@ def optimize_price(rebalancing_cost):
 
         res, last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp, profit, regret = run_control_period(5,8,vec_iter, prices, cache=False, finite_difference_x=0.3, finite_difference_price=0.5)
 
-        new_prices, reb_cost = price_step_final(alpha, vec_iter, last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp, rebalancing_cost, prices)
+        new_prices, reb_cost = price_step_final(alpha_p, vec_iter, last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp, rebalancing_cost, prices)
 
         print(f"At iteration {iteration}...profit: {profit}, rebalancing costs: {reb_cost}")
 
@@ -673,7 +697,7 @@ def optimize_price(rebalancing_cost):
                 pickle.dump([vec_iter, last_vector_iter, profit, new_prices, prices, reb_cost], f)
         
         prices = new_prices
-        alpha = ((alpha-min_alpha)*alpha_decay) + min_alpha
+        alpha_p = ((alpha_p-min_alpha_p)*alpha_decay) + min_alpha_p
 
         iteration += 1
    
