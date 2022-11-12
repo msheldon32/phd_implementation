@@ -42,9 +42,12 @@ out_folder = "oslo_out"
 
 # Parameters
 TIME_POINTS_PER_HOUR = 100
-ATOL = 10**(-6)
+ATOL = 10**(-5)
 RATE_MULTIPLIER = 1
 SOLVER = "RK45"
+
+MAX_PRICE = 1.5
+MIN_PRICE = 0.5
 
 
 def run_control(model_data, traj_cells, ode_method, epsilon, cell_limit=False, cell_inc="none", current_vector="none", trajectories="none", prior_res="none", time_length="default"):
@@ -183,7 +186,6 @@ def run_control(model_data, traj_cells, ode_method, epsilon, cell_limit=False, c
                     if next_cell == cell_idx or next_cell in included_cells:
                         continue
 
-
                     for phase, phase_rate in enumerate(model_data.mu[0][cell_idx][next_cell]):
                         phase_qty_idx = traj_cells[cell_idx].x_idx[next_cell] + phase
                             
@@ -266,7 +268,8 @@ def run_control(model_data, traj_cells, ode_method, epsilon, cell_limit=False, c
                     cell_threads[cell_iter].start()
                     running_cells.add(cell_iter)
                     #print(f"created thread for {cell_iter}")
-                    cell_iter += 1
+                cell_iter += 1
+                
             else:
                 cell_to_remove = -1
                 for c in running_cells:
@@ -292,23 +295,25 @@ def run_control(model_data, traj_cells, ode_method, epsilon, cell_limit=False, c
         
         x_res.append(x_iter)
 
-        if last_iter:
-            toc = time.perf_counter()
-            all_res.append([time_points, x_res[-1], toc - tic, n_iterations])
-            break
+        print(f"Reward: {pwrap.get_obj()[0]}, regret: {pwrap.get_obj()[1]}")
+
+        total_reward = pwrap.get_obj()[0]
 
         for end_cell in range(model_data.n_cells):
             for traj_start in range(len(trajectories[end_cell])):
                 trajectories[end_cell][traj_start] = np.frombuffer(twrap[end_cell][traj_start].get_obj())
 
-        if len(x_res) == 1:
+
+        if last_iter:
+            toc = time.perf_counter()
+            all_res.append([time_points, x_res[-1], toc - tic, n_iterations])
+            break
+        elif len(x_res) == 1:
             error_score = float("inf")
+        elif cell_include and len(included_cells.keys()) == 1:
+            error_score = 0
         else:
             error_score = (abs(x_res[-1] - x_res[-2])).max()
-
-        print(f"Reward: {pwrap.get_obj()[0]}, regret: {pwrap.get_obj()[1]}")
-
-        total_reward = pwrap.get_obj()[0]
 
         h_rec = 0
         if error_score < epsilon:
@@ -326,11 +331,11 @@ def run_control(model_data, traj_cells, ode_method, epsilon, cell_limit=False, c
 
     for cell_idx, traj_cell in enumerate(traj_cells):
         out_vector.append(x_res[-1][x_idx_cell[cell_idx]:x_idx_cell[cell_idx+1], -1])
-    
-    print(f"Trajectory-Based Iteration finished, time: {toc-tic}.")
 
     profits = list(np.frombuffer(profits.get_obj()))
 
+    
+    print(f"Trajectory-Based Iteration finished, time: {toc-tic}, profit {sum(profits)}")
     return [all_res, x_res[-1], trajectories, out_vector, total_reward, profits]
 
 
@@ -436,7 +441,7 @@ def run_control_period(start_hour, end_hour, first_vec_iter, prices,
         x0_total = sum(first_vec_iter[cell_idx])
         inf_factor = 1 + (finite_difference_x/x0_total) if x0_total != 0 else 1
         starting_vec = [(x if i != cell_idx else [pt*inf_factor for pt in x]) for i, x in enumerate(first_vec_iter)]
-        ares, lastres, sample_trajectories, sample_last_vector, new_total_reward, new_profits = run_control(model_data, traj_cells, SOLVER, 0.05, trajectories=trajectories, 
+        ares, lastres, sample_trajectories, sample_last_vector, new_total_reward, new_profits = run_control(model_data, traj_cells, SOLVER, 0.01, trajectories=trajectories, 
                         prior_res=lastres, cell_inc=[cell_idx], current_vector=starting_vec, time_length=float(end_hour-start_hour))
 
         dprofit_dx.append(sum([(x - profits[i])/finite_difference_x for i, x in enumerate(new_profits) if new_profits[i] != 0]))
@@ -448,16 +453,23 @@ def run_control_period(start_hour, end_hour, first_vec_iter, prices,
     if run_price:
         for cell_idx in range(n_cells):
             print(f"price deriv: {cell_idx}")
-            traj_cells[cell_idx].set_price(traj_cells[cell_idx].price + finite_difference_price)
+            direction = 1 if traj_cells[cell_idx].price <= 1 else -1
+            print(f"changing price from: {traj_cells[cell_idx].price}")
+            traj_cells[cell_idx].set_price(traj_cells[cell_idx].price + direction*finite_difference_price)
+            print(f"....to: {traj_cells[cell_idx].price}")
 
             starting_vec = [(x if i != cell_idx else x) for i, x in enumerate(first_vec_iter)]
-            ares, lastres, sample_trajectories, sample_last_vector, new_total_reward, new_profits = run_control(model_data, traj_cells, SOLVER, 0.05, trajectories=trajectories, 
+            ares, lastres, sample_trajectories, sample_last_vector, new_total_reward, new_profits = run_control(model_data, traj_cells, SOLVER, 0.01, trajectories=trajectories, 
                             prior_res=lastres, cell_inc=[cell_idx], current_vector=first_vec_iter, time_length=float(end_hour-start_hour))
 
-            dprofit_dp.append(sum([(x - profits[i])/finite_difference_price for i, x in enumerate(new_profits) if new_profits[i] != 0]))
-            dxf_dp.append([((sum(sample_last_vector[i]) - sum(last_vector_iter[i]))/finite_difference_price  if new_profits[i] != 0 else 0) for i in range(n_cells)])
+            dprofit_dp.append(sum([(x - profits[i])/(direction*finite_difference_price) for i, x in enumerate(new_profits) if new_profits[i] != 0]))
+            dxf_dp.append([((sum(sample_last_vector[i]) - sum(last_vector_iter[i]))/(direction*finite_difference_price)  if new_profits[i] != 0 else 0) for i in range(n_cells)])
 
-            traj_cells[cell_idx].set_price(traj_cells[cell_idx].price - finite_difference_price)
+            traj_cells[cell_idx].set_price(traj_cells[cell_idx].price - (direction*finite_difference_price))
+
+            print(f"total profit: {sum(new_profits)}, delta: {sum([(x - profits[i]) for i, x in enumerate(new_profits) if new_profits[i] != 0])}")
+            print(f"profit list: {[(x, profits[i]) for i, x in enumerate(new_profits) if new_profits[i] != 0]}")
+            print(f"profit derivative: {dprofit_dp[-1]} with {finite_difference_price}, direction={direction}")
 
     for cell_idx, traj_cell in enumerate(traj_cells):
         for station_cell_idx, station_idx in enumerate(cell_to_station[cell_idx]):
@@ -622,6 +634,8 @@ def price_step_final(alpha, vec_iter, last_vector_iter, dprofit_dx, dxf_dx, dpro
     """Adapted from start_step for prices. This assumes that we're in the last stage. 
     """
 
+    print(f"Original prices: {prices}")
+
     rebalancing_deriv = [] # this is negative in the actual term
     exp_terms = []
     for cell_idx in range(n_cells):
@@ -639,12 +653,19 @@ def price_step_final(alpha, vec_iter, last_vector_iter, dprofit_dx, dxf_dx, dpro
         rebalancing_deriv.append(cost_delta)
 
     # 2. find overall_gradient w.r.t. starting point
-    overall_deriv = [pd-rd for rd,pd in zip(rebalancing_deriv, dprofit_dp)]
+    # HOOK
+    #overall_deriv = [pd-rd for rd,pd in zip(rebalancing_deriv, dprofit_dp)]
+    overall_deriv = [pd for rd,pd in zip(rebalancing_deriv, dprofit_dp)]
+
+    print(f"Overall derivatives: {overall_deriv}")
+    print(f"Pricing derivatives: {dprofit_dp}")
 
     # 3. find new prices
     new_prices = []
     for cell_idx in range(n_cells):
-        new_prices.append(prices[cell_idx] + alpha*overall_deriv[cell_idx])
+        new_price = prices[cell_idx] + alpha*overall_deriv[cell_idx]
+        new_prices.append(max(min(new_price, MAX_PRICE),MIN_PRICE))
+    print(f"New prices: {new_prices}")
         
     # 5. calculate rebalancing cost for the previous iteration
     reb_costs = []
@@ -661,7 +682,7 @@ def optimize_price(rebalancing_cost):
 
     alpha_x = 0.1
     min_alpha_x = 0.001
-    alpha_decay = 0.99
+    alpha_decay = 0.95
 
     alpha_p = 0.01
     min_alpha_p = 0.001
@@ -670,12 +691,18 @@ def optimize_price(rebalancing_cost):
 
     prices = [1.0 for cell_idx in range(n_cells)]
 
+    iter_profits   = []
+    iter_reb_costs = []
+
     while True:
         filename = "price_res/res_{}".format(iteration)
 
         if os.path.isfile(filename):
             with open(filename, "rb") as f:
                 vec_iter, last_vector_iter, profit, new_prices, prices, reb_cost = pickle.load(f)
+            
+            iter_profits.append(profit)
+            iter_reb_costs.append(reb_cost)
                 
             prices = new_prices
             alpha_p = ((alpha_p-min_alpha_p)*alpha_decay) + min_alpha_p
@@ -685,11 +712,17 @@ def optimize_price(rebalancing_cost):
 
 
 
-        res, last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp, profit, regret = run_control_period(5,8,vec_iter, prices, cache=False, finite_difference_x=0.3, finite_difference_price=0.5)
+        res, last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp, profit, regret = run_control_period(5,10,vec_iter, prices, cache=False, finite_difference_x=0.3, finite_difference_price=0.1)
 
         new_prices, reb_cost = price_step_final(alpha_p, vec_iter, last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp, rebalancing_cost, prices)
+        
+        iter_profits.append(profit)
+        iter_reb_costs.append(reb_cost)
 
         print(f"At iteration {iteration}...profit: {profit}, rebalancing costs: {reb_cost}")
+
+        print(f"previous iterations: {iter_profits}")
+        print(f".with rebalancing costs: {iter_reb_costs}")
 
         if os.path.isfile(filename):
             with open(filename, "wb") as f:

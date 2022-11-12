@@ -10,6 +10,7 @@ from datetime import datetime
 import random
 import sqlite3
 import gc
+import copy
 
 class StrictTrajCell:
     def __init__(self, cell_idx, stations, durations, in_demands, in_probabilities, out_demands):
@@ -406,26 +407,40 @@ class StrictTrajCellCoxControl:
         self.setcache()
     
     def setcache(self):
-        self.cache["out_demands"] = self.out_demands
-        self.cache["prices"] = self.prices
-        self.cache["price"] = self.price
+        self.cache["out_demands"] = copy.deepcopy(self.out_demands)
+        self.cache["prices"] = copy.deepcopy(self.prices)
+        self.cache["price"] = copy.deepcopy(self.price)
     
     def uncache(self):
-        self.out_demands = self.cache["out_demands"]
-        self.prices = self.cache["prices"]
-        self.price = self.cache["price"]
+        self.out_demands = copy.deepcopy(self.cache["out_demands"])
+        self.prices = copy.deepcopy(self.cache["prices"])
+        self.price = copy.deepcopy(self.cache["price"])
 
     def set_price(self, price):
+        orig_demand = 0
+        for hr in range(self.n_hours):
+            for end_cell in range(self.n_cells):
+                for stn in range(self.s_in_cell):
+                    orig_demand += self.out_demands[hr][stn][end_cell]
+
         price = max(min(price, 2),0) # bound price between 0, 2
+
+        print(f"changing price from {self.price} to {price}")
         self.uncache()
 
         self.prices = [price for stn in range(self.s_in_cell)]
         self.price = price
 
+        cache_demand = 0
+        total_demand = 0
+
         for hr in range(self.n_hours):
             for end_cell in range(self.n_cells):
                 for stn in range(self.s_in_cell):
+                    cache_demand += self.out_demands[hr][stn][end_cell]
                     self.out_demands[hr][stn][end_cell] += self.out_demands[hr][stn][end_cell]*(1-self.price)
+                    total_demand += self.out_demands[hr][stn][end_cell]
+        print(f"demand: {orig_demand}->{cache_demand}->{total_demand}")
 
     
     def set_subsidy(self, station):
