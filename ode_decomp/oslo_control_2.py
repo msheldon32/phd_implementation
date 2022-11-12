@@ -454,9 +454,9 @@ def run_control_period(start_hour, end_hour, first_vec_iter, prices,
         for cell_idx in range(n_cells):
             print(f"price deriv: {cell_idx}")
             direction = 1 if traj_cells[cell_idx].price <= 1 else -1
-            print(f"changing price from: {traj_cells[cell_idx].price}")
+            #print(f"changing price from: {traj_cells[cell_idx].price}")
             traj_cells[cell_idx].set_price(traj_cells[cell_idx].price + direction*finite_difference_price)
-            print(f"....to: {traj_cells[cell_idx].price}")
+            #print(f"....to: {traj_cells[cell_idx].price}")
 
             starting_vec = [(x if i != cell_idx else x) for i, x in enumerate(first_vec_iter)]
             ares, lastres, sample_trajectories, sample_last_vector, new_total_reward, new_profits = run_control(model_data, traj_cells, SOLVER, 0.01, trajectories=trajectories, 
@@ -467,9 +467,9 @@ def run_control_period(start_hour, end_hour, first_vec_iter, prices,
 
             traj_cells[cell_idx].set_price(traj_cells[cell_idx].price - (direction*finite_difference_price))
 
-            print(f"total profit: {sum(new_profits)}, delta: {sum([(x - profits[i]) for i, x in enumerate(new_profits) if new_profits[i] != 0])}")
-            print(f"profit list: {[(x, profits[i]) for i, x in enumerate(new_profits) if new_profits[i] != 0]}")
-            print(f"profit derivative: {dprofit_dp[-1]} with {finite_difference_price}, direction={direction}")
+            #print(f"total profit: {sum(new_profits)}, delta: {sum([(x - profits[i]) for i, x in enumerate(new_profits) if new_profits[i] != 0])}")
+            #print(f"profit list: {[(x, profits[i]) for i, x in enumerate(new_profits) if new_profits[i] != 0]}")
+            #print(f"profit derivative: {dprofit_dp[-1]} with {finite_difference_price}, direction={direction}")
 
     for cell_idx, traj_cell in enumerate(traj_cells):
         for station_cell_idx, station_idx in enumerate(cell_to_station[cell_idx]):
@@ -500,7 +500,7 @@ def start_step(alpha, vec_iter, last_vector_iter, dprofit_dx, dxf_dx, rebalancin
     #       3. dcost/dx0 = c*(exp{delta_x}/exp{delta_x+1})*(dxf/dx0) <- non-identical x
     #   => sum over each cell
 
-    # to fix: dxf_dx is a vector of partial derivatives not a scalar
+    raise Exception("revsit calculations (carefully..)")
 
     rebalancing_deriv = [] # this is negative in the actual term
     exp_terms = []
@@ -632,30 +632,27 @@ def optimize_start(rebalancing_cost):
 
 def price_step_final(alpha, vec_iter, last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp, rebalancing_cost, prices):
     """Adapted from start_step for prices. This assumes that we're in the last stage. 
+
+        There are, of course, slight changes in the calculation. Should be careful here...
     """
 
     print(f"Original prices: {prices}")
 
     rebalancing_deriv = [] # this is negative in the actual term
-    exp_terms = []
+    exp_xdeltas = []
     for cell_idx in range(n_cells):
         xstart = vec_iter[cell_idx]
         xend   = last_vector_iter[cell_idx]
-        exp_xdelta = [math.exp(xf-x0) for x0, xf in zip(xstart, xend)]
-        exp_term = [ex/(ex+1) for ex in exp_xdelta]
-        exp_terms.append(exp_term)
+        exp_xdeltas.append([math.exp(xf-x0) for x0, xf in zip(xstart, xend)]) # c/(X+1) <- approximately dcost/dx_f
     
     for cell_idx in range(n_cells):
         cost_delta = 0
         for other_cell in range(n_cells): 
-            indicator = 1 if cell_idx == other_cell else 0
-            cost_delta += sum([rebalancing_cost*ext*(dxf_dp[cell_idx][other_cell]-indicator) for ext in exp_terms[other_cell]])
+            cost_delta += sum([rebalancing_cost*(1/ext)*(dxf_dp[cell_idx][other_cell]) for ext in exp_xdeltas[other_cell]])
         rebalancing_deriv.append(cost_delta)
 
     # 2. find overall_gradient w.r.t. starting point
-    # HOOK
-    #overall_deriv = [pd-rd for rd,pd in zip(rebalancing_deriv, dprofit_dp)]
-    overall_deriv = [pd for rd,pd in zip(rebalancing_deriv, dprofit_dp)]
+    overall_deriv = [pd-rd for rd,pd in zip(rebalancing_deriv, dprofit_dp)]
 
     print(f"Overall derivatives: {overall_deriv}")
     print(f"Pricing derivatives: {dprofit_dp}")

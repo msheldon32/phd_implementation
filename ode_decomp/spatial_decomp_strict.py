@@ -417,30 +417,15 @@ class StrictTrajCellCoxControl:
         self.price = copy.deepcopy(self.cache["price"])
 
     def set_price(self, price):
-        orig_demand = 0
-        for hr in range(self.n_hours):
-            for end_cell in range(self.n_cells):
-                for stn in range(self.s_in_cell):
-                    orig_demand += self.out_demands[hr][stn][end_cell]
-
         price = max(min(price, 2),0) # bound price between 0, 2
-
-        print(f"changing price from {self.price} to {price}")
         self.uncache()
 
         self.prices = [price for stn in range(self.s_in_cell)]
         self.price = price
-
-        cache_demand = 0
-        total_demand = 0
-
         for hr in range(self.n_hours):
             for end_cell in range(self.n_cells):
                 for stn in range(self.s_in_cell):
-                    cache_demand += self.out_demands[hr][stn][end_cell]
                     self.out_demands[hr][stn][end_cell] += self.out_demands[hr][stn][end_cell]*(1-self.price)
-                    total_demand += self.out_demands[hr][stn][end_cell]
-        print(f"demand: {orig_demand}->{cache_demand}->{total_demand}")
 
     
     def set_subsidy(self, station):
