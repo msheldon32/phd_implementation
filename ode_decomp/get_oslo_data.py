@@ -39,8 +39,9 @@ import ctypes
 TIME_POINTS_PER_HOUR = 100
 ATOL = 10**(-6)
 RATE_MULTIPLIER = 1
+DEMAND_INFLATION = 1 # FOR TESTING/EXPERIMENTS ONLY
 
-data_folder = "oslo_data_3"
+data_folder = "oslo_data_3_big"
 
 def get_cox_data(hour, n_cells):
     durations = pd.read_csv(f"{data_folder}/cell_distances.csv")
@@ -48,8 +49,8 @@ def get_cox_data(hour, n_cells):
 
     durations = durations[durations["hour"] == hour]
 
-    mu  = [[[] for end_cell in range(n_cells)] for start_cell in range(n_cells)]
-    phi = [[[] for end_cell in range(n_cells)] for start_cell in range(n_cells)]
+    mu  = [[[1] for end_cell in range(n_cells)] for start_cell in range(n_cells)]
+    phi = [[[1.0] for end_cell in range(n_cells)] for start_cell in range(n_cells)]
 
     # mu/phi format: [start_cell][end_cell][phase] => mu/phi
 
@@ -108,7 +109,7 @@ def get_demands(hour, cell_to_station, station_to_cell):
         end_cell = station_to_cell[end_station]
         end_station = cell_to_station[end_cell].index(end_station)
         
-        in_demands[end_cell][start_cell][end_station] = float(row["hourly_demand"])
+        in_demands[end_cell][start_cell][end_station] = float(row["hourly_demand"]) * DEMAND_INFLATION
 
 
     # end_cell => start_cell => station => probability
@@ -123,6 +124,13 @@ def get_demands(hour, cell_to_station, station_to_cell):
 
         in_probabilities[end_cell][start_cell][end_station] = float(row["prob"])
     
+    for start_cell in range(n_cells):
+        for end_cell in range(n_cells):
+            if sum(in_probabilities[end_cell][start_cell]) == 0:
+                n_stns = len(list(cell_to_station[end_cell]))
+                in_probabilities[end_cell][start_cell] = [1/n_stns for i in range(n_stns)]
+    
+    
 
 
     # start_cell => station => end_cell => demand
@@ -135,11 +143,32 @@ def get_demands(hour, cell_to_station, station_to_cell):
         start_station = cell_to_station[start_cell].index(start_station)
         
 
-        out_demands[start_cell][start_station][end_cell] = float(row["hourly_demand"])
+        out_demands[start_cell][start_station][end_cell] = float(row["hourly_demand"]) * DEMAND_INFLATION
 
 
 
     return [in_demands, in_probabilities, out_demands]
+
+def get_average_probs(start_hour, end_hour, cell_to_station, station_to_cell):
+    in_probs = []
+    for hr in range(start_hour, end_hour):
+        in_probs.append(get_demands(hr, cell_to_station, station_to_cell)[1])
+    
+
+    n_cells = len(cell_to_station)
+
+    in_probs_out = []
+
+    for end_cell in range(len(in_probs[0])):
+        in_probs_out.append([])
+        for start_cell in range(len(in_probs[0][end_cell])):
+            in_probs_out[end_cell].append([])
+            for stn in range(len(in_probs[0][end_cell][start_cell])):
+                in_probs_out[end_cell][start_cell].append(0)
+                for hr_idx in range(0,end_hour-start_hour):
+                    in_probs_out[end_cell][start_cell][stn] += in_probs[hr_idx][end_cell][start_cell][stn]
+                in_probs_out[end_cell][start_cell][stn] /= (end_hour-start_hour)
+    return in_probs_out
 
 def get_starting_bps():
     initial_loads = pd.read_csv(f"{data_folder}/initial_loads.csv")

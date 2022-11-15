@@ -12,6 +12,8 @@ import sqlite3
 import gc
 import copy
 
+ELASTICITY = 1.0
+
 class StrictTrajCell:
     def __init__(self, cell_idx, stations, durations, in_demands, in_probabilities, out_demands):
         self.n_cells = len(durations)
@@ -425,7 +427,7 @@ class StrictTrajCellCoxControl:
         for hr in range(self.n_hours):
             for end_cell in range(self.n_cells):
                 for stn in range(self.s_in_cell):
-                    self.out_demands[hr][stn][end_cell] += self.out_demands[hr][stn][end_cell]*(1-self.price)
+                    self.out_demands[hr][stn][end_cell] += self.out_demands[hr][stn][end_cell]*ELASTICITY*(1-self.price)
 
     
     def set_subsidy(self, station):
