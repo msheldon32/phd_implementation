@@ -756,7 +756,7 @@ def optimize_price(rebalancing_cost):
             vec_iter = last_vector_iter
             end_hour = start_hour + hour_delta
             res, last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp, profit, regret = run_control_period(start_hour,end_hour,vec_iter, prices[hour_idx], 
-                        cache=False, finite_difference_x=0.3, finite_difference_price=0.1)
+                        cache=False, finite_difference_x=2, finite_difference_price=0.1)
             total_profit += profit
             total_regret += sum(regret)
             derivs[hour_idx] = [last_vector_iter,dprofit_dx, dxf_dx, dprofit_dp, dxf_dp]
