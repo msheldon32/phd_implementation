@@ -512,7 +512,7 @@ class StrictTrajCellCoxControl:
 
             # integrate over prices and lost trips
             reward += self.prices[j]*station_demand*min(x[j + self.station_offset],1)
-            regret += max(1-(station_demand*min(x[j + self.station_offset],1)),0)
+            regret += station_demand*max(1-(min(x[j + self.station_offset],1)),0)
 
             for start_cell in range(self.n_cells):
                 for phase in range(self.n_phases_in[start_cell]):

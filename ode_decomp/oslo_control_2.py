@@ -748,7 +748,9 @@ def optimize_price(rebalancing_cost):
             [] for hr in start_hours
         ]
 
-        vec_iter = get_first_vec_iter(start_hours[0], start_hours[-1] + hour_delta)
+        first_vec_iter = get_first_vec_iter(start_hours[0], start_hours[-1] + hour_delta)
+
+        vec_iter = copy.deepcopy(first_vec_iter)
 
         last_vector_iter = vec_iter
 
