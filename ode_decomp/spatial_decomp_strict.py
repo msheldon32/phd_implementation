@@ -14,6 +14,11 @@ import copy
 
 ELASTICITY = 1.0
 
+def get_loss_ptg(mean, capacity):
+    rho = 0 # find this
+
+    return (rho**(capacity))*(1-rho)/(1-(rho**(capacity*1)))
+
 class StrictTrajCell:
     def __init__(self, cell_idx, stations, durations, in_demands, in_probabilities, out_demands):
         self.n_cells = len(durations)
