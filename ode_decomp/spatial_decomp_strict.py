@@ -470,20 +470,37 @@ class StrictTrajCellCoxControl:
 
         self.tstep = 0
 
+        self.inbound_prices = [1 for i in range(self.n_cells)]
+
+        self.inbound_traj_inflation = 1
+
         self.cache = {}
         self.setcache()
+
+        self.use_inbound_price = False
     
     def setcache(self):
         self.cache["out_demands"] = copy.deepcopy(self.out_demands)
         self.cache["prices"] = copy.deepcopy(self.prices)
         self.cache["price"] = copy.deepcopy(self.price)
+        self.cache["inbound_prices"] = copy.deepcopy(self.inbound_prices)
         self.cache["capacity"] = self.capacity
     
     def uncache(self):
         self.out_demands = copy.deepcopy(self.cache["out_demands"])
         self.prices = copy.deepcopy(self.cache["prices"])
         self.price = copy.deepcopy(self.cache["price"])
+        self.inbound_prices = copy.deepcopy(self.cache["inbound_prices"])
         self.capacity = self.cache["capacity"]
+    
+    def set_inbound_prices(self, inbound_prices):
+        self.uncache()
+
+        self.inbound_prices = inbound_prices
+        for hr in range(self.n_hours):
+            for end_cell in range(self.n_cells):
+                for stn in range(self.s_in_cell):
+                    self.out_demands[hr][stn][end_cell] += self.out_demands[hr][stn][end_cell]*ELASTICITY*(1-self.inbound_prices[end_cell])
 
     def set_price(self, price):
         price = max(min(price, 2),0) # bound price between 0, 2
@@ -587,17 +604,45 @@ class StrictTrajCellCoxControl:
 
         out_list += [(self.n_cells**2) + i for i in self.stations]
         return out_list
+    
+    def simulate_inbound_change(self, finite_difference):
+        # inflate the inbound demand as if the inbound price changes
+        # return: cost of change (e.g. possible profit loss due to price change)
+        # note that decrease in profit -> positive value
+
+        # set cache
+        self.cache["inbound_traj_inflation"] = self.inbound_traj_inflation
+        self.cache["cur_inbound_price"] = self.inbound_prices[self.cell_idx]
         
+        # calculate demand change
+        cur_price = self.inbound_prices[self.cell_idx]
+        existing_inflation = 1 - (cur_price - 1)
+        new_inflation      = 1 - ((cur_price + finite_difference) - 1)
+        
+        # set self.inbound_traj_inflation
+        self.inbound_traj_inflation = new_inflation/existing_inflation
+
+
+        # use demand change to find cost of change
+        cur_cost = existing_inflation*(cur_price-1)
+        new_cost = new_inflation*((cur_price+finite_difference)-1)
+        
+        return new_cost - cur_cost
+    
+    def revert_inbound_change(self, finite_difference):
+        self.inbound_traj_inflation = self.cache["inbound_traj_inflation"]
+        self.inbound_prices[self.cell_idx] = self.cache["cur_inbound_price"]
     
     def dxdt_array(self, t, x):
         hr = math.floor(t)
 
-        deriv = [0 for i in range(self.station_offset+self.s_in_cell+2)]
+        deriv = [0 for i in range(self.station_offset+self.s_in_cell+3)]
 
         #print(len(deriv))
 
         regret = 0
         reward = 0
+        arrivals = 0
         
         for end_cell in range(self.n_cells):
             d_idx = self.x_idx[end_cell]
@@ -637,16 +682,30 @@ class StrictTrajCellCoxControl:
             deriv[j + self.station_offset] -= station_demand*min(x[j + self.station_offset],1)
 
             # integrate over prices and lost trips
-            if REWARD_TYPE == "STATION_PER_TRIP":
-                reward += self.prices[j]*station_demand*min(x[j + self.station_offset],1)
-                regret += station_demand*max(1-(min(x[j + self.station_offset],1)),0)
-            elif REWARD_TYPE == "STATION_MM1_COMBINED":
-                reward += self.prices[j]*station_demand*(x[j + self.station_offset]/(1+x[j + self.station_offset]))
-                regret += station_demand*(x[j + self.station_offset]/(1+x[j + self.station_offset]))
-            elif REWARD_TYPE == "STATION_MMK_COMBINED":
-                reward += self.prices[j]*station_demand*(1-lo_loss)
-                regret += station_demand*lo_loss
-
+            if not self.use_inbound_price:
+                if REWARD_TYPE == "STATION_PER_TRIP":
+                    reward += self.prices[j]*station_demand*min(x[j + self.station_offset],1)
+                    regret += station_demand*max(1-(min(x[j + self.station_offset],1)),0)
+                elif REWARD_TYPE == "STATION_MM1_COMBINED":
+                    reward += self.prices[j]*station_demand*(x[j + self.station_offset]/(1+x[j + self.station_offset]))
+                    regret += station_demand*(x[j + self.station_offset]/(1+x[j + self.station_offset]))
+                elif REWARD_TYPE == "STATION_MMK_COMBINED":
+                    reward += self.prices[j]*station_demand*(1-lo_loss)
+                    regret += station_demand*lo_loss
+            else:
+                if REWARD_TYPE == "STATION_PER_TRIP":
+                    regret += station_demand*max(1-(min(x[j + self.station_offset],1)),0)
+                elif REWARD_TYPE == "STATION_MM1_COMBINED":
+                    regret += station_demand*(x[j + self.station_offset]/(1+x[j + self.station_offset]))
+                elif REWARD_TYPE == "STATION_MMK_COMBINED":
+                    regret += station_demand*lo_loss
+                for end_cell in range(self.n_cells):
+                    if REWARD_TYPE == "STATION_PER_TRIP":
+                        reward += self.inbound_prices[end_cell]*self.out_demands[hr][j][end_cell]*min(x[j + self.station_offset],1)
+                    elif REWARD_TYPE == "STATION_MM1_COMBINED":
+                        reward += self.inbound_prices[end_cell]*self.out_demands[hr][j][end_cell]*(x[j + self.station_offset]/(1+x[j + self.station_offset]))
+                    elif REWARD_TYPE == "STATION_MMK_COMBINED":
+                        reward += self.inbound_prices[end_cell]*self.out_demands[hr][j][end_cell]*(1-lo_loss)
 
 
             if CAPACITY_ADJ:
@@ -656,19 +715,24 @@ class StrictTrajCellCoxControl:
                         if start_cell == self.cell_idx:
                             deriv[j + self.station_offset] += (1-hi_loss)*rate*x[self.x_idx[self.cell_idx]+phase]
                             deriv[self.x_idx[self.cell_idx]] += hi_loss*rate*x[self.x_idx[self.cell_idx]+phase]
+                            arrivals += (1-hi_loss)*rate*x[self.x_idx[self.cell_idx]+phase]
                         else:
-                            deriv[j + self.station_offset] += (1-hi_loss)*rate*self.trajectories[self.x_in_idx[start_cell]+phase][int(t//self.tstep)]
-                            deriv[self.x_idx[self.cell_idx]] += hi_loss*rate*self.trajectories[self.x_in_idx[start_cell]+phase][int(t//self.tstep)]
+                            deriv[j + self.station_offset] += (1-hi_loss)*rate*self.inbound_traj_inflation*self.trajectories[self.x_in_idx[start_cell]+phase][int(t//self.tstep)]
+                            deriv[self.x_idx[self.cell_idx]] += hi_loss*rate*self.inbound_traj_inflation*self.trajectories[self.x_in_idx[start_cell]+phase][int(t//self.tstep)]
+                            arrivals += (1-hi_loss)*rate*self.inbound_traj_inflation*self.trajectories[self.x_in_idx[start_cell]+phase][int(t//self.tstep)]
             else:
                 for start_cell in range(self.n_cells):
                     for phase in range(self.n_phases_in[start_cell]):
                         rate = self.in_probabilities[hr][start_cell][j]*self.mu[hr][start_cell][self.cell_idx][phase]*self.phi[hr][start_cell][self.cell_idx][phase]
                         if start_cell == self.cell_idx:
                             deriv[j + self.station_offset] += rate*x[self.x_idx[self.cell_idx]+phase]
+                            arrivals += rate*x[self.x_idx[self.cell_idx]+phase]
                         else:
-                            deriv[j + self.station_offset] += rate*self.trajectories[self.x_in_idx[start_cell]+phase][int(t//self.tstep)]
+                            deriv[j + self.station_offset] += rate*self.inbound_traj_inflation*self.trajectories[self.x_in_idx[start_cell]+phase][int(t//self.tstep)]
+                            arrivals += rate*self.inbound_traj_inflation*self.trajectories[self.x_in_idx[start_cell]+phase][int(t//self.tstep)]
         deriv[-1] = reward
         deriv[-2] = regret
+        deriv[-3] = arrivals
 
         return deriv
 
