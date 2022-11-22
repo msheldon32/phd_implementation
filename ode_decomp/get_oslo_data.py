@@ -40,8 +40,9 @@ TIME_POINTS_PER_HOUR = 100
 ATOL = 10**(-6)
 RATE_MULTIPLIER = 1
 DEMAND_INFLATION = 1 # FOR TESTING/EXPERIMENTS ONLY
+TEST_PARAM = True
 
-data_folder = "oslo_data_3_big"
+data_folder = "oslo_data_3_small"
 
 def get_cox_data(hour, n_cells):
     durations = pd.read_csv(f"{data_folder}/cell_distances.csv")
@@ -144,6 +145,9 @@ def get_demands(hour, cell_to_station, station_to_cell):
         
 
         out_demands[start_cell][start_station][end_cell] = float(row["hourly_demand"]) * DEMAND_INFLATION
+
+        if TEST_PARAM:
+            out_demands[start_cell][start_station][end_cell] = random.random() *0.1* DEMAND_INFLATION
 
 
 
