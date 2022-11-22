@@ -15,7 +15,7 @@ import copy
 ELASTICITY = 1.0
 
 REFINED_SPECULATIVE = False
-REWARD_TYPE = "STATION_MMK_COMBINED"
+REWARD_TYPE = "STATION_MM1_COMBINED"
 CAPACITY_ADJ = True
 
 
@@ -624,10 +624,7 @@ class StrictTrajCellCoxControl:
 
 
         # use demand change to find cost of change
-        cur_cost = existing_inflation*(cur_price-1)
-        new_cost = new_inflation*((cur_price+finite_difference)-1)
-        
-        return new_cost - cur_cost
+        return -(finite_difference)*(new_inflation/existing_inflation)
     
     def revert_inbound_change(self, finite_difference):
         self.inbound_traj_inflation = self.cache["inbound_traj_inflation"]
@@ -688,7 +685,7 @@ class StrictTrajCellCoxControl:
                     regret += station_demand*max(1-(min(x[j + self.station_offset],1)),0)
                 elif REWARD_TYPE == "STATION_MM1_COMBINED":
                     reward += self.prices[j]*station_demand*(x[j + self.station_offset]/(1+x[j + self.station_offset]))
-                    regret += station_demand*(x[j + self.station_offset]/(1+x[j + self.station_offset]))
+                    regret += station_demand*(1-(x[j + self.station_offset]/(1+x[j + self.station_offset])))
                 elif REWARD_TYPE == "STATION_MMK_COMBINED":
                     reward += self.prices[j]*station_demand*(1-lo_loss)
                     regret += station_demand*lo_loss
@@ -703,7 +700,7 @@ class StrictTrajCellCoxControl:
                     if REWARD_TYPE == "STATION_PER_TRIP":
                         reward += self.inbound_prices[end_cell]*self.out_demands[hr][j][end_cell]*min(x[j + self.station_offset],1)
                     elif REWARD_TYPE == "STATION_MM1_COMBINED":
-                        reward += self.inbound_prices[end_cell]*self.out_demands[hr][j][end_cell]*(x[j + self.station_offset]/(1+x[j + self.station_offset]))
+                        reward += self.inbound_prices[end_cell]*self.out_demands[hr][j][end_cell]*(1-(x[j + self.station_offset]/(1+x[j + self.station_offset])))
                     elif REWARD_TYPE == "STATION_MMK_COMBINED":
                         reward += self.inbound_prices[end_cell]*self.out_demands[hr][j][end_cell]*(1-lo_loss)
 

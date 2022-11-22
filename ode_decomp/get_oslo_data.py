@@ -147,7 +147,7 @@ def get_demands(hour, cell_to_station, station_to_cell):
         out_demands[start_cell][start_station][end_cell] = float(row["hourly_demand"]) * DEMAND_INFLATION
 
         if TEST_PARAM:
-            out_demands[start_cell][start_station][end_cell] = random.random() *0.1* DEMAND_INFLATION
+            out_demands[start_cell][start_station][end_cell] = (random.random()**2) *0.2* DEMAND_INFLATION
 
 
 
