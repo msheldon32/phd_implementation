@@ -45,7 +45,7 @@ TIME_POINTS_PER_HOUR = 100
 ATOL = 10**(-5)
 RATE_MULTIPLIER = 1
 SOLVER = "RK45"
-TEST_PARAM = True
+TEST_PARAM = False
 REQUIRE_POS_GRAD = True
 CAPACITY = 15
 
@@ -53,13 +53,13 @@ CAPACITY = 15
 MAX_PRICE = 1.5
 MIN_PRICE = 0.5
 
-random.seed(100)
+random.seed(300)
 
 # how to control the price weighing within a cell
 # "proportionate": increases go first to the least loaded station
 # "equal": same price across all stations within cell
 # "inbound": price determines demand into a cell rather than out.
-PRICE_IN_CELL = "equal" 
+PRICE_IN_CELL = "inbound" 
 
 
 def run_control(model_data, traj_cells, ode_method, epsilon, cell_limit=False, cell_inc="none", current_vector="none", trajectories="none", prior_res="none", time_length="default"):
@@ -615,6 +615,20 @@ def start_step(alpha, vec_iter, last_vector_iter, dprofit_dx, dxf_dx, rebalancin
     return new_vec_iter, sum(reb_costs)
 
 
+def get_delay_phase_ct(start_hour, end_hour):
+    # code duplication wrt get_oslo_data
+    mu = []
+    for hr in range(start_hour, end_hour+1): # need an extra hour of data since solve_ivp sometimes calls the end of the time interval
+        # phase processes
+        mu_hr, phi_hr = get_oslo_data.get_cox_data(hr, len(cell_to_station))
+        
+        mu.append(mu_hr)
+    
+    delay_phase_ct = [sum([len(x) for x in mu[0][i]]) for i in range(n_cells)] # number of phases in the process that starts at i
+    
+    return delay_phase_ct
+
+
 def get_first_vec_iter(start_hour, end_hour):
     # code duplication wrt get_oslo_data
     mu = []
@@ -642,53 +656,8 @@ def get_first_vec_iter(start_hour, end_hour):
         ]
     return first_vec_iter
 
-def optimize_start(rebalancing_cost, start_hour, end_hour):
-    original_level = 6.0
-    vec_iter = get_first_vec_iter(5,20)
-
-    alpha = 0.1
-    min_alpha = 0.001
-    alpha_decay = 0.99
-
-    iteration = 0
-
-    while True:
-        filename = "start_res/res_{}".format(iteration)
-        print(f"iteration: {iteration}")
-
-        if os.path.isfile(filename):
-            print("checking file..")
-            with open(filename, "rb") as f:
-                vec_iter, last_vector_iter, new_vec_iter, profit, regret, reb_cost = pickle.load(f)
-                
-            vec_iter = new_vec_iter
-            alpha = ((alpha-min_alpha)*alpha_decay) + min_alpha
-
-            iteration += 1
-            continue
-
-
-        # [station_iterres, last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp, total_reward, profits, regret]
-        res, last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp, profit, profits, regret = run_control_period(start_hour,end_hour,vec_iter, prices, run_price=False, cache=False, finite_difference_x=0.3, finite_difference_price=0.1)
-
-        new_vec_iter, reb_cost = start_step(alpha, vec_iter, last_vector_iter, dprofit_dx, dxf_dx, rebalancing_cost)
-
-        print(f"At iteration {iteration}...profit: {profit}, rebalancing costs: {reb_cost}")
-
-        if os.path.isfile(filename):
-            with open(filename, "wb") as f:
-                pickle.dump([vec_iter, last_vector_iter, new_vec_iter, profit, regret, reb_cost], f)
-        else:
-            with open(filename, "xb") as f:
-                pickle.dump([vec_iter, last_vector_iter, new_vec_iter, profit, regret, reb_cost], f)
-        
-        vec_iter = new_vec_iter
-        alpha = ((alpha-min_alpha)*alpha_decay) + min_alpha
-
-        iteration += 1
-
-
-def get_rebalancing_deriv(alpha, starting_vec, last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp, rebalancing_cost, prices, start_hour, end_hour):
+def get_rebalancing_deriv_dx(alpha, starting_vec, last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp, rebalancing_cost, prices, start_hour, end_hour):
+    # rebalancing derivative with respect to xf...
     SOFTMAX_PARAM = 1
 
     avg_probs = get_oslo_data.get_average_probs(start_hour, end_hour, cell_to_station, station_to_cell)
@@ -705,20 +674,22 @@ def get_rebalancing_deriv(alpha, starting_vec, last_vector_iter, dprofit_dx, dxf
         weights  = [xf/total_xf for xf in xend]
         s_in_cell = len(list(cell_to_station[cell_idx]))
         x_delta = [xf - x0 for x0, xf in zip(xstart,xend)][-s_in_cell:]
-        diff_terms.append([0.5 if xd > 1 else -0.5 for xd in x_delta])
+        diff_terms.append([0.5 if xd > 0 else -0.5 for xd in x_delta])
         exp_diff = [math.exp(SOFTMAX_PARAM*xd) for xd in x_delta] # (c*exp(deltaX))/(deltaX+1) <- approximately dcost/dx_f
         exp_terms.append([((exd)/(exd+1)) for w, exd in zip(weights,exp_diff)]) # then apply it by weight to analyze the impact of the total on the price
         
 
     for cell_idx in range(n_cells):
-        cost_delta = 0
-        cost_delta_sm = 0
-        for other_cell in range(n_cells): 
-            cost_delta += sum([-rebalancing_cost*deltax*avg_probs[other_cell][cell_idx][i]*dxf_dp[cell_idx][other_cell] for i,deltax in enumerate(diff_terms[other_cell])])
-            cost_delta_sm += sum([-rebalancing_cost*exp*avg_probs[other_cell][cell_idx][i]*dxf_dp[cell_idx][other_cell] for i,exp in enumerate(exp_terms[other_cell])])
+        cost_delta = sum(diff_terms[cell_idx])*(rebalancing_cost)
+        cost_delta_sm = sum(exp_terms[cell_idx])*(rebalancing_cost)
+        #for other_cell in range(n_cells): 
+        #    cost_delta += sum([-rebalancing_cost*deltax*avg_probs[other_cell][cell_idx][i] for i,deltax in enumerate(diff_terms[other_cell])])
+        #    cost_delta_sm += sum([-rebalancing_cost*exp*avg_probs[other_cell][cell_idx][i] for i,exp in enumerate(exp_terms[other_cell])])
         rebalancing_deriv.append(cost_delta)
         softmax_deriv.append(cost_delta_sm)
-        
+    print(f"rebalancing cost: {rebalancing_cost}")
+    print(f"derivs: {rebalancing_deriv}")
+    print(f"diff terms: {diff_terms}")
     # 5. calculate rebalancing cost for the previous iteration
     reb_costs = []
     estimated_reb_costs = []
@@ -774,11 +745,12 @@ def price_search():
     iter_reb_costs = []
     iter_regret    = []
 
-    profits = []
+    rewards = []
     mean_abs_dev = []
     mean_price = []
 
-    for iteration in range(100):
+    for iteration in range(6):
+        print(f"Iteration: {iteration}")
         total_profit = 0
         total_regret = 0
 
@@ -794,7 +766,10 @@ def price_search():
 
         last_vector_iter = vec_iter
 
-        prices = [[random.uniform(0.5, 1.5) for cell_idx in range(n_cells)] for hr in start_hours]
+        if iteration == 0:
+            prices = [[1.0 for cell_idx in range(n_cells)] for hr in start_hours]
+        else:
+            prices = [[(1 if random.random() > 0.5 else -1)*((random.random()*0.5)**2)+1 for cell_idx in range(n_cells)] for hr in start_hours]
 
         avg_price = [sum(x)/n_cells for x in prices]
         avg_price = sum(avg_price)/len(avg_price)
@@ -806,21 +781,145 @@ def price_search():
             end_hour = start_hour + hour_delta
             #  [station_iterres, last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp, total_reward, profits, regret]
             res, last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp, profit, profits, regret = run_control_period(start_hour,end_hour,vec_iter, prices[hour_idx], 
-                        cache=False, finite_difference_x=0.3, finite_difference_price=0.2, run_price = False, run_xdiff = False)
+                        cache=False, finite_difference_x=0.5, finite_difference_price=0.2, run_price = False, run_xdiff = False)
             total_profit += profit
             total_regret += regret
             derivs[hour_idx] = [last_vector_iter,dprofit_dx, dxf_dx, dprofit_dp, dxf_dp]
         
-        profits.append(total_profit)
+        rewards.append(total_profit)
         mean_price.append(avg_price)
         mean_abs_dev.append(avg_dev)
     
-    plt.scatter(mean_price, profits)
+    plt.scatter(mean_price, rewards)
     plt.show()
-    plt.scatter(mean_abs_dev, profits)
+    plt.scatter(mean_abs_dev, rewards)
     plt.show()
         
+def optimize_start(rebalancing_cost):
+    original_level = 6.0
+        
+    start_hours = [5]
+    hour_delta = 16
 
+    alpha_x = 1
+    min_alpha_x = 0.01
+    alpha_decay = 0.99
+
+    alpha_p = 0.05
+    min_alpha_p = 0.01
+
+    iteration = 0
+
+    starting_level = 6
+
+    prices = [[1.0 for cell_idx in range(n_cells)] for hr in start_hours]
+    cell_levels = [starting_level for cell_idx in range(n_cells)]
+
+    iter_profits   = []
+    iter_reb_costs = []
+    iter_regret    = []
+
+    delay_phase_ct = get_delay_phase_ct(start_hours[0], start_hours[-1] + hour_delta)
+
+    while True:
+        filename = "price_res/res_{}".format(iteration)
+
+        if os.path.isfile(filename):
+            with open(filename, "rb") as f:
+                vec_iter, last_vector_iter, profit, new_prices, prices, reb_cost = pickle.load(f)
+            
+            iter_profits.append(profit)
+            iter_reb_costs.append(reb_cost)
+                
+            prices = new_prices
+            alpha_p = ((alpha_p-min_alpha_p)*alpha_decay) + min_alpha_p
+
+            iteration += 1
+
+            print(f"previous iterations: {iter_profits}")
+            print(f".with rebalancing costs: {iter_reb_costs}")
+            print(f"and regret: {iter_regret}")
+            continue
+
+        total_profit = 0
+        total_regret = 0
+
+        derivs = [
+            [] for hr in start_hours
+        ]
+
+
+        
+        first_vec_iter = [
+            [0.0 for i in range(delay_phase_ct[cell_idx])] +
+            [cell_levels[cell_idx] for x in list(cell_to_station[cell_idx])]
+            #[random.random()*12.0 for x in list(cell_to_station[cell_idx])]
+                for cell_idx in range(n_cells)
+        ]
+
+        vec_iter = copy.deepcopy(first_vec_iter)
+
+        last_vector_iter = vec_iter
+
+        for hour_idx, start_hour in enumerate(start_hours):
+            vec_iter = last_vector_iter
+            end_hour = start_hour + hour_delta
+            #  [station_iterres, last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp, total_reward, profits, regret]
+            res, last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp, profit, profits, regret = run_control_period(start_hour,end_hour,vec_iter, prices[hour_idx], 
+                        cache=False, finite_difference_x=0.5, run_price=False)
+            total_profit += profit
+            total_regret += regret
+            derivs[hour_idx] = [last_vector_iter,dprofit_dx, dxf_dx, dprofit_dp, dxf_dp]
+        
+        reb_deriv, reb_cost = get_rebalancing_deriv_dx(alpha_p, vec_iter, last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp, rebalancing_cost, prices[-1], start_hour, end_hour)
+
+        next_deriv = reb_deriv
+
+        for r,start_hour in enumerate(start_hours[::-1]):
+            hour_idx = len(start_hours)-r-1
+
+            last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp = derivs[hour_idx]
+
+            end_hour = start_hour + hour_delta
+            new_next_deriv = []
+            for start_cell in range(n_cells):
+                total_sc_deriv = dprofit_dx[start_cell]
+                for end_cell in range(n_cells):
+                    total_sc_deriv += dxf_dx[start_cell][end_cell]*next_deriv[end_cell]
+                new_next_deriv.append(total_sc_deriv)
+            print(f"rebalancing derivs: {next_deriv}")
+            next_deriv = new_next_deriv
+
+            print(f"profit dx deriv: {dprofit_dx}")
+            print(f"overall deriv: {next_deriv}")
+        
+        print(f"orig cell_levels: {cell_levels}")
+        for cell_idx in range(n_cells):
+            cell_levels[cell_idx] += (alpha_x)*next_deriv[cell_idx]
+        print(f"new cell_levels: {cell_levels}")
+        
+
+        #if os.path.isfile(filename):
+        #    with open(filename, "wb") as f:
+        #        pickle.dump([prices, profit, regret], f)
+        #else:
+        #    with open(filename, "xb") as f:
+        #        pickle.dump([prices, profit, regret], f)
+
+        iter_profits.append(total_profit)
+        iter_reb_costs.append(reb_cost)
+        iter_regret.append(total_regret)
+
+        print(f"At iteration {iteration}...profit: {total_profit}, regret: {total_regret} rebalancing costs: {reb_cost}")
+
+        print(f"previous iterations: {iter_profits}")
+        print(f".with rebalancing costs: {iter_reb_costs}")
+        print(f"and regret: {iter_regret}")
+        
+        #prices = new_prices
+        alpha_p = ((alpha_p-min_alpha_p)*alpha_decay) + min_alpha_p
+
+        iteration += 1
 
 def optimize_price(rebalancing_cost):
     original_level = 6.0
@@ -887,8 +986,9 @@ def optimize_price(rebalancing_cost):
             total_profit += profit
             total_regret += regret
             derivs[hour_idx] = [last_vector_iter,dprofit_dx, dxf_dx, dprofit_dp, dxf_dp]
-        
-        reb_deriv, reb_cost = get_rebalancing_deriv(alpha_p, vec_iter, last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp, rebalancing_cost, prices[-1], start_hour, end_hour)
+
+
+        reb_deriv, reb_cost = get_rebalancing_deriv_dx(alpha_p, vec_iter, last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp, rebalancing_cost, prices[-1], start_hour, end_hour)
 
         next_deriv = reb_deriv
 
@@ -900,21 +1000,13 @@ def optimize_price(rebalancing_cost):
             end_hour = start_hour + hour_delta
             new_next_deriv = []
             for start_cell in range(n_cells):
-                total_sc_deriv = 0
+                total_sc_deriv = dprofit_dx[start_cell]
                 for end_cell in range(n_cells):
                     total_sc_deriv += dxf_dx[start_cell][end_cell]*next_deriv[end_cell]
                 new_next_deriv.append(total_sc_deriv)
 
             prices[hour_idx] = price_step_final(next_deriv, alpha_p, vec_iter, last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp, rebalancing_cost, prices[hour_idx], start_hour, end_hour)
             next_deriv = new_next_deriv
-        
-
-        #if os.path.isfile(filename):
-        #    with open(filename, "wb") as f:
-        #        pickle.dump([prices, profit, regret], f)
-        #else:
-        #    with open(filename, "xb") as f:
-        #        pickle.dump([prices, profit, regret], f)
 
         iter_profits.append(total_profit)
         iter_reb_costs.append(reb_cost)
@@ -949,8 +1041,8 @@ if __name__ == "__main__":
 
     tic = time.perf_counter()
     #res, last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp, profit, regret = run_control_period(5,20,"none", prices)
-    price_search()
-    #optimize_price(0.0)
+    #price_search()
+    optimize_start(1.0)
 
     toc = time.perf_counter()
     print(f"time diff: {toc-tic}")
