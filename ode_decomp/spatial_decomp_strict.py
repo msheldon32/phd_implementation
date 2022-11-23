@@ -633,13 +633,12 @@ class StrictTrajCellCoxControl:
     def dxdt_array(self, t, x):
         hr = math.floor(t)
 
-        deriv = [0 for i in range(self.station_offset+self.s_in_cell+3)]
-
-        #print(len(deriv))
+        deriv = [0 for i in range(self.station_offset+self.s_in_cell+4)]
 
         regret = 0
         reward = 0
         arrivals = 0
+        bounces = 0
         
         for end_cell in range(self.n_cells):
             d_idx = self.x_idx[end_cell]
@@ -668,6 +667,7 @@ class StrictTrajCellCoxControl:
                 # reroute excess bikes back around the cell
                 hi_loss = get_hi_loss_ptg(x[j+self.station_offset], self.capacity)
                 lo_loss = get_lo_loss_ptg(x[j+self.station_offset], self.capacity)
+                bounces += hi_loss
 
 
             if REFINED_SPECULATIVE and False:
@@ -730,6 +730,7 @@ class StrictTrajCellCoxControl:
         deriv[-1] = reward
         deriv[-2] = regret
         deriv[-3] = arrivals
+        deriv[-4] = bounces
 
         return deriv
 
