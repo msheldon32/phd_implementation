@@ -426,7 +426,7 @@ def get_traj_fn(traj_t, traj_x):
 
 
 class StrictTrajCellCoxControl:
-    def __init__(self, cell_idx, stations, mu, phi, in_demands, in_probabilities, out_demands, capacity):
+    def __init__(self, cell_idx, stations, mu, phi, in_demands, in_probabilities, out_demands, capacities):
         """
             Note:
                 denominate everything by hour - start_hour
@@ -466,7 +466,7 @@ class StrictTrajCellCoxControl:
     
         self.trajectories = []
 
-        self.capacity = capacity
+        self.capacities = capacities
 
         self.tstep = 0
 
@@ -484,14 +484,14 @@ class StrictTrajCellCoxControl:
         self.cache["prices"] = copy.deepcopy(self.prices)
         self.cache["price"] = copy.deepcopy(self.price)
         self.cache["inbound_prices"] = copy.deepcopy(self.inbound_prices)
-        self.cache["capacity"] = self.capacity
+        self.cache["capacities"] = copy.deepcopy(self.capacities)
     
     def uncache(self):
         self.out_demands = copy.deepcopy(self.cache["out_demands"])
         self.prices = copy.deepcopy(self.cache["prices"])
         self.price = copy.deepcopy(self.cache["price"])
         self.inbound_prices = copy.deepcopy(self.cache["inbound_prices"])
-        self.capacity = self.cache["capacity"]
+        self.capacities = self.cache["capacities"]
     
     def set_inbound_prices(self, inbound_prices):
         self.uncache()
@@ -665,8 +665,8 @@ class StrictTrajCellCoxControl:
 
             if CAPACITY_ADJ:
                 # reroute excess bikes back around the cell
-                hi_loss = get_hi_loss_ptg(x[j+self.station_offset], self.capacity)
-                lo_loss = get_lo_loss_ptg(x[j+self.station_offset], self.capacity)
+                hi_loss = get_hi_loss_ptg(x[j+self.station_offset], self.capacities[j])
+                lo_loss = get_lo_loss_ptg(x[j+self.station_offset], self.capacities[j])
                 bounces += hi_loss
 
 

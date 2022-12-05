@@ -377,7 +377,7 @@ class ModelData:
         self.out_demands = out_demands
         self.time_end = 1.0
         self.steps_per_dt = 100
-        self.const_bike_load = 6
+        self.const_bike_load = 10
         self.max_iterations = 100
 
 def run_control_period(start_hour, end_hour, first_vec_iter, prices,
@@ -429,7 +429,7 @@ def run_control_period(start_hour, end_hour, first_vec_iter, prices,
             rev_hr_cell(in_demands,cell_idx), 
             rev_hr_cell(in_probabilities,cell_idx), 
             rev_hr_cell(out_demands,cell_idx),
-            CAPACITY)
+            capacities[cell_idx])
 
             for cell_idx in range(model_data.n_cells)
     ]
@@ -610,7 +610,7 @@ def run_control_period_sa(start_hour, end_hour, first_vec_iter, prices,
             rev_hr_cell(in_demands,cell_idx), 
             rev_hr_cell(in_probabilities,cell_idx), 
             rev_hr_cell(out_demands,cell_idx),
-            CAPACITY)
+            capacities[cell_idx])
 
             for cell_idx in range(model_data.n_cells)
     ]
@@ -794,7 +794,7 @@ def get_first_vec_iter(start_hour, end_hour):
     else:
         first_vec_iter = [
             [0.0 for i in range(delay_phase_ct[cell_idx])] +
-            [6.0 for x in list(cell_to_station[cell_idx])]
+            [10.0 for x in list(cell_to_station[cell_idx])]
             #[random.random()*12.0 for x in list(cell_to_station[cell_idx])]
                 for cell_idx in range(n_cells)
         ]
@@ -882,7 +882,7 @@ def price_step_final(xf_profit, alpha, vec_iter, last_vector_iter, dprofit_dx, d
     return new_prices
      
 def price_search():
-    original_level = 6.0
+    original_level = 10.0
         
     start_hours = [5]#, 9, 13, 17]
     hour_delta = 4
@@ -1074,104 +1074,8 @@ def optimize_start(rebalancing_cost, bounce_cost):
 
         iteration += 1
 
-def optimize_price_start_sa(rebalancing_cost, bounce_cost, n_annealing_epochs):
-    if rebalancing_cost != 0:
-        raise Exception ("No support for rebalancing costs yet...")
-    starting_level = 6.0
-        
-    start_hours = [5]#, 9, 13, 17]
-    hour_delta = 16
-
-    alpha_x = 1.0
-    min_alpha_x = 0.1
-    alpha_decay = 0.99
-
-    alpha_p = 0.01
-    min_alpha_p = 0.01
-
-    iteration = 0
-
-    prices = [[1.0 for cell_idx in range(n_cells)] for hr in start_hours]
-    cell_levels = [starting_level for cell_idx in range(n_cells)]
-
-    iter_profits   = []
-    iter_reb_costs = []
-    iter_regret    = []
-
-    delay_phase_ct = get_delay_phase_ct(start_hours[0], start_hours[-1] + hour_delta)
-
-    while True:
-        filename = "price_res/res_{}".format(iteration)
-
-        if os.path.isfile(filename):
-            with open(filename, "rb") as f:
-                vec_iter, last_vector_iter, profit, new_prices, prices, reb_cost = pickle.load(f)
-            
-            iter_profits.append(profit)
-            iter_reb_costs.append(reb_cost)
-                
-            prices = new_prices
-            alpha_p = ((alpha_p-min_alpha_p)*alpha_decay) + min_alpha_p
-
-            iteration += 1
-
-            print(f"previous iterations: {iter_profits}")
-            print(f".with rebalancing costs: {iter_reb_costs}")
-            print(f"and regret: {iter_regret}")
-            continue
-
-        total_profit = 0
-        total_regret = 0
-
-        #raise Exception("fix multi-hour case")
-
-        derivs = [
-            [] for hr in start_hours
-        ]
-        
-        first_vec_iter = [
-            [0.0 for i in range(delay_phase_ct[cell_idx])] +
-            [cell_levels[cell_idx] for x in list(cell_to_station[cell_idx])]
-            #[random.random()*12.0 for x in list(cell_to_station[cell_idx])]
-                for cell_idx in range(n_cells)
-        ]
-
-        vec_iter = copy.deepcopy(first_vec_iter)
-
-        last_vector_iter = vec_iter
-
-        for hour_idx, start_hour in enumerate(start_hours):
-            vec_iter = last_vector_iter
-            end_hour = start_hour + hour_delta
-            #  [station_iterres, last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp, total_reward, profits, regret]
-            res, last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp, profit, profits, regret, new_prices, new_cell_levels = run_control_period_sa(start_hour,end_hour,vec_iter, prices[hour_idx], 
-                                cache=False, finite_difference_x=1, finite_difference_price=0.05, bounce_cost=bounce_cost, epochs=n_annealing_epochs, cell_levels=cell_levels)
-            total_profit += profit
-            total_regret += regret
-            derivs[hour_idx] = [last_vector_iter,dprofit_dx, dxf_dx, dprofit_dp, dxf_dp]
-
-        
-        print(f"orig cell_levels: {cell_levels}")
-        print(f"new cell_levels: {new_cell_levels}")
-
-        iter_profits.append(total_profit)
-        iter_reb_costs.append(reb_cost)
-        iter_regret.append(total_regret)
-
-        print(f"At iteration {iteration}...profit: {total_profit}, regret: {total_regret} rebalancing costs: {reb_cost}")
-
-        print(f"previous iterations: {iter_profits}")
-        print(f".with rebalancing costs: {iter_reb_costs}")
-        print(f"and regret: {iter_regret}")
-        
-        #prices = new_prices
-        alpha_x = ((alpha_x-min_alpha_x)*alpha_decay) + min_alpha_x
-        alpha_p = ((alpha_p-min_alpha_p)*alpha_decay) + min_alpha_p
-
-        iteration += 1
-
-def optimize_price_start(rebalancing_cost, bounce_cost):
-    starting_level = 6.0
+def optimize_price_start(rebalancing_cost, bounce_cost, change_x=True):
+    starting_level = 10.0
         
     start_hours = [5]#, 9, 13, 17]
     hour_delta = 16
@@ -1239,7 +1143,7 @@ def optimize_price_start(rebalancing_cost, bounce_cost):
             end_hour = start_hour + hour_delta
             #  [station_iterres, last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp, total_reward, profits, regret]
             res, last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp, profit, profits, regret = run_control_period(start_hour,end_hour,vec_iter, prices[hour_idx], 
-                        cache=False, finite_difference_x=1, finite_difference_price=0.05, bounce_cost=bounce_cost)
+                        cache=False, finite_difference_x=1, finite_difference_price=0.05, bounce_cost=bounce_cost, run_xdiff=change_x)
             total_profit += profit
             total_regret += regret
             derivs[hour_idx] = [last_vector_iter,dprofit_dx, dxf_dx, dprofit_dp, dxf_dp]
@@ -1265,10 +1169,11 @@ def optimize_price_start(rebalancing_cost, bounce_cost):
             prices[hour_idx] = price_step_final(next_deriv, alpha_p, vec_iter, last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp, rebalancing_cost, prices[hour_idx], start_hour, end_hour)
             next_deriv = new_next_deriv
         
-        print(f"orig cell_levels: {cell_levels}")
-        for cell_idx in range(n_cells):
-            cell_levels[cell_idx] = max(cell_levels[cell_idx]+(alpha_x)*next_deriv[cell_idx],0)
-        print(f"new cell_levels: {cell_levels}")
+        if change_x:
+            print(f"orig cell_levels: {cell_levels}")
+            for cell_idx in range(n_cells):
+                cell_levels[cell_idx] = max(cell_levels[cell_idx]+(alpha_x)*next_deriv[cell_idx],0)
+            print(f"new cell_levels: {cell_levels}")
 
         iter_profits.append(total_profit)
         iter_reb_costs.append(reb_cost)
@@ -1287,7 +1192,7 @@ def optimize_price_start(rebalancing_cost, bounce_cost):
         iteration += 1
 
 def optimize_price(rebalancing_cost, bounce_cost):
-    original_level = 6.0
+    original_level = 10.0
         
     start_hours = [5]#, 9, 13, 17]
     hour_delta = 16
@@ -1397,9 +1302,11 @@ if __name__ == "__main__":
     cell_to_station = [[] for i in range(n_cells)]
     #station_to_cell = [0 for i in range(n_stations)]
     station_to_cell = {}
+    capacities = [[] for i in range(n_cells)]
     for i, row in stations.iterrows():
         cell_to_station[int(row["cell"])].append(int(row["index"]))
         station_to_cell[int(row["index"])] = int(row["cell"])
+        capacities[int(row["cell"])].append(int(row["capacity"]))
 
     # start_hour, end_hour, first_vec_iter, subsidies
     prices = [1.0 for i in range(n_cells)]
@@ -1407,9 +1314,8 @@ if __name__ == "__main__":
     tic = time.perf_counter()
     #res, last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp, profit, regret = run_control_period(5,20,"none", prices)
     #price_search()
-    #raise Exception("validate final arrivals + bounce figures")
-    raise Exception("fix rebalancing cost (consider impact of initial on cost)")
-    optimize_price_start(0.0, 0.1)
+    raise Exception("fix rebalancing cost deriv")
+    optimize_price_start(0.0, 1.0, change_x=False)
 
     toc = time.perf_counter()
     print(f"time diff: {toc-tic}")
