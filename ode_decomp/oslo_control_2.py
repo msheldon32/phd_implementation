@@ -1138,12 +1138,14 @@ def optimize_price_start(rebalancing_cost, bounce_cost, change_x=True):
 
         last_vector_iter = vec_iter
 
+        has_xderiv = (not (len(start_hours)==1) and change_x)
+
         for hour_idx, start_hour in enumerate(start_hours):
             vec_iter = last_vector_iter
             end_hour = start_hour + hour_delta
             #  [station_iterres, last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp, total_reward, profits, regret]
             res, last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp, profit, profits, regret = run_control_period(start_hour,end_hour,vec_iter, prices[hour_idx], 
-                        cache=False, finite_difference_x=1, finite_difference_price=0.05, bounce_cost=bounce_cost, run_xdiff=change_x)
+                        cache=False, finite_difference_x=1, finite_difference_price=0.05, bounce_cost=bounce_cost, run_xdiff=has_xderiv)
             total_profit += profit
             total_regret += regret
             derivs[hour_idx] = [last_vector_iter,dprofit_dx, dxf_dx, dprofit_dp, dxf_dp]
@@ -1157,17 +1159,20 @@ def optimize_price_start(rebalancing_cost, bounce_cost, change_x=True):
             hour_idx = len(start_hours)-r-1
 
             last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp = derivs[hour_idx]
-
-            end_hour = start_hour + hour_delta
-            new_next_deriv = []
-            for start_cell in range(n_cells):
-                total_sc_deriv = dprofit_dx[start_cell]
-                for end_cell in range(n_cells):
-                    total_sc_deriv += dxf_dx[start_cell][end_cell]*next_deriv[end_cell]
-                new_next_deriv.append(total_sc_deriv)
+            
+            if has_xderiv:
+                end_hour = start_hour + hour_delta
+                new_next_deriv = []
+                for start_cell in range(n_cells):
+                    total_sc_deriv = dprofit_dx[start_cell]
+                    for end_cell in range(n_cells):
+                        total_sc_deriv += dxf_dx[start_cell][end_cell]*next_deriv[end_cell]
+                    new_next_deriv.append(total_sc_deriv)
 
             prices[hour_idx] = price_step_final(next_deriv, alpha_p, vec_iter, last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp, rebalancing_cost, prices[hour_idx], start_hour, end_hour)
-            next_deriv = new_next_deriv
+
+            if has_xderiv:
+                next_deriv = new_next_deriv
         
         if change_x:
             print(f"orig cell_levels: {cell_levels}")
