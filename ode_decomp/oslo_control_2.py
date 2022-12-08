@@ -885,9 +885,9 @@ def optimize_start(rebalancing_cost, bounce_cost):
     start_hours = [5]
     hour_delta = 16
 
-    annealing_steps = 20
-    temperature = 0.2
-    annealing_alpha = 0.98
+    annealing_steps = 10
+    temperature = 20
+    annealing_alpha = 0.9
 
 
     iteration = 0
@@ -1217,7 +1217,7 @@ if __name__ == "__main__":
     tic = time.perf_counter()
     #res, last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp, profit, regret = run_control_period(5,20,"none", prices)
     #price_search()
-    optimize_start(0.1, 0.1)
+    optimize_start(0.1, 0.5)
 
     toc = time.perf_counter()
     print(f"time diff: {toc-tic}")
