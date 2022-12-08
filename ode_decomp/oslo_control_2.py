@@ -37,7 +37,7 @@ import gc
 
 import ctypes
 
-data_folder = "oslo_data_3_big"
+data_folder = "oslo_data_3_small"
 out_folder = "oslo_out"
 
 # Parameters
@@ -154,7 +154,7 @@ def run_control(model_data, traj_cells, ode_method, epsilon, cell_limit=False, c
         istart = x_idx_cell[cell_idx]
         iend = istart + traj_cells[cell_idx].x_size()
 
-        x_t = spi.solve_ivp(traj_cells[cell_idx].dxdt_array, [0, time_length], list(current_vector[cell_idx]) + [0,0,0,0],
+        x_t = spi.solve_ivp(traj_cells[cell_idx].dxdt_array_2phase, [0, time_length], list(current_vector[cell_idx]) + [0,0,0,0],
                                 t_eval=time_points, 
                                 method=ode_method, atol=ATOL)
                 
@@ -1217,7 +1217,7 @@ if __name__ == "__main__":
     tic = time.perf_counter()
     #res, last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp, profit, regret = run_control_period(5,20,"none", prices)
     #price_search()
-    optimize_start(0.1, 0.5)
+    optimize_start(0.1, 0.1)
 
     toc = time.perf_counter()
     print(f"time diff: {toc-tic}")

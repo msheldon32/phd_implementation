@@ -426,10 +426,13 @@ def get_traj_fn(traj_t, traj_x):
 
 
 class StrictTrajCellCoxControl:
-    def __init__(self, cell_idx, stations, mu, phi, in_demands, in_probabilities, out_demands, capacities):
+    def __init__(self, cell_idx, stations, mu, phi, in_demands, in_probabilities, out_demands, capacities,
+                    limit_trajectories=True):
         """
             Note:
                 denominate everything by hour - start_hour
+
+            limit_trajectories: should we only consider the last two phases of a trajectory?
         """
         self.n_cells = len(in_demands[0])
         self.n_hours = len(in_demands)
@@ -630,6 +633,115 @@ class StrictTrajCellCoxControl:
         self.inbound_traj_inflation = self.cache["inbound_traj_inflation"]
         self.inbound_prices[self.cell_idx] = self.cache["cur_inbound_price"]
     
+    def dxdt_array_2phase(self, t, x):
+        """
+            Derivative with last 2 phases from trajectories
+        """
+        hr = math.floor(t)
+
+        deriv = [0 for i in range(self.station_offset+self.s_in_cell+4)]
+
+        regret = 0
+        reward = 0
+        arrivals = 0
+        bounces = 0
+        
+        for end_cell in range(self.n_cells):
+            #d_idx = self.x_idx[end_cell]
+
+            for j, station_idx in enumerate(self.stations):
+                #s_idx = j + self.station_offset
+                
+                deriv[self.x_idx[end_cell]] += self.out_demands[hr][j][end_cell]*min(x[j + self.station_offset],1)
+
+            
+            for phase in range(0,self.n_phases_out[end_cell]):
+                deriv[self.x_idx[end_cell] + phase] -= self.mu[hr][self.cell_idx][end_cell][phase] * x[self.x_idx[end_cell]+phase]
+
+                if REWARD_TYPE == "DELAY_PER_HOUR":
+                    reward += self.price * x[self.x_idx[end_cell]+phase]
+                
+                if phase < self.n_phases_out[end_cell]-1:
+                    deriv[self.x_idx[end_cell] + phase + 1] += self.mu[hr][self.cell_idx][end_cell][phase] * (1-self.phi[hr][self.cell_idx][end_cell][phase]) * x[self.x_idx[end_cell]+phase]
+
+        for j, station_idx in enumerate(self.stations):
+            station_demand = sum(self.out_demands[hr][j])
+
+            hi_loss = 0
+
+            if CAPACITY_ADJ:
+                # reroute excess bikes back around the cell
+                hi_loss = get_hi_loss_ptg(x[j+self.station_offset], self.capacities[j])
+
+                lo_loss = get_lo_loss_ptg(x[j+self.station_offset], self.capacities[j])
+                bounces += hi_loss
+
+
+            if REFINED_SPECULATIVE and False:
+                #Q = x[j + self.station_offset]
+                #U = Q/(1+Q)
+                #station_demand *= U
+                station_demand *= x[j + self.station_offset]/(1+x[j + self.station_offset])
+
+            deriv[j + self.station_offset] -= station_demand*min(x[j + self.station_offset],1)
+
+            # integrate over prices and lost trips
+            if not self.use_inbound_price:
+                if REWARD_TYPE == "STATION_PER_TRIP":
+                    reward += self.prices[j]*station_demand*min(x[j + self.station_offset],1)
+                    regret += station_demand*max(1-(min(x[j + self.station_offset],1)),0)
+                elif REWARD_TYPE == "STATION_MM1_COMBINED":
+                    reward += self.prices[j]*station_demand*(x[j + self.station_offset]/(1+x[j + self.station_offset]))
+                    regret += station_demand*(1-(x[j + self.station_offset]/(1+x[j + self.station_offset])))
+                elif REWARD_TYPE == "STATION_MMK_COMBINED":
+                    reward += self.prices[j]*station_demand*(1-lo_loss)
+                    regret += station_demand*lo_loss
+            else:
+                if REWARD_TYPE == "STATION_PER_TRIP":
+                    regret += station_demand*max(1-(min(x[j + self.station_offset],1)),0)
+                elif REWARD_TYPE == "STATION_MM1_COMBINED":
+                    regret += station_demand*(x[j + self.station_offset]/(1+x[j + self.station_offset]))
+                elif REWARD_TYPE == "STATION_MMK_COMBINED":
+                    regret += station_demand*lo_loss
+                for end_cell in range(self.n_cells):
+                    if REWARD_TYPE == "STATION_PER_TRIP":
+                        reward += self.inbound_prices[end_cell]*self.out_demands[hr][j][end_cell]*min(x[j + self.station_offset],1)
+                    elif REWARD_TYPE == "STATION_MM1_COMBINED":
+                        reward += self.inbound_prices[end_cell]*self.out_demands[hr][j][end_cell]*(1-(x[j + self.station_offset]/(1+x[j + self.station_offset])))
+                    elif REWARD_TYPE == "STATION_MMK_COMBINED":
+                        reward += self.inbound_prices[end_cell]*self.out_demands[hr][j][end_cell]*(1-lo_loss)
+
+
+            if CAPACITY_ADJ:
+                for start_cell in range(self.n_cells):
+                    for phase in range(max(self.n_phases_in[start_cell]-2,0),self.n_phases_in[start_cell]):
+                        rate = self.in_probabilities[hr][start_cell][j]*self.mu[hr][start_cell][self.cell_idx][phase]*self.phi[hr][start_cell][self.cell_idx][phase]
+                        if start_cell == self.cell_idx:
+                            deriv[j + self.station_offset] += (1-hi_loss)*rate*x[self.x_idx[self.cell_idx]+phase]
+                            deriv[self.x_idx[self.cell_idx]] += hi_loss*rate*x[self.x_idx[self.cell_idx]+phase]
+                            arrivals += (1-hi_loss)*rate*x[self.x_idx[self.cell_idx]+phase]
+                        else:
+                            deriv[j + self.station_offset] += (1-hi_loss)*rate*self.inbound_traj_inflation*self.trajectories[self.x_in_idx[start_cell]+phase][int(t//self.tstep)]
+                            deriv[self.x_idx[self.cell_idx]] += hi_loss*rate*self.inbound_traj_inflation*self.trajectories[self.x_in_idx[start_cell]+phase][int(t//self.tstep)]
+                            arrivals += (1-hi_loss)*rate*self.inbound_traj_inflation*self.trajectories[self.x_in_idx[start_cell]+phase][int(t//self.tstep)]
+            else:
+                for start_cell in range(self.n_cells):
+                    for phase in range(max(self.n_phases_in[start_cell]-2,0),self.n_phases_in[start_cell]):
+                        rate = self.in_probabilities[hr][start_cell][j]*self.mu[hr][start_cell][self.cell_idx][phase]*self.phi[hr][start_cell][self.cell_idx][phase]
+                        if start_cell == self.cell_idx:
+                            deriv[j + self.station_offset] += rate*x[self.x_idx[self.cell_idx]+phase]
+                            arrivals += rate*x[self.x_idx[self.cell_idx]+phase]
+                        else:
+                            deriv[j + self.station_offset] += rate*self.inbound_traj_inflation*self.trajectories[self.x_in_idx[start_cell]+phase][int(t//self.tstep)]
+                            arrivals += rate*self.inbound_traj_inflation*self.trajectories[self.x_in_idx[start_cell]+phase][int(t//self.tstep)]
+                            
+        deriv[-1] = reward
+        deriv[-2] = regret
+        deriv[-3] = arrivals
+        deriv[-4] = bounces
+
+        return deriv
+    
     def dxdt_array(self, t, x):
         hr = math.floor(t)
 
@@ -641,22 +753,22 @@ class StrictTrajCellCoxControl:
         bounces = 0
         
         for end_cell in range(self.n_cells):
-            d_idx = self.x_idx[end_cell]
+            #d_idx = self.x_idx[end_cell]
 
             for j, station_idx in enumerate(self.stations):
-                s_idx = j + self.station_offset
+                #s_idx = j + self.station_offset
                 
-                deriv[d_idx] += self.out_demands[hr][j][end_cell]*min(x[s_idx],1)
+                deriv[self.x_idx[end_cell]] += self.out_demands[hr][j][end_cell]*min(x[j + self.station_offset],1)
 
             
             for phase in range(self.n_phases_out[end_cell]):
-                deriv[d_idx + phase] -= self.mu[hr][self.cell_idx][end_cell][phase] * x[d_idx+phase]
+                deriv[self.x_idx[end_cell] + phase] -= self.mu[hr][self.cell_idx][end_cell][phase] * x[self.x_idx[end_cell]+phase]
 
                 if REWARD_TYPE == "DELAY_PER_HOUR":
-                    reward += self.price * x[d_idx+phase]
+                    reward += self.price * x[self.x_idx[end_cell]+phase]
                 
                 if phase < self.n_phases_out[end_cell]-1:
-                    deriv[d_idx + phase + 1] += self.mu[hr][self.cell_idx][end_cell][phase] * (1-self.phi[hr][self.cell_idx][end_cell][phase]) * x[d_idx+phase]
+                    deriv[self.x_idx[end_cell] + phase + 1] += self.mu[hr][self.cell_idx][end_cell][phase] * (1-self.phi[hr][self.cell_idx][end_cell][phase]) * x[self.x_idx[end_cell]+phase]
 
         for j, station_idx in enumerate(self.stations):
             station_demand = sum(self.out_demands[hr][j])
