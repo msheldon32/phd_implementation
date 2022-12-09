@@ -506,8 +506,14 @@ def run_control_period_sa(start_hour, end_hour, prices, cell_levels, prior_cell_
                 change = random.choice([-1,1])
                 
                 if change_one:
+                    if first_vec_iter[cell_idx][-station_idx] == 0:
+                        # prevent negative starting values
+                        change = 1
                     first_vec_iter[cell_idx][-station_idx] += change
                 else:
+                    if first_vec_iter[cell_idx][-station_idx] == 0:
+                        # prevent negative starting values
+                        change = 1
                     for station_idx in range(len(cell_to_station[cell_idx])):
                         first_vec_iter[cell_idx][-station_idx] += change
                 if change_one or (first_vec_iter[cell_idx][-1], traj_cells[cell_idx].price) not in acache:
@@ -1231,7 +1237,7 @@ if __name__ == "__main__":
     tic = time.perf_counter()
     #res, last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp, profit, regret = run_control_period(5,20,"none", prices)
     #price_search()
-    optimize_start(0.0, 0.5)
+    optimize_start(0.1, 0.5)
 
     toc = time.perf_counter()
     print(f"time diff: {toc-tic}")

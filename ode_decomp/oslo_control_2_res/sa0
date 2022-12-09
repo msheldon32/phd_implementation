@@ -67,4 +67,6 @@ new cell levels: [6.0, 9.0, 4.0, 7.0, 1.0, 11.0, 4.0, 5.0, 9.0, 11.0, 11.0, 13.0
  Reward: 3623.568758329981, regret: 413.483646857547, arrivals: 3961.6998446667712, bounces: 1087.1968760287484
  Trajectory-Based Iteration finished, time: 921.1406710009906, profit 3623.568758329981
  reward: 3623.568758329981, bounces: 1087.1968760287484, profits: 3079.9703203156064, rebalancing: 0.0
+-------------------------------------------------------------------------------------
 
+Note the negative value. This should be re-run later.
