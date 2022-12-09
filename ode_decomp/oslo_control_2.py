@@ -37,7 +37,7 @@ import gc
 
 import ctypes
 
-data_folder = "oslo_data_3_small"
+data_folder = "oslo_data_3_big"
 out_folder = "oslo_out"
 
 # Parameters
@@ -467,7 +467,7 @@ def run_control_period_sa(start_hour, end_hour, prices, cell_levels, prior_cell_
                     next_level = cell_levels[cell_idx][-stn_idx]
                 else:
                     next_level = final_cell_levels[cell_idx][-stn_idx]
-                reb_cost += abs(final_level - next_level)
+                reb_cost += rebalancing_cost*abs(final_level - next_level)
 
         print(f"reward: {total_reward}, bounces: {sum(bounces)}, profits: {sum(profits)}, rebalancing: {reb_cost}")
         total_reward -= bounce_cost*(sum(bounces))
@@ -477,11 +477,15 @@ def run_control_period_sa(start_hour, end_hour, prices, cell_levels, prior_cell_
                 pickle.dump([ares, lastres, trajectories, last_vector_iter, trajectories, total_reward, profits, regret, reb_cost],f)
 
     overall_delta = 0
-
-    for cell_idx in range(n_cells):
+    cell_idxes = [cell_idx for cell_idx in range(n_cells)]
+    random.shuffle(cell_idxes)
+    for cell_n, cell_idx in enumerate(cell_idxes):
         print("--------------------------------------------------------------------------------------")
-        print(f"annealing: {cell_idx}")
+        print(f"annealing: {cell_idx} (n: {cell_n})")
         cell_temp = starting_temperature
+
+        acache = {}
+
         for annealing_iteration in range(annealing_steps):
             change_x = False
             change_price = False
@@ -506,42 +510,45 @@ def run_control_period_sa(start_hour, end_hour, prices, cell_levels, prior_cell_
                 else:
                     for station_idx in range(len(cell_to_station[cell_idx])):
                         first_vec_iter[cell_idx][-station_idx] += change
+                if change_one or (first_vec_iter[cell_idx][-1], traj_cells[cell_idx].price) not in acache:
+                    ares, lastres, sample_trajectories, sample_last_vector, new_total_reward, new_profits, new_regret, new_arrivals,new_bounces = run_control(model_data, 
+                        traj_cells, SOLVER, 0.02, trajectories=trajectories, 
+                        prior_res=lastres, cell_inc=[cell_idx], current_vector=first_vec_iter, time_length=float(end_hour-start_hour))
 
-                ares, lastres, sample_trajectories, sample_last_vector, new_total_reward, new_profits, new_regret, new_arrivals,new_bounces = run_control(model_data, 
-                    traj_cells, SOLVER, 0.02, trajectories=trajectories, 
-                    prior_res=lastres, cell_inc=[cell_idx], current_vector=first_vec_iter, time_length=float(end_hour-start_hour))
+                    new_profits = [x - bounce_cost*y for x, y in zip(new_profits, new_bounces)]
 
-                new_profits = [x - bounce_cost*y for x, y in zip(new_profits, new_bounces)]
+                    local_profit_delta = sum([(x - profits[i]) for i, x in enumerate(new_profits) if new_profits[i] != 0])
 
-                local_profit_delta = sum([(x - profits[i]) for i, x in enumerate(new_profits) if new_profits[i] != 0])
+                    # update starting & ending rebalancing costs
 
-                # update starting & ending rebalancing costs
+                    final_rebalancing_cost = 0
+                    init_rebalancing_cost = 0
 
-                final_rebalancing_cost = 0
-                init_rebalancing_cost = 0
+                    for station_idx in range(len(cell_to_station[cell_idx])):
+                        new_station_level = first_vec_iter[cell_idx][-station_idx]
+                        if prior_cell_levels == "same":
+                            init_station_level = first_vec_iter[cell_idx][-station_idx]
+                        else:
+                            init_station_level = prior_cell_levels[cell_idx][-station_idx]
+                        init_rebalancing_cost += 0.5 * rebalancing_cost * (abs(new_station_level - init_station_level) - abs(new_station_level-change-init_station_level))
 
-                for station_idx in range(len(cell_to_station[cell_idx])):
-                    new_station_level = first_vec_iter[cell_idx][-station_idx]
-                    if prior_cell_levels == "same":
-                        init_station_level = first_vec_iter[cell_idx][-station_idx]
-                    else:
-                        init_station_level = prior_cell_levels[cell_idx][-station_idx]
-                    init_rebalancing_cost += 0.5 * rebalancing_cost * (abs(new_station_level - init_station_level) - abs(new_station_level-change-init_station_level))
+                    for dst_cell_idx, new_cell_profit in enumerate(new_profits):
+                        # use profits to see if the cell has been re-ran
+                        if new_cell_profit != 0:
+                            s_in_cell = len(cell_to_station[dst_cell_idx])
+                            for stn in range(s_in_cell):
+                                new_station_level = sample_last_vector[dst_cell_idx][-stn]
+                                if final_cell_levels == "same":
+                                    init_station_level = first_vec_iter[cell_idx][-stn]
+                                else:
+                                    init_station_level = final_cell_levels[cell_idx][-stn]
+                                orig_station_level = last_vector_iter[dst_cell_idx][-stn]
+                                final_rebalancing_cost += 0.5 * rebalancing_cost * (abs(new_station_level - init_station_level) - abs(orig_station_level-init_station_level))
 
-                for dst_cell_idx, new_cell_profit in enumerate(new_profits):
-                    # use profits to see if the cell has been re-ran
-                    if new_cell_profit != 0:
-                        s_in_cell = len(cell_to_station[dst_cell_idx])
-                        for stn in range(s_in_cell):
-                            new_station_level = sample_last_vector[dst_cell_idx][-stn]
-                            if final_cell_levels == "same":
-                                init_station_level = first_vec_iter[cell_idx][-stn]
-                            else:
-                                init_station_level = final_cell_levels[cell_idx][-stn]
-                            orig_station_level = last_vector_iter[dst_cell_idx][-stn]
-                            final_rebalancing_cost += 0.5 * rebalancing_cost * (abs(new_station_level - init_station_level) - abs(orig_station_level-init_station_level))
-
-                cell_delta = local_profit_delta + init_rebalancing_cost + final_rebalancing_cost
+                    cell_delta = local_profit_delta + init_rebalancing_cost + final_rebalancing_cost
+                    acache[(first_vec_iter[cell_idx][-1], traj_cells[cell_idx].price)] = cell_delta
+                else:
+                    cell_delta = acache[(first_vec_iter[cell_idx][-1], traj_cells[cell_idx].price)]
 
                 if random.random() > math.exp(cell_delta/cell_temp):
                     if change_one:
@@ -553,6 +560,7 @@ def run_control_period_sa(start_hour, end_hour, prices, cell_levels, prior_cell_
                     s_in_cell = len(cell_to_station[cell_idx])
                     cell_levels[cell_idx] = copy.deepcopy(first_vec_iter[cell_idx][-s_in_cell:])
                     overall_delta += cell_delta
+                    trajectories = sample_trajectories
 
                 
                         
@@ -565,38 +573,44 @@ def run_control_period_sa(start_hour, end_hour, prices, cell_levels, prior_cell_
 
                 old_prices = copy.deepcopy(traj_cells[cell_idx].prices)
                 old_price = traj_cells[cell_idx].price
+                new_price = old_price + (direction*finite_difference_price)
 
-                cost_of_change = 0
-                if PRICE_IN_CELL == "proportionate":
-                    traj_cells[cell_idx].set_price_proportionate((old_price + (direction*finite_difference_price)), first_vec_iter[cell_idx], MIN_PRICE, MAX_PRICE)
-                elif PRICE_IN_CELL == "inbound":
-                    cost_of_change += traj_cells[cell_idx].simulate_inbound_change(direction*finite_difference_price)
+
+                if change_one or (first_vec_iter[cell_idx][-1], new_price) not in acache:
+                    cost_of_change = 0
+                    if PRICE_IN_CELL == "proportionate":
+                        traj_cells[cell_idx].set_price_proportionate((old_price + (direction*finite_difference_price)), first_vec_iter[cell_idx], MIN_PRICE, MAX_PRICE)
+                    elif PRICE_IN_CELL == "inbound":
+                        cost_of_change += traj_cells[cell_idx].simulate_inbound_change(direction*finite_difference_price)
+                    else:
+                        traj_cells[cell_idx].set_price(traj_cells[cell_idx].price + direction*finite_difference_price)
+
+                    starting_vec = [(x if i != cell_idx else x) for i, x in enumerate(first_vec_iter)]
+                    ares, lastres, sample_trajectories, sample_last_vector, new_total_reward, new_profits, new_regret, new_arrivals, new_bounces = run_control(model_data, traj_cells, SOLVER, 0.02, trajectories=trajectories, 
+                                    prior_res=lastres, cell_inc=[cell_idx], current_vector=first_vec_iter, time_length=float(end_hour-start_hour))
+                    new_profits = [x - (bounce_cost*y) for x, y in zip(new_profits, new_bounces)]
+                    local_profit_delta = sum([(x - profits[i]) for i, x in enumerate(new_profits) if new_profits[i] != 0])
+                    
+                    # update starting & ending rebalancing costs
+                    
+                    final_rebalancing_cost = 0
+                    for dst_cell_idx, new_cell_profit in enumerate(new_profits):
+                        # use profits to see if the cell has been re-ran
+                        if new_cell_profit != 0:
+                            s_in_cell = len(cell_to_station[dst_cell_idx])
+                            for stn in range(s_in_cell):
+                                new_station_level = sample_last_vector[dst_cell_idx][-stn]
+                                if final_cell_levels == "same":
+                                    init_station_level = first_vec_iter[cell_idx][-stn]
+                                else:
+                                    init_station_level = final_cell_levels[cell_idx][-stn]
+                                orig_station_level = last_vector_iter[dst_cell_idx][-stn]
+                                final_rebalancing_cost += 0.5 * rebalancing_cost * (abs(new_station_level - init_station_level) - abs(orig_station_level-init_station_level))
+
+                    cell_delta = local_profit_delta + final_rebalancing_cost
+                    acache[(first_vec_iter[cell_idx][-1], new_price)] = cell_delta
                 else:
-                    traj_cells[cell_idx].set_price(traj_cells[cell_idx].price + direction*finite_difference_price)
-
-                starting_vec = [(x if i != cell_idx else x) for i, x in enumerate(first_vec_iter)]
-                ares, lastres, sample_trajectories, sample_last_vector, new_total_reward, new_profits, new_regret, new_arrivals, new_bounces = run_control(model_data, traj_cells, SOLVER, 0.02, trajectories=trajectories, 
-                                prior_res=lastres, cell_inc=[cell_idx], current_vector=first_vec_iter, time_length=float(end_hour-start_hour))
-                new_profits = [x - (bounce_cost*y) for x, y in zip(new_profits, new_bounces)]
-                local_profit_delta = sum([(x - profits[i]) for i, x in enumerate(new_profits) if new_profits[i] != 0])
-                
-                # update starting & ending rebalancing costs
-                
-                final_rebalancing_cost = 0
-                for dst_cell_idx, new_cell_profit in enumerate(new_profits):
-                    # use profits to see if the cell has been re-ran
-                    if new_cell_profit != 0:
-                        s_in_cell = len(cell_to_station[dst_cell_idx])
-                        for stn in range(s_in_cell):
-                            new_station_level = sample_last_vector[dst_cell_idx][-stn]
-                            if final_cell_levels == "same":
-                                init_station_level = first_vec_iter[cell_idx][-stn]
-                            else:
-                                init_station_level = final_cell_levels[cell_idx][-stn]
-                            orig_station_level = last_vector_iter[dst_cell_idx][-stn]
-                            final_rebalancing_cost += 0.5 * rebalancing_cost * (abs(new_station_level - init_station_level) - abs(orig_station_level-init_station_level))
-
-                cell_delta = local_profit_delta + final_rebalancing_cost
+                    cell_delta = acache[(first_vec_iter[cell_idx][-1], new_price)]
 
                 if random.random() > math.exp(cell_delta/cell_temp):
                     #traj_cells[cell_idx].set_price(traj_cells[cell_idx].price - (direction*finite_difference_price))
@@ -1217,7 +1231,7 @@ if __name__ == "__main__":
     tic = time.perf_counter()
     #res, last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp, profit, regret = run_control_period(5,20,"none", prices)
     #price_search()
-    optimize_start(0.1, 0.5)
+    optimize_start(0.0, 0.5)
 
     toc = time.perf_counter()
     print(f"time diff: {toc-tic}")
