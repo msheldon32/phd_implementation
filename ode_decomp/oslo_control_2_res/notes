@@ -1,3 +1,9 @@
 SA0: bounce cost of 0.5, rebalancing cost of 0. includes negative value
 SA2: bounce cost of 0.5, rebalancing cost of 0.1
 rb_1_bounce_0_5_no_xdiff: bounce cost of 0.5, rebalancing cost of 1, no change in starting levels
+
+---------------------------------------------------------
+I made a change here to better handle the capacities in high-traffic intensity queues
+---------------------------------------------------------
+rb_1_bounce_0_5_no_xdiff_2: bounce cost of 0.5, rebalancing cost of 1, no change in starting levels
+

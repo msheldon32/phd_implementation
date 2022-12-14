@@ -1706,3 +1706,60 @@ previous iterations: [2332.3774701993584]
 and regret: [439.7999240783293]
 running hours: 5 -> 21
 Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 1942.5097241462834, regret: 2143.9585295757347, arrivals: 123.6175553870304, bounces: 17.274145259313773
+Iteration complete, time: 203.6220213960005, error: inf
+Reward: 3165.02729013595, regret: 803.581298526877, arrivals: 2476.1973163134107, bounces: 839.8544521144687
+Iteration complete, time: 414.82679509599984, error: 33.33723790954217
+Reward: 3446.2525469653183, regret: 482.15355543904474, arrivals: 3779.967158618769, bounces: 1801.112369150747
+Iteration complete, time: 633.3225724280001, error: 20.130925275405854
+Reward: 3469.2859229387004, regret: 455.77908370822666, arrivals: 4020.4281946396727, bounces: 2111.48582558563
+Iteration complete, time: 854.6112879810007, error: 4.8757692815987586
+Reward: 3470.21790253822, regret: 454.8619178440247, arrivals: 4031.947903026818, bounces: 2124.731407692232
+Trajectory-Based Iteration finished, time: 1081.7231122760004, profit 3470.2179025382197
+reward: 3470.21790253822, bounces: 2124.731407692232, profits: 2407.8521986921037, rebalancing: 1702.301447124458
+--------------------------------------------------------------------------------------
+annealing: 37 (n: 0)
+price deriv: 37
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 18.092632337965483, regret: 2.4474214257773044, arrivals: 8.153886612666573, bounces: 0.7001564476298875
+Trajectory-Based Iteration finished, time: 13.731660449000628, profit 18.092632337965483
+price deriv: 37
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 16.487797110520173, regret: 2.991609701524156, arrivals: 8.210637845371508, bounces: 0.6595588302826065
+Trajectory-Based Iteration finished, time: 13.491926078999313, profit 16.487797110520173
+price deriv: 37
+price deriv: 37
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 14.506542729404964, regret: 3.638639861106354, arrivals: 8.279951436080198, bounces: 0.6257483322698388
+Trajectory-Based Iteration finished, time: 13.446615732998907, profit 14.506542729404964
+price deriv: 37
+price deriv: 37
+price deriv: 37
+price deriv: 37
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 12.143919265792528, regret: 4.495280832163129, arrivals: 8.344806447195294, bounces: 0.5939443189090338
+Trajectory-Based Iteration finished, time: 13.398736588000247, profit 12.143919265792528
+price deriv: 37
+price deriv: 37
+--------------------------------------------------------------------------------------
+annealing: 45 (n: 1)
+price deriv: 45
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 74.26421547981158, regret: 1.4680842852304694, arrivals: 106.85499447492836, bounces: 45.66127217179374
+Trajectory-Based Iteration finished, time: 17.18715395399886, profit 74.26421547981158
+price deriv: 45
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 71.6901606449848, regret: 1.995892352080347, arrivals: 107.4134870599622, bounces: 31.574709805116704
+Trajectory-Based Iteration finished, time: 16.884536861000015, profit 71.6901606449848
+price deriv: 45
+price deriv: 45
+price deriv: 45
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 67.40022155781402, regret: 2.9642914426614206, arrivals: 107.90399822731278, bounces: 21.659397329013363
+Trajectory-Based Iteration finished, time: 16.621516234999945, profit 67.40022155781402
+price deriv: 45
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 61.12440880981656, regret: 4.989488783055985, arrivals: 108.38692534385557, bounces: 16.62953475653101
+Trajectory-Based Iteration finished, time: 17.170703371000855, profit 61.12440880981656
+price deriv: 45
+Running Trajectory-Based Control (parallelized, limit: False)
