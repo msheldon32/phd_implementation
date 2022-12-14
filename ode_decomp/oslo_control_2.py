@@ -901,7 +901,8 @@ def price_search():
     plt.scatter(mean_abs_dev, rewards)
     plt.show()
         
-def optimize_start(rebalancing_cost, bounce_cost):
+def optimize_start(rebalancing_cost, bounce_cost, run_price=True, run_xdiff=True):
+    # misnomer, this is actually the overall simulated annealing optimization function
     start_hours = [5]
     hour_delta = 16
 
@@ -958,7 +959,9 @@ def optimize_start(rebalancing_cost, bounce_cost):
                         cache=False, 
                         finite_difference_x=1, 
                         finite_difference_price=0.1,
-                        run_price=True, bounce_cost=bounce_cost, rebalancing_cost=rebalancing_cost,
+                        run_price=run_price, 
+                        run_xdiff=run_xdiff,
+                        bounce_cost=bounce_cost, rebalancing_cost=rebalancing_cost,
                         starting_temperature=temperature,
                         annealing_steps=annealing_steps,
                         annealing_alpha=annealing_alpha,
@@ -1237,7 +1240,7 @@ if __name__ == "__main__":
     tic = time.perf_counter()
     #res, last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp, profit, regret = run_control_period(5,20,"none", prices)
     #price_search()
-    optimize_start(0.1, 0.5)
+    optimize_start(1.0, 0.5, run_xdiff=False)
 
     toc = time.perf_counter()
     print(f"time diff: {toc-tic}")

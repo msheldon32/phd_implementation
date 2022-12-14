@@ -23,7 +23,7 @@ k_q_table = {}
 
 def build_k_q(capacity):
     k_q_table[capacity] = []
-    for rho in np.arange(0,1,0.001):
+    for rho in np.arange(0,3,0.001):
         norm_constant = (1-rho)/(1-(rho**(capacity+1)))
         Q = 0
         # Q = sum_j^k{j*rho^j} * (1-rho)/(1-(rho**(capacity+1)))
@@ -39,7 +39,7 @@ def q_to_rho(mean,capacity):
     hi = len(k_q_table[capacity])
 
     if k_q_table[capacity][-1][0] < mean:
-        return 1/capacity
+        return k_q_table[capacities][-1][1]
 
     while lo < hi:
         mid = (lo+hi)//2
