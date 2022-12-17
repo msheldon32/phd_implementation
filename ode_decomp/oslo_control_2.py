@@ -556,7 +556,7 @@ def run_control_period_sa(start_hour, end_hour, prices, cell_levels, prior_cell_
                 else:
                     cell_delta = acache[(first_vec_iter[cell_idx][-1], traj_cells[cell_idx].price)]
 
-                if random.random() > math.exp(cell_delta/cell_temp):
+                if cell_delta <= 0 and random.random() > math.exp(cell_delta/cell_temp):
                     if change_one:
                         first_vec_iter[cell_idx][-station_idx] -= change
                     else:
@@ -1240,7 +1240,7 @@ if __name__ == "__main__":
     tic = time.perf_counter()
     #res, last_vector_iter, dprofit_dx, dxf_dx, dprofit_dp, dxf_dp, profit, regret = run_control_period(5,20,"none", prices)
     #price_search()
-    optimize_start(1.0, 0.5, run_xdiff=False)
+    optimize_start(1.0, 0.5)
 
     toc = time.perf_counter()
     print(f"time diff: {toc-tic}")
