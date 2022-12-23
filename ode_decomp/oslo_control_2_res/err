@@ -666,38 +666,18 @@
   norm_constant = (1-rho)/(1-(rho**(capacity+1)))
 /home/matts/phd/implementation/ode_decomp/spatial_decomp_strict.py:27: RuntimeWarning: invalid value encountered in double_scalars
   norm_constant = (1-rho)/(1-(rho**(capacity+1)))
-/home/matts/phd/implementation/ode_decomp/spatial_decomp_strict.py:27: RuntimeWarning: invalid value encountered in double_scalars
-  norm_constant = (1-rho)/(1-(rho**(capacity+1)))
-/home/matts/phd/implementation/ode_decomp/spatial_decomp_strict.py:27: RuntimeWarning: invalid value encountered in double_scalars
-  norm_constant = (1-rho)/(1-(rho**(capacity+1)))
-/home/matts/phd/implementation/ode_decomp/spatial_decomp_strict.py:27: RuntimeWarning: invalid value encountered in double_scalars
-  norm_constant = (1-rho)/(1-(rho**(capacity+1)))
-/home/matts/phd/implementation/ode_decomp/spatial_decomp_strict.py:27: RuntimeWarning: invalid value encountered in double_scalars
-  norm_constant = (1-rho)/(1-(rho**(capacity+1)))
-/home/matts/phd/implementation/ode_decomp/spatial_decomp_strict.py:27: RuntimeWarning: invalid value encountered in double_scalars
-  norm_constant = (1-rho)/(1-(rho**(capacity+1)))
-/home/matts/phd/implementation/ode_decomp/spatial_decomp_strict.py:27: RuntimeWarning: invalid value encountered in double_scalars
-  norm_constant = (1-rho)/(1-(rho**(capacity+1)))
-/home/matts/phd/implementation/ode_decomp/spatial_decomp_strict.py:27: RuntimeWarning: invalid value encountered in double_scalars
-  norm_constant = (1-rho)/(1-(rho**(capacity+1)))
-/home/matts/phd/implementation/ode_decomp/spatial_decomp_strict.py:27: RuntimeWarning: invalid value encountered in double_scalars
-  norm_constant = (1-rho)/(1-(rho**(capacity+1)))
-/home/matts/phd/implementation/ode_decomp/spatial_decomp_strict.py:27: RuntimeWarning: invalid value encountered in double_scalars
-  norm_constant = (1-rho)/(1-(rho**(capacity+1)))
-/home/matts/phd/implementation/ode_decomp/spatial_decomp_strict.py:27: RuntimeWarning: invalid value encountered in double_scalars
-  norm_constant = (1-rho)/(1-(rho**(capacity+1)))
 Traceback (most recent call last):
-  File "/home/matts/phd/implementation/ode_decomp/oslo_control_2.py", line 1264, in <module>
+  File "/home/matts/phd/implementation/ode_decomp/oslo_control_2.py", line 1268, in <module>
     optimize_start(rebalancing_cost, bounce_cost)##, default_epoch=default_epoch, default_prices=default_prices)
-  File "/home/matts/phd/implementation/ode_decomp/oslo_control_2.py", line 972, in optimize_start
+  File "/home/matts/phd/implementation/ode_decomp/oslo_control_2.py", line 976, in optimize_start
     res, last_vector_iter, new_prices, new_cell_levels, profit, profits, regret, reb_cost = run_control_period_sa(start_hour,end_hour,
   File "/home/matts/phd/implementation/ode_decomp/oslo_control_2.py", line 521, in run_control_period_sa
     ares, lastres, sample_trajectories, sample_last_vector, new_total_reward, new_profits, new_regret, new_arrivals,new_bounces = run_control(model_data, 
-  File "/home/matts/phd/implementation/ode_decomp/oslo_control_2.py", line 231, in run_control
+  File "/home/matts/phd/implementation/ode_decomp/oslo_control_2.py", line 230, in run_control
     twrap = [[multiprocessing.Array(ctypes.c_double, n_time_points+1) for j in range(traj_cells[i].in_offset)] for i in range(model_data.n_cells)]
-  File "/home/matts/phd/implementation/ode_decomp/oslo_control_2.py", line 231, in <listcomp>
+  File "/home/matts/phd/implementation/ode_decomp/oslo_control_2.py", line 230, in <listcomp>
     twrap = [[multiprocessing.Array(ctypes.c_double, n_time_points+1) for j in range(traj_cells[i].in_offset)] for i in range(model_data.n_cells)]
-  File "/home/matts/phd/implementation/ode_decomp/oslo_control_2.py", line 231, in <listcomp>
+  File "/home/matts/phd/implementation/ode_decomp/oslo_control_2.py", line 230, in <listcomp>
     twrap = [[multiprocessing.Array(ctypes.c_double, n_time_points+1) for j in range(traj_cells[i].in_offset)] for i in range(model_data.n_cells)]
   File "/usr/lib/python3.10/multiprocessing/context.py", line 141, in Array
     return Array(typecode_or_type, size_or_initializer, lock=lock,

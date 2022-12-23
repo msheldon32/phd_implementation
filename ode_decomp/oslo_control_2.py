@@ -226,7 +226,6 @@ def run_control(model_data, traj_cells, ode_method, epsilon, cell_limit=False, c
 
         gc.collect()
 
-
         iwrap = multiprocessing.Array(ctypes.c_double, int(n_entries*(n_time_points+1)))
         twrap = [[multiprocessing.Array(ctypes.c_double, n_time_points+1) for j in range(traj_cells[i].in_offset)] for i in range(model_data.n_cells)]
         pwrap = multiprocessing.Array(ctypes.c_double, 2) 
@@ -329,7 +328,7 @@ def run_control(model_data, traj_cells, ode_method, epsilon, cell_limit=False, c
 
         for end_cell in range(model_data.n_cells):
             for traj_start in range(len(trajectories[end_cell])):
-                trajectories[end_cell][traj_start] = np.frombuffer(twrap[end_cell][traj_start].get_obj())
+                trajectories[end_cell][traj_start] = np.frombuffer(twrap[end_cell][traj_start].get_obj()).copy()
 
 
         if last_iter:
@@ -457,6 +456,7 @@ def run_control_period_sa(start_hour, end_hour, prices, cell_levels, prior_cell_
     else:
         # all_res, x_res[-1], trajectories, out_vector, total_reward, profits, regret, arrivals
         ares, lastres, trajectories, last_vector_iter, total_reward, profits, regret, arrivals, bounces = run_control(model_data, traj_cells, SOLVER, 0.5, current_vector=first_vec_iter, time_length=float(end_hour-start_hour))
+        gc.collect()
         profits = [x - (bounce_cost*y) for x,y in zip(profits, bounces)]
 
         reb_cost = 0
@@ -521,6 +521,7 @@ def run_control_period_sa(start_hour, end_hour, prices, cell_levels, prior_cell_
                     ares, lastres, sample_trajectories, sample_last_vector, new_total_reward, new_profits, new_regret, new_arrivals,new_bounces = run_control(model_data, 
                         traj_cells, SOLVER, 0.02, trajectories=trajectories, 
                         prior_res=lastres, cell_inc=[cell_idx], current_vector=first_vec_iter, time_length=float(end_hour-start_hour))
+                    gc.collect()
 
                     new_profits = [x - bounce_cost*y for x, y in zip(new_profits, new_bounces)]
 
@@ -568,6 +569,7 @@ def run_control_period_sa(start_hour, end_hour, prices, cell_levels, prior_cell_
                     cell_levels[cell_idx] = copy.deepcopy(first_vec_iter[cell_idx][-s_in_cell:])
                     overall_delta += cell_delta
                     trajectories = sample_trajectories
+                    gc.collect()
 
                     for dst_cell_idx, new_cell_profit in enumerate(new_profits):
                         # use profits to see if the cell has been re-ran
@@ -600,6 +602,7 @@ def run_control_period_sa(start_hour, end_hour, prices, cell_levels, prior_cell_
                     starting_vec = [(x if i != cell_idx else x) for i, x in enumerate(first_vec_iter)]
                     ares, lastres, sample_trajectories, sample_last_vector, new_total_reward, new_profits, new_regret, new_arrivals, new_bounces = run_control(model_data, traj_cells, SOLVER, 0.02, trajectories=trajectories, 
                                     prior_res=lastres, cell_inc=[cell_idx], current_vector=first_vec_iter, time_length=float(end_hour-start_hour))
+                    gc.collect()
                     new_profits = [x - (bounce_cost*y) for x, y in zip(new_profits, new_bounces)]
                     local_profit_delta = sum([(x - profits[i]) for i, x in enumerate(new_profits) if new_profits[i] != 0])
                     
@@ -635,6 +638,7 @@ def run_control_period_sa(start_hour, end_hour, prices, cell_levels, prior_cell_
                     prices[cell_idx] = old_price + (direction*finite_difference_price)
                     overall_delta += cell_delta
                     trajectories = sample_trajectories
+                    gc.collect()
 
                     for dst_cell_idx, new_cell_profit in enumerate(new_profits):
                         # use profits to see if the cell has been re-ran
