@@ -117,7 +117,8 @@ def run_control(model_data, traj_cells, ode_method, epsilon, cell_limit=False, c
     time_points = [(i*time_length)/n_time_points for i in range(n_time_points+1)]
     
     if trajectories == "none":
-        trajectories = [[np.zeros(n_time_points+1) for start_cell in range(traj_cells[end_cell].in_offset)] for end_cell in range(model_data.n_cells)]
+        #trajectories = [[np.zeros(n_time_points+1) for start_cell in range(traj_cells[end_cell].in_offset)] for end_cell in range(model_data.n_cells)]
+        trajectories = [[np.zeros(n_time_points+1) for start_cell in range(model_data.n_cells*2)] for end_cell in range(model_data.n_cells)]
     
     if prior_res != "none":
         x_res = [prior_res]
@@ -160,10 +161,16 @@ def run_control(model_data, traj_cells, ode_method, epsilon, cell_limit=False, c
                                 method=ode_method, atol=ATOL)
                 
         for next_cell in range(model_data.n_cells):
-            for phase, phase_rate in enumerate(model_data.mu[0][cell_idx][next_cell]):
+            for phase_idx in range(2):
+            #for phase, phase_rate in enumerate(model_data.mu[0][cell_idx][next_cell]):
+                phase = len(model_data.mu[0][cell_idx][next_cell]) - 2 + phase_idx
                 phase_qty_idx = traj_cells[cell_idx].x_idx[next_cell] + phase
                     
-                np.frombuffer(twrap[next_cell][traj_cells[next_cell].x_in_idx[cell_idx] + phase].get_obj())[:] = x_t.y[phase_qty_idx, :]
+                #np.frombuffer(twrap[next_cell][traj_cells[next_cell].x_in_idx[cell_idx] + phase].get_obj())[:] = x_t.y[phase_qty_idx, :]
+                    
+                #np.frombuffer(twrap[next_cell][traj_cells[next_cell].x_in_idx[cell_idx] + phase].get_obj())[:] = x_t.y[phase_qty_idx, :]
+                    
+                np.frombuffer(twrap[next_cell][cell_idx*2 + phase_idx].get_obj())[:] = x_t.y[phase_qty_idx, :]
 
         xiterlock.acquire()
         np.frombuffer(iwrap.get_obj()).reshape(x_iter_shape)[istart:iend, :] = x_t.y[:-4,:]
@@ -207,10 +214,11 @@ def run_control(model_data, traj_cells, ode_method, epsilon, cell_limit=False, c
                     if next_cell == cell_idx or next_cell in included_cells:
                         continue
 
-                    for phase, phase_rate in enumerate(model_data.mu[0][cell_idx][next_cell]):
-                        phase_qty_idx = traj_cells[cell_idx].x_idx[next_cell] + phase
+                    #for phase, phase_rate in enumerate(model_data.mu[0][cell_idx][next_cell]):
+                    for phase_idx in range(2):
                             
-                        if abs(np.frombuffer(twrap[next_cell][traj_cells[next_cell].x_in_idx[cell_idx] + phase].get_obj())[:] - trajectories[next_cell][traj_cells[next_cell].x_in_idx[cell_idx] + phase]).max() >= epsilon:
+                        #if abs(np.frombuffer(twrap[next_cell][traj_cells[next_cell].x_in_idx[cell_idx] + phase].get_obj())[:] - trajectories[next_cell][traj_cells[next_cell].x_in_idx[cell_idx] + phase]).max() >= epsilon:   
+                        if abs(np.frombuffer(twrap[next_cell][cell_idx*2 + phase_idx].get_obj())[:] - trajectories[next_cell][cell_idx*2 + phase_idx]).max() >= epsilon:
                             print("adding in cell...")
                             included_cells[next_cell] = 1
                             added = True
@@ -227,7 +235,9 @@ def run_control(model_data, traj_cells, ode_method, epsilon, cell_limit=False, c
         gc.collect()
 
         iwrap = multiprocessing.Array(ctypes.c_double, int(n_entries*(n_time_points+1)))
-        twrap = [[multiprocessing.Array(ctypes.c_double, n_time_points+1) for j in range(traj_cells[i].in_offset)] for i in range(model_data.n_cells)]
+        #twrap = [[multiprocessing.Array(ctypes.c_double, n_time_points+1) for j in range(traj_cells[i].in_offset)] for i in range(model_data.n_cells)]
+        # change trajectories to only go to 2 phases
+        twrap = [[multiprocessing.Array(ctypes.c_double, n_time_points+1) for j in range(model_data.n_cells*2)] for i in range(model_data.n_cells)]
         pwrap = multiprocessing.Array(ctypes.c_double, 2) 
 
 
@@ -242,8 +252,10 @@ def run_control(model_data, traj_cells, ode_method, epsilon, cell_limit=False, c
 
         for cell_idx in range(model_data.n_cells):
             for next_cell in range(model_data.n_cells):
-                for phase, phase_rate in enumerate(model_data.mu[0][cell_idx][next_cell]):
-                    np.frombuffer(twrap[next_cell][traj_cells[next_cell].x_in_idx[cell_idx] + phase].get_obj())[:] = trajectories[next_cell][traj_cells[next_cell].x_in_idx[cell_idx] + phase]
+                #for phase, phase_rate in enumerate(model_data.mu[0][cell_idx][next_cell]):
+                for phase_idx in range(2):
+                    #np.frombuffer(twrap[next_cell][traj_cells[next_cell].x_in_idx[cell_idx] + phase].get_obj())[:] = trajectories[next_cell][traj_cells[next_cell].x_in_idx[cell_idx] + phase]
+                    np.frombuffer(twrap[next_cell][cell_idx*2 + phase_idx].get_obj())[:] = trajectories[next_cell][cell_idx*2 + phase_idx]
         # </HOOK>
 
 

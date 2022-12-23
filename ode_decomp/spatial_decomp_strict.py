@@ -12,19 +12,24 @@ import sqlite3
 import gc
 import copy
 
+import warnings
+
 ELASTICITY = 1.0
 
 REFINED_SPECULATIVE = False
 REWARD_TYPE = "STATION_MMK_COMBINED"
 CAPACITY_ADJ = True
 
+warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 k_q_table = {}
 
 def build_k_q(capacity):
     k_q_table[capacity] = []
     for rho in np.arange(0,3,0.001):
-        norm_constant = (1-rho)/(1-(rho**(capacity+1)))
+        #norm_constant = (1-rho)/(1-(rho**(capacity+1)))
+        norm_constant = (1-rho)/(1-(np.power(rho,capacity+1)))
+        #print(f"norm_constant: {norm_constant}")
         Q = 0
         # Q = sum_j^k{j*rho^j} * (1-rho)/(1-(rho**(capacity+1)))
         for j in range(0, capacity+1):
@@ -815,14 +820,23 @@ class StrictTrajCellCoxControl:
 
                         bounces += hi_loss*rate*x[self.x_idx[self.cell_idx]+phase]
                 else:
-                    for phase in range(max(self.n_phases_in[start_cell]-2,0),self.n_phases_in[start_cell]):
+                    #for phase in range(max(self.n_phases_in[start_cell]-2,0),self.n_phases_in[start_cell]):
+                    for phase_idx in range(2):
+                        phase = self.n_phases_in[start_cell]-2 + phase_idx
                         rate = self.in_probabilities[hr][start_cell][j]*self.mu[hr][start_cell][self.cell_idx][phase]*self.phi[hr][start_cell][self.cell_idx][phase]
 
-                        deriv[j + self.station_offset] += (1-hi_loss)*rate*self.inbound_traj_inflation*self.trajectories[self.x_in_idx[start_cell]+phase][int(t//self.tstep)]
+                        """deriv[j + self.station_offset] += (1-hi_loss)*rate*self.inbound_traj_inflation*self.trajectories[self.x_in_idx[start_cell]+phase][int(t//self.tstep)]
                         deriv[self.x_idx[self.cell_idx]] += hi_loss*rate*self.inbound_traj_inflation*self.trajectories[self.x_in_idx[start_cell]+phase][int(t//self.tstep)]
                         arrivals += (1-hi_loss)*rate*self.inbound_traj_inflation*self.trajectories[self.x_in_idx[start_cell]+phase][int(t//self.tstep)]
 
-                        bounces += hi_loss*rate*self.inbound_traj_inflation*self.trajectories[self.x_in_idx[start_cell]+phase][int(t//self.tstep)]
+                        bounces += hi_loss*rate*self.inbound_traj_inflation*self.trajectories[self.x_in_idx[start_cell]+phase][int(t//self.tstep)]"""
+
+                        # change to trajectories: store only 2 phases per cell
+                        deriv[j + self.station_offset] += (1-hi_loss)*rate*self.inbound_traj_inflation*self.trajectories[(start_cell*2) + phase_idx][int(t//self.tstep)]
+                        deriv[self.x_idx[self.cell_idx]] += hi_loss*rate*self.inbound_traj_inflation*self.trajectories[(start_cell*2) + phase_idx][int(t//self.tstep)]
+                        arrivals += (1-hi_loss)*rate*self.inbound_traj_inflation*self.trajectories[(start_cell*2) + phase_idx][int(t//self.tstep)]
+
+                        bounces += hi_loss*rate*self.inbound_traj_inflation*self.trajectories[(start_cell*2) + phase_idx][int(t//self.tstep)]
 
                
         deriv[-1] = reward
