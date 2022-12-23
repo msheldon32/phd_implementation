@@ -1,0 +1,131 @@
+running hours: 5 -> 21
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 2024.7672739087727, regret: 2080.97647579527, arrivals: 125.11261424660051, bounces: 16.999111771269476
+Iteration complete, time: 256.9793985309998, error: inf
+Reward: 3355.920161378261, regret: 749.7518793704535, arrivals: 2506.1655182571094, bounces: 1092.0377482795575
+Iteration complete, time: 537.7983625200004, error: 34.99223341387666
+Reward: 3649.4574188813, regret: 456.1317554207346, arrivals: 3789.071179672072, bounces: 2359.375872961212
+Iteration complete, time: 816.9667269820002, error: 19.96650094367456
+Reward: 3671.739805909904, regret: 433.89423295101466, arrivals: 3986.4969462810977, bounces: 2648.5810668619497
+Iteration complete, time: 1103.067697564, error: 4.327738479884678
+Reward: 3673.6015001955952, regret: 431.9396434764816, arrivals: 4001.1454944586467, bounces: 2665.822984062423
+Trajectory-Based Iteration finished, time: 1393.3155721300009, profit 3673.6015001955952
+reward: 3673.6015001955952, bounces: 2665.822984062423, profits: 2340.6900081643844, rebalancing: 1637.7153733997766
+--------------------------------------------------------------------------------------
+annealing: 45 (n: 0)
+Running Trajectory-Based Control (parallelized, limit: False)
+adding in cell...
+Reward: 75.43515971864353, regret: 0.9136079190811552, arrivals: 102.49505982474099, bounces: 67.91412553935906
+Iteration complete, time: 21.596171212000627, error: 1.5556305008411844
+Reward: 186.79842635679967, regret: 3.3347597349656315, arrivals: 200.32320202690778, bounces: 97.54189120422353
+Trajectory-Based Iteration finished, time: 52.89108299200052, profit 186.79842635679967
+Running Trajectory-Based Control (parallelized, limit: False)
+adding in cell...
+Reward: 75.62156672066759, regret: 0.7183759804862881, arrivals: 102.29112634112614, bounces: 86.1844609689108
+Iteration complete, time: 20.362060448000193, error: 1.5841177158716313
+Reward: 187.15917400554474, regret: 2.9648849606463425, arrivals: 201.12128457225006, bounces: 115.90795915688739
+Trajectory-Based Iteration finished, time: 52.73819726699912, profit 187.15917400554474
+Running Trajectory-Based Control (parallelized, limit: False)
+adding in cell...
+Reward: 75.20257224259426, regret: 1.1395930701162609, arrivals: 102.6765426652466, bounces: 53.37283625912184
+Iteration complete, time: 21.123602327999834, error: 3.107238256383905
+Reward: 186.36632832702708, regret: 3.7591939101968497, arrivals: 199.52052099776537, bounces: 82.92464082024509
+Trajectory-Based Iteration finished, time: 54.90860811099992, profit 186.36632832702708
+Running Trajectory-Based Control (parallelized, limit: False)
+adding in cell...
+Reward: 74.92745811282307, regret: 1.421480314804181, arrivals: 102.80071047407044, bounces: 41.34472863054414
+Iteration complete, time: 21.6545926660001, error: 1.6134693243423026
+Reward: 185.85979632290628, regret: 4.27260654951238, arrivals: 198.64535766404356, bounces: 70.82649388510298
+Trajectory-Based Iteration finished, time: 55.512743634999424, profit 185.85979632290628
+--------------------------------------------------------------------------------------
+annealing: 56 (n: 1)
+Running Trajectory-Based Control (parallelized, limit: False)
+adding in cell...
+Reward: 26.983422932531976, regret: 0.347159058008708, arrivals: 38.93165440452501, bounces: 8.232611143517534
+Iteration complete, time: 14.254194061000817, error: 1.0752638047642655
+Reward: 138.13576369218924, regret: 2.9556603626029943, arrivals: 136.4470580127758, bounces: 39.99109348102485
+Trajectory-Based Iteration finished, time: 46.71789277300013, profit 138.13576369218924
+Running Trajectory-Based Control (parallelized, limit: False)
+adding in cell...
+Reward: 26.742301573758617, regret: 0.567760170850093, arrivals: 38.904265519151046, bounces: 6.493799102406424
+Iteration complete, time: 11.629585447999489, error: 1.0761892611219839
+Reward: 137.67467418581575, regret: 3.4188508364109538, arrivals: 134.74993697418796, bounces: 35.976668621724905
+Trajectory-Based Iteration finished, time: 44.08450507999987, profit 137.67467418581575
+Running Trajectory-Based Control (parallelized, limit: False)
+adding in cell...
+Reward: 26.582401143176444, regret: 0.7340332620832521, arrivals: 38.928536242338154, bounces: 5.092204546855025
+Iteration complete, time: 12.618191968000247, error: 1.0569517364813361
+Reward: 137.314327507413, regret: 3.7674167867807093, arrivals: 133.57134674876374, bounces: 32.68906664228821
+Trajectory-Based Iteration finished, time: 45.03634254700046, profit 137.314327507413
+Running Trajectory-Based Control (parallelized, limit: False)
+adding in cell...
+Reward: 26.45689115225334, regret: 0.8686142726030701, arrivals: 38.95027932775087, bounces: 3.9238258437923355
+Iteration complete, time: 12.088016487999994, error: 1.0519879225317172
+Reward: 136.8359676239534, regret: 4.259395209164194, arrivals: 132.15489753105575, bounces: 29.472221836389096
+Trajectory-Based Iteration finished, time: 45.33706015600001, profit 136.8359676239534
+Running Trajectory-Based Control (parallelized, limit: False)
+adding in cell...
+Reward: 26.3545515864672, regret: 0.9589641057747669, arrivals: 38.91728219549629, bounces: 2.912312169492702
+Iteration complete, time: 12.278949864001333, error: 1.064937421171118
+Reward: 136.519351280065, regret: 4.589334451608311, arrivals: 131.14516415605556, bounces: 26.71336424945105
+Trajectory-Based Iteration finished, time: 51.61873990100139, profit 136.519351280065
+Running Trajectory-Based Control (parallelized, limit: False)
+adding in cell...
+Reward: 26.24115814608171, regret: 1.0550959559984832, arrivals: 38.98034503077556, bounces: 2.0526383607408234
+Iteration complete, time: 13.648198556998977, error: 1.036123293098047
+Reward: 136.37591548872473, regret: 4.671142132084565, arrivals: 130.87991454149704, bounces: 24.488139108076595
+Trajectory-Based Iteration finished, time: 45.09346453299986, profit 136.37591548872473
+Running Trajectory-Based Control (parallelized, limit: False)
+adding in cell...
+Reward: 26.05019071875451, regret: 1.2822368854408022, arrivals: 38.99534154491621, bounces: 1.349365334898298
+Iteration complete, time: 11.281657798999731, error: 1.0581495457189893
+adding in cell...
+Reward: 135.59256024029276, regret: 5.531445687090153, arrivals: 129.764048673381, bounces: 22.1328365042963
+Iteration complete, time: 43.466207636000036, error: 0.4953372598456607
+Reward: 244.83769508605783, regret: 26.92371177035178, arrivals: 267.1192114829356, bounces: 29.3979997848942
+Trajectory-Based Iteration finished, time: 81.5180070059996, profit 270.88788580481236
+--------------------------------------------------------------------------------------
+annealing: 33 (n: 2)
+price deriv: 33
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 110.47355645851178, regret: 15.146455987650956, arrivals: 101.36547574858564, bounces: 2.3265568189123758
+Trajectory-Based Iteration finished, time: 56.169922813000085, profit 110.47355645851178
+Running Trajectory-Based Control (parallelized, limit: False)
+adding in cell...
+Reward: 113.30273408157713, regret: 12.022595653028967, arrivals: 101.330833281021, bounces: 3.648233317651899
+Iteration complete, time: 61.369728958999985, error: 1.141325200448149
+Reward: 223.45378822525942, regret: 15.637168964560686, arrivals: 193.1200147903111, bounces: 27.000523531747447
+Trajectory-Based Iteration finished, time: 124.28390839399981, profit 223.45378822525942
+Running Trajectory-Based Control (parallelized, limit: False)
+adding in cell...
+Reward: 116.27672639324149, regret: 8.728466506013943, arrivals: 101.32072768776328, bounces: 6.228465299526879
+Iteration complete, time: 55.458913476000816, error: 1.2804168872774433
+Reward: 226.76409824644543, regret: 11.998615797491182, arrivals: 194.14071348811524, bounces: 31.944537396807668
+Trajectory-Based Iteration finished, time: 118.61189646400089, profit 226.76409824644543
+Running Trajectory-Based Control (parallelized, limit: False)
+adding in cell...
+Reward: 118.11892734608875, regret: 6.709957764931137, arrivals: 101.29262796237714, bounces: 10.25712091625061
+Iteration complete, time: 50.294000360998325, error: 1.426387242910165
+adding in cell...
+Reward: 228.9576759361941, regret: 9.599349249406764, arrivals: 196.38865019120598, bounces: 39.08219981908479
+Iteration complete, time: 106.94627862799825, error: 1.2083201820729004
+Reward: 246.48506598313156, regret: 25.214964856161917, arrivals: 334.6468191878007, bounces: 46.50248498497416
+Trajectory-Based Iteration finished, time: 140.54538860699904, profit 364.6039933292203
+Running Trajectory-Based Control (parallelized, limit: False)
+adding in cell...
+Reward: 119.33383058143694, regret: 5.373327258726838, arrivals: 101.26710135075288, bounces: 15.184552513298591
+Iteration complete, time: 50.06512589399972, error: 1.5099297854259888
+Reward: 230.23566018660904, regret: 8.210033944906765, arrivals: 196.54652548175818, bounces: 46.14029257561535
+Trajectory-Based Iteration finished, time: 105.14441120800075, profit 230.23566018660904
+--------------------------------------------------------------------------------------
+annealing: 17 (n: 3)
+Running Trajectory-Based Control (parallelized, limit: False)
+adding in cell...
+Reward: 67.38190296281216, regret: 8.028345870698761, arrivals: 37.26260460160922, bounces: 0.1575010295226325
+Iteration complete, time: 14.545802459999322, error: 1.0382519280362605
+Reward: 178.41537576056228, regret: 10.738996879148104, arrivals: 133.52914161049782, bounces: 33.557200484917715
+Trajectory-Based Iteration finished, time: 43.637967190999916, profit 178.41537576056228
+Running Trajectory-Based Control (parallelized, limit: False)
+adding in cell...
+Reward: 66.04349466426457, regret: 9.379225596329631, arrivals: 37.25385359704575, bounces: 0.1216505395012184
+Iteration complete, time: 15.019049907999943, error: 1.0075377343183427
