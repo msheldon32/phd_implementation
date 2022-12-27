@@ -639,7 +639,7 @@ def run_control_period_sa(start_hour, end_hour, prices, cell_levels, prior_cell_
                 else:
                     cell_delta = acache[(first_vec_iter[cell_idx][-1], new_price)]
 
-                if random.random() > math.exp(cell_delta/cell_temp):
+                if cell_delta <= 0 and random.random() > math.exp(cell_delta/cell_temp):
                     #traj_cells[cell_idx].set_price(traj_cells[cell_idx].price - (direction*finite_difference_price))
                     if PRICE_IN_CELL == "inbound":
                         traj_cells[cell_idx].revert_inbound_change(direction*finite_difference_price)
@@ -939,15 +939,17 @@ def optimize_start(rebalancing_cost, bounce_cost, run_price=True, run_xdiff=True
     temperature = 20
     annealing_alpha = 0.9
 
+    #temperature = temperature * (annealing_alpha**(80))
+
 
     iteration = 0
 
     starting_level = 10.0
     #raise Exception("starting values & prices")
     prices = [[1.0 for cell_idx in range(n_cells)] for hr in start_hours]
-    #prices = [[1.0, 1.0, 1.1, 0.9, 1.2000000000000002, 1.1, 1.1, 1.0, 1.0, 1.0, 1.0, 0.9, 1.0, 0.9, 0.9, 1.1, 1.0, 1.1, 0.9, 0.8, 1.0, 1.1, 1.0, 0.8, 1.0, 0.9, 1.0, 1.0, 1.1, 1.0, 0.9, 0.9, 0.7000000000000001, 1.0, 1.0, 0.9, 1.1, 1.0, 1.2000000000000002, 1.0, 1.3000000000000003, 1.0, 1.0, 1.1, 1.0, 0.9, 1.3000000000000003, 0.9, 0.8, 1.1, 1.0, 1.0, 0.9, 1.1, 1.0, 1.1, 1.3000000000000003, 1.0]
+    #prices = [[1.0, 1.1, 1.0, 0.9, 0.9, 1.0, 0.7, 1.1, 0.9, 1.2000000000000002, 1.0, 0.8, 1.0, 0.7000000000000001, 1.0, 1.0, 1.3000000000000003, 1.0, 0.9, 1.1, 1.0, 1.0, 0.9, 0.9, 0.9, 1.0, 1.0, 1.1, 0.9, 1.0, 0.7000000000000002, 0.9, 0.8, 1.0, 1.2000000000000002, 1.0, 1.0, 1.1, 1.0, 0.8, 1.1, 1.0, 1.0, 1.1, 0.8, 1.1, 1.2000000000000002, 1.0, 0.9, 1.1, 0.8, 0.7000000000000001, 0.7000000000000001, 1.0, 1.0, 1.1, 1.0, 0.9]
     #        for hr in start_hours]
-    #cell_starting_levels = [11.0, 10.0, 13.0, 10.0, 12.0, 13.0, 6.0, 11.0, 11.0, 10.0, 12.0, 9.0, 8.0, 5.0, 12.0, 10.0, 8.0, 12.0, 14.0, 10.0, 8.0, 9.0, 10.0, 10.0, 10.0, 13.0, 8.0, 10.0, 8.0, 11.0, 9.0, 12.0, 10.0, 10.0, 7.0, 11.0, 12.0, 10.0, 10.0, 7.0, 12.0, 11.0, 8.0, 10.0, 9.0, 11.0, 10.0, 13.0, 7.0, 13.0, 9.0, 7.0, 10.0, 11.0, 10.0, 14.0, 11.0, 6.0]
+    #cell_starting_levels = [9.0, 7.0, 10.0, 4.0, 10.0, 12.0, 9.0, 12.0, 9.0, 16.0, 13.0, 8.0, 11.0, 7.0, 10.0, 10.0, 10.0, 8.0, 8.0, 14.0, 10.0, 16.0, 12.0, 10.0, 15.0, 13.0, 9.0, 13.0, 11.0, 14.0, 8.0, 11.0, 4.0, 16.0, 7.0, 9.0, 10.0, 10.0, 13.0, 6.0, 16.0, 12.0, 20.0, 10.0, 9.0, 1.0, 10.0, 12.0, 1.0, 8.0, 9.0, 2.0, 10.0, 7.0, 15.0, 17.0, 13.0, 5.0]
     cell_levels = [[[starting_level for stn_idx in range(len(list(cell_to_station[cell_idx])))] for cell_idx in range(n_cells)] for hr in start_hours]
     #cell_levels = [[[cell_starting_levels[cell_idx] for stn_idx in range(len(list(cell_to_station[cell_idx])))] for cell_idx in range(n_cells)] for hr in start_hours]
     ending_cell_levels = copy.deepcopy(cell_levels)
@@ -1045,6 +1047,8 @@ def optimize_price_start(rebalancing_cost, bounce_cost, change_x=True):
 
 
     prices = [[1.0 for cell_idx in range(n_cells)] for hr in start_hours]
+
+
     cell_levels = [starting_level for cell_idx in range(n_cells)]
 
     iter_profits   = []
