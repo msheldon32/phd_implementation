@@ -655,15 +655,15 @@ class StrictTrajCellCoxControl:
     
     def get_departure_probs(self, t, x):
         """
-            Get probability of departure, as well as total rate
+            Get probability of a phase transition, along with the total rate
         """
         hr_idx = math.floor(t)
 
         total_rate = 0
 
-        for cell_idx in range(self.n_cells):
+        for next_cell in range(self.n_cells):
             for phase in range(0,self.n_phases_out[end_cell]):
-                pass
+                total_rate += self.mu[hr_idx][self.cell_idx][next_cell][phase]
         
         for j, station_idx in enumerate(self.stations):
             # note: don't include output rate for 
