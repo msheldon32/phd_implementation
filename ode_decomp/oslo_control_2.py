@@ -630,13 +630,8 @@ def run_control_period_sa(start_hour, end_hour, prices, cell_levels, prior_cell_
                     final_rebalancing_cost = 0
                     init_rebalancing_cost = 0
 
-                    for station_idx in range(len(cell_to_station[cell_idx])):
-                        new_station_level = first_vec_iter[cell_idx][-station_idx]
-                        if prior_cell_levels == "same":
-                            init_station_level = first_vec_iter[cell_idx][-station_idx]
-                        else:
-                            init_station_level = prior_cell_levels[cell_idx][-station_idx]
-                        init_rebalancing_cost += 0.5 * rebalancing_cost * (abs(new_station_level - init_station_level) - abs(new_station_level-change-init_station_level))
+                    if prior_cell_levels != "same":
+                        raise Exception("This should take into account the change in bicycle levels in the previous stage")
 
                     for dst_cell_idx, new_cell_profit in enumerate(new_profits):
                         # use profits to see if the cell has been re-ran
@@ -1161,7 +1156,7 @@ if __name__ == "__main__":
     rebalancing_cost = float(sys.argv[1])
     bounce_cost = float(sys.argv[2])
 
-    optimize_start(rebalancing_cost, bounce_cost, run_xdiff=False)##, default_epoch=default_epoch, default_prices=default_prices)
+    optimize_start(rebalancing_cost, bounce_cost, run_price=False)##, default_epoch=default_epoch, default_prices=default_prices)
 
     toc = time.perf_counter()
     print(f"time diff: {toc-tic}")

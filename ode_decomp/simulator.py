@@ -61,13 +61,13 @@ class Simulator:
 
         for stn in range(n_stations):
             cell_idx = stn_to_cell[stn]
-            stn_probs.append(sum(self.out_demands[hour_idx][cell_idx][stn]))
+            stn_probs.append(sum(self.out_demands[hour_idx][cell_idx][stn]) if self.station_lvl[stn] > 0 else 0)
             cum_stn_prob += stn_probs[-1]
 
         for src_cell in range(self.n_cells):
             for dst_cell in range(self.n_cells):
                 for phase_idx in range(len(self.mu[0][src_cell][dst_cell])):
-                    delay_probs.append(self.mu[hour_idx][src_cell][dst_cell][phase_idx])
+                    delay_probs.append(self.mu[hour_idx][src_cell][dst_cell][phase_idx] * self.delay_lvl[src_cell][dst_cell][phase_idx])
                     cum_delay_prob += delay_probs[-1]
 
         return stn_rates, cum_stn_rate, delay_rates, cum_delay_rate
@@ -82,6 +82,9 @@ class Simulator:
         return t >= self.n_hours
 
     def process_delay_transition(self, hour_idx, src_cell, dst_cell, phase_idx):
+        """
+            This function updates the state after a phase transition at a delay.
+        """
         is_depature = random.random() <= self.phi[hour_idx][src_cell][dst_cell][phase_idx]
 
         if is_depature:
@@ -98,6 +101,9 @@ class Simulator:
             self.delay_lvl[dst_cell][src_cell][phase_idx+1] += 0
 
     def process_station_transition(self, hour_idx, stn_idx):
+        """
+           This function updates the state after a departure at each station.
+        """
         cell_idx = self.stn_to_cell[stn_idx]
         c_prob = 0
         x = random.random()

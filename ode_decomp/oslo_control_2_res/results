@@ -1,0 +1,3 @@
+experiment_type,bounce_cost,rebalancing_cost,n_iterations,starting_rb_cost,starting_profit_no_rb,ending_rb_cost,ending_profit_no_rb
+full,0.5,1.0,15,1636.6201333417507,2339.7842420422603,1549.7468576228273,3354.4678655330595
+price_only,0.5,1.0,15,1636.6201333417507,2339.7842420422603,1358.679487131955,2852.1803409623126
