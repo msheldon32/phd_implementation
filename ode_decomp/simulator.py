@@ -5,7 +5,7 @@ import copy
 ELASTICITY = 1.0
 
 class Simulator:
-    def __init__(self, stn_to_cell, cell_to_stn, n_cells, stations, mu, phi, in_demands, in_probabilities, out_demands, starting_levels, prices):
+    def __init__(self, stn_to_cell, cell_to_stn, n_cells, stations, mu, phi, in_demands, in_probabilities, out_demands, starting_levels, prices, capacities):
         self.n_cells = n_cells
         self.stations = stations
         self.n_stations = len(stn_to_cell)
@@ -16,6 +16,9 @@ class Simulator:
         self.in_demands = in_demands
         self.in_probabilities = in_probabilities
         self.out_demands = out_demands
+        self.capacities = capacities
+
+        assert len(self.capacities) == self.n_stations
 
         self.n_hours = len(self.mu)
 
@@ -48,7 +51,7 @@ class Simulator:
 
         for hr in range(self.n_hours):
             for src_cell in range(self.n_cells):
-                for stn in self.cell_to_stn[src_cell]:
+                for stn, real_stn in enumerate(self.cell_to_stn[src_cell]):
                     for end_cell in range(self.n_cells):
                         self.out_demands[hr][src_cell][stn][end_cell] += self.out_demands[hr][src_cell][stn][end_cell]*ELASTICITY*(1-self.prices[src_cell])
 
@@ -59,16 +62,21 @@ class Simulator:
         delay_rates = []
         cum_delay_rate = 0
 
-        for stn in range(n_stations):
-            cell_idx = stn_to_cell[stn]
-            stn_probs.append(sum(self.out_demands[hour_idx][cell_idx][stn]) if self.station_lvl[stn] > 0 else 0)
-            cum_stn_prob += stn_probs[-1]
+        for stn in range(self.n_stations):
+            cell_idx = self.stn_to_cell[stn]
+            stn_idx_in_cell = self.cell_to_stn[cell_idx].index(stn)
+            stn_rates.append(sum(self.out_demands[hour_idx][cell_idx][stn_idx_in_cell]) if self.station_lvl[stn] > 0 else 0)
+            cum_stn_rate += stn_rates[-1]
 
         for src_cell in range(self.n_cells):
+            src_rates = []
             for dst_cell in range(self.n_cells):
+                dst_rates = []
                 for phase_idx in range(len(self.mu[0][src_cell][dst_cell])):
-                    delay_probs.append(self.mu[hour_idx][src_cell][dst_cell][phase_idx] * self.delay_lvl[src_cell][dst_cell][phase_idx])
-                    cum_delay_prob += delay_probs[-1]
+                    dst_rates.append(self.mu[hour_idx][src_cell][dst_cell][phase_idx] * self.delay_lvl[src_cell][dst_cell][phase_idx])
+                    cum_delay_rate += dst_rates[-1]
+                src_rates.append(dst_rates)
+            delay_rates.append(src_rates)
 
         return stn_rates, cum_stn_rate, delay_rates, cum_delay_rate
 
@@ -85,20 +93,28 @@ class Simulator:
         """
             This function updates the state after a phase transition at a delay.
         """
-        is_depature = random.random() <= self.phi[hour_idx][src_cell][dst_cell][phase_idx]
+        is_departure = random.random() <= self.phi[hour_idx][src_cell][dst_cell][phase_idx]
 
-        if is_depature:
+        is_departure = is_departure or phase_idx == len(self.mu[hour_idx][src_cell][dst_cell]) - 1
+
+        if is_departure:
             self.delay_lvl[src_cell][dst_cell][phase_idx] -= 1
             c_prob = 0
             x = random.random()
-            for stn in self.cell_to_stn[dst_cell]:
-                c_prob += self.in_probabilities[hour_idx][dst_cell][src_cell][stn]
+            for stn_idx_in_cell, stn_idx in enumerate(self.cell_to_stn[dst_cell]):
+                c_prob += self.in_probabilities[hour_idx][dst_cell][src_cell][stn_idx_in_cell]
+                assert stn_idx < self.n_stations
                 if x <= c_prob:
-                    self.station_lvl[stn] += 1
+                    if self.station_lvl[stn_idx] >= self.capacities[stn_idx]:
+                        self.n_bounces += 1
+                        self.delay_lvl[dst_cell][dst_cell][0] += 1
+                    else:
+                        self.n_arrivals += 1
+                        self.station_lvl[stn_idx] += 1
                     break
         else:
             self.delay_lvl[src_cell][dst_cell][phase_idx]   -= 1
-            self.delay_lvl[dst_cell][src_cell][phase_idx+1] += 0
+            self.delay_lvl[src_cell][dst_cell][phase_idx+1] += 1
 
     def process_station_transition(self, hour_idx, stn_idx):
         """
@@ -107,10 +123,13 @@ class Simulator:
         cell_idx = self.stn_to_cell[stn_idx]
         c_prob = 0
         x = random.random()
-        total_out_demand = sum(self.out_demands[hour_idx][cell_idx])
+        stn_idx_in_cell = self.cell_to_stn[cell_idx].index(stn_idx)
+        total_out_demand = sum(self.out_demands[hour_idx][cell_idx][stn_idx_in_cell])
+
+        self.total_profit += self.prices[cell_idx]
 
         for dst_cell in range(self.n_cells):
-            c_prob += self.out_demands[hour_idx][cell_idx][dst_cell]/total_out_demand
+            c_prob += self.out_demands[hour_idx][cell_idx][stn_idx_in_cell][dst_cell]/total_out_demand
             if x <= c_prob:
                 self.station_lvl[stn_idx] -= 1
                 self.delay_lvl[cell_idx][dst_cell][0] += 1
