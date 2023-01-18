@@ -29,9 +29,11 @@ class Simulator:
                 starting_levels[self.stn_to_cell[stn_idx]] for stn_idx in range(self.n_stations)
             ]
 
+        self.starting_levels = starting_levels
+
         self.n_bounces = 0
         self.n_arrivals = 0
-        self.total_profit = 0
+        self.total_revenue = 0
 
         self.prices = prices
 
@@ -81,7 +83,7 @@ class Simulator:
         return stn_rates, cum_stn_rate, delay_rates, cum_delay_rate
 
     def get_next_time(self, t, total_rate):
-        return t + math.log(random.random())/total_rate
+        return t - (math.log(random.random())/total_rate)
     
     def get_hour_idx(self, t):
         return math.floor(t)
@@ -126,7 +128,7 @@ class Simulator:
         stn_idx_in_cell = self.cell_to_stn[cell_idx].index(stn_idx)
         total_out_demand = sum(self.out_demands[hour_idx][cell_idx][stn_idx_in_cell])
 
-        self.total_profit += self.prices[cell_idx]
+        self.total_revenue += self.prices[cell_idx]
 
         for dst_cell in range(self.n_cells):
             c_prob += self.out_demands[hour_idx][cell_idx][stn_idx_in_cell][dst_cell]/total_out_demand
@@ -134,3 +136,10 @@ class Simulator:
                 self.station_lvl[stn_idx] -= 1
                 self.delay_lvl[cell_idx][dst_cell][0] += 1
                 break
+
+    def get_rebalancing_costs(self, reb_cost):
+        total_reb_cost = 0
+        for cell_idx in range(self.n_cells):
+            for stn_idx_in_cell, stn_idx in enumerate(self.cell_to_stn[cell_idx]):
+                total_reb_cost += abs(self.station_lvl[stn_idx] - self.starting_levels[cell_idx]) * reb_cost
+        return total_reb_cost

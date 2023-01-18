@@ -1,13 +1,14 @@
 import get_oslo_data
-import simulator
+from simulator import *
 
 import pandas as pd
+import numpy as np
 import random
 
 data_folder = "oslo_data_3_big"
 default_capacity = 15
 
-if __name__ == "__main__":
+def get_data():
     stations = pd.read_csv(f"{data_folder}/stations.csv").rename({"Unnamed: 0": "index"}, axis=1)
     n_cells = int(stations["cell"].max())+1
     n_stations = len(list(stations["index"]))
@@ -23,8 +24,6 @@ if __name__ == "__main__":
         #capacities[int(row["cell"])].append(int(row["capacity"]))
         capacities[int(row["index"])] = int(row["capacity"])
 
-    start_hour = 5
-    end_hour = 21
 
     mu = []
     phi = []
@@ -45,12 +44,12 @@ if __name__ == "__main__":
         
         mu.append(mu_hr)
         phi.append(phi_hr)
+    return cell_to_station, station_to_cell, capacities, mu, phi, in_demands, in_probabilities, out_demands, n_cells, n_stations, stations
 
-    prices = [1.0 for i in range(n_cells)]
-    starting_levels = [10 for i in range(n_cells)]
-    
+def run_simulation_epoch(data_list, prices, starting_levels):
+    cell_to_station, station_to_cell, capacities, mu, phi, in_demands, in_probabilities, out_demands, n_cells, n_stations, stations = data_list
 
-    simulator = simulator.Simulator(station_to_cell, 
+    simulator = Simulator(station_to_cell, 
                                     cell_to_station, 
                                     n_cells, 
                                     stations, 
@@ -68,6 +67,7 @@ if __name__ == "__main__":
         hour_idx = simulator.get_hour_idx(t)
         if hour_idx != cur_hour:
             print(f"simulating hour: {hour_idx+start_hour}")
+            cur_hour = hour_idx
         stn_rates, cum_stn_rate, delay_rates, cum_delay_rate = simulator.get_rates(hour_idx)
 
         cum_stn_prob = cum_stn_rate / (cum_stn_rate + cum_delay_rate)
@@ -88,13 +88,72 @@ if __name__ == "__main__":
             acc = 0
 
             for src_cell, src_rates in enumerate(delay_rates):
+                is_finished_src = False
                 for dst_cell, dst_rates in enumerate(src_rates):
+                    is_finished_dst = False
                     for phase_idx, rate in enumerate(dst_rates):
                         acc += rate / cum_delay_rate
                         if c_prob <= acc:
                             simulator.process_delay_transition(hour_idx, src_cell, dst_cell, phase_idx)
+                            is_finished_src = True
+                            is_finished_dst = True
                             break
+                    if is_finished_dst:
+                        break
+                if is_finished_src:
+                    break
+        t = simulator.get_next_time(t, cum_stn_rate+cum_delay_rate)
+
+    rebalancing_costs = simulator.get_rebalancing_costs(1.0)
+
     print(f"Finished simulation at t={t}")
     print(f"Total bounces: {simulator.n_bounces}")
     print(f"Total arrivals: {simulator.n_arrivals}")
-    print(f"Total profits: {simulator.total_profit}")
+    print(f"Total revenue: {simulator.total_revenue}")
+    print(f"Rebalancing cost: {rebalancing_costs}")
+
+    return [simulator.n_bounces, simulator.n_arrivals, simulator.total_revenue, rebalancing_costs]
+
+if __name__ == "__main__":
+    start_hour = 5
+    end_hour = 21
+
+    n_epochs = 512 
+
+    data_list = get_data()
+    n_cells, n_stations, stations = data_list[-3:]
+
+    #prices = [1.0 for i in range(n_cells)]
+    prices = [1.0000000000000002, 1.0, 1.2000000000000002, 0.9, 0.8, 1.1, 0.7999999999999999, 1.0, 1.2000000000000002, 1.2000000000000002, 1.1, 0.7000000000000001, 1.0, 0.8999999999999999, 1.0, 1.0, 1.1, 1.2, 0.8999999999999999, 1.2000000000000002, 1.2, 1.1, 1.0, 1.0, 0.8, 1.2000000000000002, 1.0, 1.2000000000000002, 1.2000000000000002, 1.1, 1.2000000000000002, 1.1, 1.0, 1.1, 1.0999999999999999, 0.9, 1.0, 1.1, 1.2000000000000004, 0.8999999999999999, 1.3000000000000003, 1.0, 1.2000000000000002, 1.2000000000000002, 1.1, 0.8, 1.1, 1.0, 0.8, 1.1, 0.9, 0.9999999999999999, 0.5000000000000001, 1.1, 1.0, 1.1, 0.9, 0.9]
+
+
+    #starting_levels = [10 for i in range(n_cells)]
+    starting_levels = [11.0, 6.0, 22.0, 7.0, 1.0, 20.0, 0.0, 20.0, 3.0, 11.0, 16.0, 0.0, 10.0, 1.0, 13.0, 10.0, 13.0, 22.0, 5.0, 24.0, 4.0, 21.0, 14.0, 10.0, 4.0, 25.0, 8.0, 13.0, 16.0, 14.0, 9.0, 13.0, 0.0, 15.0, 15.0, 12.0, 6.0, 15.0, 31.0, 1.0, 9.0, 18.0, 24.0, 10.0, 12.0, 12.0, 10.0, 14.0, 2.0, 12.0, 9.0, 0.0, 10.0, 13.0, 14.0, 18.0, 0.0, 1.0]
+    
+
+    #starting_levels = [11.0, 6.0, 18.0, 8.0, 0.0, 20.0, 0.0, 18.0, 4.0, 11.0, 15.0, 0.0, 11.0, 1.0, 13.0, 10.0, 13.0, 22.0, 7.0, 23.0, 4.0, 21.0, 15.0, 10.0, 5.0, 25.0, 10.0, 12.0, 16.0, 14.0, 7.0, 13.0, 2.0, 15.0, 15.0, 13.0, 7.0, 17.0, 31.0, 0.0, 10.0, 16.0, 23.0, 10.0, 12.0, 12.0, 10.0, 14.0, 2.0, 11.0, 9.0, 0.0, 10.0, 12.0, 15.0, 16.0, 0.0, 3.0]
+
+    bounces = []
+    arrivals = []
+    revenue = []
+    rebalancing_costs = []
+
+    for i in range(n_epochs):
+        print(f"Epoch {i+1}/{n_epochs}")
+        b, a, r, rc = run_simulation_epoch(data_list, prices, starting_levels)
+        bounces.append(b)
+        arrivals.append(a)
+        revenue.append(r)
+        rebalancing_costs.append(rc)
+
+    print(f"Average bounces: {np.mean(bounces)}")
+    print(f"Average arrivals: {np.mean(arrivals)}")
+    print(f"Average revenue: {np.mean(revenue)}")
+    print(f"Average rebalancing costs: {np.mean(rebalancing_costs)}")
+
+    print(f"Bounces: {bounces}")
+    print(f"Arrivals: {arrivals}")
+    print(f"Revenue: {revenue}")
+    print(f"Rebalancing costs: {rebalancing_costs}")
+
+

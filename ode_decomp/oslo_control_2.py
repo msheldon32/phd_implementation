@@ -603,6 +603,9 @@ def run_control_period_sa(start_hour, end_hour, prices, cell_levels, prior_cell_
                 x0_total = sum(first_vec_iter[cell_idx])
                 station_idx = random.randrange(len(cell_to_station[cell_idx]))
                 change = random.choice([-1,1])
+
+                if first_vec_iter[cell_idx][-station_idx] <= 0:
+                    change = 1
                 
                 if change_one:
                     if first_vec_iter[cell_idx][-station_idx] == 0:
@@ -673,6 +676,10 @@ def run_control_period_sa(start_hour, end_hour, prices, cell_levels, prior_cell_
                         
             if change_price:
                 direction = random.choice([-1,1])
+
+                if prices[cell_idx] <= 0:
+                    change = 1
+
                 print(f"price deriv: {cell_idx}")
                 sum_dprofit = 0
                 sum_dx = [0 for i in range(n_cells)]
@@ -1046,7 +1053,7 @@ def optimize_start(rebalancing_cost, bounce_cost, run_price=True, run_xdiff=True
     temperature = 20
     annealing_alpha = 0.9
 
-    #temperature = temperature * (annealing_alpha**(20))
+    temperature = temperature * (annealing_alpha**(80))
 
 
     iteration = 0
@@ -1054,7 +1061,9 @@ def optimize_start(rebalancing_cost, bounce_cost, run_price=True, run_xdiff=True
     starting_level = 10.0
     prices = [[1.0 for cell_idx in range(n_cells)] for hr in start_hours]
     #prices = [[1.1000000000000003, 1.0, 1.2000000000000002, 0.5000000000000001, 0.6000000000000001, 1.2000000000000002, 0.8000000000000003, 1.3000000000000003, 0.9, 1.4000000000000004, 1.0000000000000002, 0.7000000000000001, 1.0, 0.6000000000000001, 1.0, 1.0, 1.1, 1.3, 0.7000000000000003, 1.2000000000000002, 1.2000000000000004, 1.3, 0.30000000000000016, 1.4000000000000004, 1.1, 1.3000000000000003, 0.9, 1.2000000000000002, 0.9999999999999992, 1.1, 1.0, 1.3000000000000003, 0.5999999999999994, 1.1000000000000005, 1.1000000000000003, 0.8, 1.0, 0.7000000000000001, 1.3000000000000003, 0.7999999999999999, 1.1, 1.3000000000000003, 1.4000000000000004, 1.3000000000000003, 1.5000000000000004, 0.6000000000000001, 1.2000000000000002, 1.1000000000000003, 0.5000000000000001, 1.1, 0.9999999999999994, 0.4, 0.40000000000000013, 1.3000000000000003, 0.9, 1.2, 0.6000000000000001, 0.7000000000000001] for hr in start_hours]
-    cell_levels = [[[starting_level for stn_idx in range(len(list(cell_to_station[cell_idx])))] for cell_idx in range(n_cells)] for hr in start_hours]
+    cell_levels = [9.0, 9.0, 13.0, 0.0, 4.0, 12.0, 0.0, 13.0, 9.0, 16.0, 11.0, 0.0, 9.0, 0.0, 10.0, 10.0, 10.0, 20.0, 6.0, 19.0, 12.0, 17.0, 9.0, 10.0, 9.0, 16.0, 8.0, 18.0, 17.0, 11.0, 11.0, 8.0, 6.0, 15.0, 16.0, 11.0, 5.0, 17.0, 9.0, 0.0, 16.0, 15.0, 16.0, 10.0, 8.0, 3.0, 10.0, 13.0, 0.0, 12.0, 8.0, 0.0, 10.0, 10.0, 8.0, 17.0, 0.0, 1.0]
+    cell_levels = [[[cell_levels[cell_idx] for stn_idx in range(len(list(cell_to_station[cell_idx])))] for cell_idx in range(n_cells)] for hr in start_hours]
+    #cell_levels = [[[starting_level for stn_idx in range(len(list(cell_to_station[cell_idx])))] for cell_idx in range(n_cells)] for hr in start_hours]
     ending_cell_levels = copy.deepcopy(cell_levels)
 
     iter_profits   = []
@@ -1156,7 +1165,7 @@ if __name__ == "__main__":
     rebalancing_cost = float(sys.argv[1])
     bounce_cost = float(sys.argv[2])
 
-    optimize_start(rebalancing_cost, bounce_cost)##, default_epoch=default_epoch, default_prices=default_prices)
+    optimize_start(rebalancing_cost, bounce_cost, run_price=False)##, default_epoch=default_epoch, default_prices=default_prices)
 
     toc = time.perf_counter()
     print(f"time diff: {toc-tic}")

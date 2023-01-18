@@ -1,0 +1,4 @@
+running hours: 5 -> 21
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 1838.485988760307, regret: 2263.127658404704, arrivals: 107.39043109032397, bounces: 185.18116562474594
+Iteration complete, time: 204.2917503559729, error: inf
