@@ -26,7 +26,7 @@ k_q_table = {}
 
 def build_k_q(capacity):
     k_q_table[capacity] = []
-    for rho in np.arange(0,3,0.001):
+    for rho in np.arange(0,10,0.001):
         #norm_constant = (1-rho)/(1-(rho**(capacity+1)))
         norm_constant = (1-rho)/(1-(np.power(rho,capacity+1)))
         #print(f"norm_constant: {norm_constant}")
@@ -44,7 +44,7 @@ def q_to_rho(mean,capacity):
     hi = len(k_q_table[capacity])
 
     if k_q_table[capacity][-1][0] < mean:
-        return k_q_table[capacities][-1][1]
+        return k_q_table[capacity][-1][1]
 
     while lo < hi:
         mid = (lo+hi)//2
@@ -53,7 +53,7 @@ def q_to_rho(mean,capacity):
             if mid == hi-1 or k_q_table[capacity][mid+1][0] > mean:
                 return k_q_table[capacity][mid][1]
             else:
-                lo = mid
+                lo = mid + 1
         else:
             hi = mid
     return k_q_table[capacity][lo][1]
@@ -791,13 +791,13 @@ class StrictTrajCellCoxControl:
             #hi_loss = get_hi_loss_ptg(x[j+self.station_offset], self.capacities[j])
             #lo_loss = get_lo_loss_ptg(x[j+self.station_offset], self.capacities[j])
 
-            if x[j+self.station_offset] > (self.capacities[j]/2):
-                hi_loss = (((x[j+self.station_offset]-(self.capacities[j]/2))/(self.capacities[j]/2))*(1-(1/self.capacities[j])))+(1/self.capacities[j])
-                lo_loss = 0
-            else:
-                rho = q_to_rho(x[j+self.station_offset], self.capacities[j])
-                lo_loss = ((1-rho)/(1-(rho**(self.capacities[j]+1))))
-                hi_loss = (rho**(self.capacities[j]))*lo_loss
+            #if x[j+self.station_offset] > (self.capacities[j]/2):
+            #    hi_loss = (((x[j+self.station_offset]-(self.capacities[j]/2))/(self.capacities[j]/2))*(1-(1/self.capacities[j])))+(1/self.capacities[j])
+            #    lo_loss = 0
+            #else:
+            rho = q_to_rho(x[j+self.station_offset], self.capacities[j])
+            lo_loss = ((1-rho)/(1-(rho**(self.capacities[j]+1))))
+            hi_loss = (rho**(self.capacities[j]))*lo_loss
             regret += station_demand*lo_loss
             deriv[j + self.station_offset] -= station_demand*min(x[j + self.station_offset],1)
 
