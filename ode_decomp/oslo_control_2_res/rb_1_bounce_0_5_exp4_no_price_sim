@@ -1,0 +1,55 @@
+Epoch 1/512
+simulating hour: 5
+simulating hour: 6
+simulating hour: 7
+simulating hour: 8
+simulating hour: 9
+simulating hour: 10
+simulating hour: 11
+simulating hour: 12
+simulating hour: 13
+simulating hour: 14
+simulating hour: 15
+simulating hour: 16
+simulating hour: 17
+simulating hour: 18
+simulating hour: 19
+simulating hour: 20
+simulating hour: 21
+Finished simulation at t=17.00023061860123
+Total bounces: 925
+Total arrivals: 4061
+Total revenue: 4041.6000000000467
+Rebalancing cost: 1544.0
+Epoch 2/512
+simulating hour: 5
+simulating hour: 6
+simulating hour: 7
+simulating hour: 8
+simulating hour: 9
+simulating hour: 10
+simulating hour: 11
+simulating hour: 12
+simulating hour: 13
+simulating hour: 14
+simulating hour: 15
+simulating hour: 16
+simulating hour: 17
+simulating hour: 18
+simulating hour: 19
+simulating hour: 20
+simulating hour: 21
+Finished simulation at t=17.000586866493062
+Total bounces: 1373
+Total arrivals: 4020
+Total revenue: 4009.800000000051
+Rebalancing cost: 1532.0
+Epoch 3/512
+simulating hour: 5
+simulating hour: 6
+simulating hour: 7
+simulating hour: 8
+simulating hour: 9
+simulating hour: 10
+simulating hour: 11
+simulating hour: 12

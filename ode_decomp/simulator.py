@@ -29,6 +29,10 @@ class Simulator:
                 starting_levels[self.stn_to_cell[stn_idx]] for stn_idx in range(self.n_stations)
             ]
 
+        for i, stn_lvl in enumerate(self.station_lvl):
+            self.station_lvl[i] = min(self.station_lvl[i], self.capacities[i])
+            #assert stn_lvl <= self.capacities[i]
+
         self.starting_levels = starting_levels
 
         self.n_bounces = 0
@@ -108,8 +112,12 @@ class Simulator:
                 assert stn_idx < self.n_stations
                 if x <= c_prob:
                     if self.station_lvl[stn_idx] >= self.capacities[stn_idx]:
+                        #print(f"Station is full: {stn_idx}")
                         self.n_bounces += 1
-                        self.delay_lvl[dst_cell][dst_cell][0] += 1
+                        if random.random() < 0.5:
+                            self.delay_lvl[dst_cell][src_cell][0] += 1
+                        else:
+                            self.delay_lvl[dst_cell][dst_cell][0] += 1
                     else:
                         self.n_arrivals += 1
                         self.station_lvl[stn_idx] += 1

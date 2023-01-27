@@ -798,8 +798,12 @@ class StrictTrajCellCoxControl:
             rho = q_to_rho(x[j+self.station_offset], self.capacities[j])
             lo_loss = ((1-rho)/(1-(rho**(self.capacities[j]+1))))
             hi_loss = (rho**(self.capacities[j]))*lo_loss
+            if x[j+self.station_offset] >= self.capacities[j]+1:
+                hi_loss = 1
             regret += station_demand*lo_loss
             deriv[j + self.station_offset] -= station_demand*min(x[j + self.station_offset],1)
+
+            bounce_loss_rate = 1/self.s_in_cell # proportion of bounces that get sent to another cell
 
             # integrate over prices and lost trips
             if not self.use_inbound_price:
@@ -833,7 +837,8 @@ class StrictTrajCellCoxControl:
 
                         # change to trajectories: store only 2 phases per cell
                         deriv[j + self.station_offset] += (1-hi_loss)*rate*self.inbound_traj_inflation*self.trajectories[(start_cell*2) + phase_idx][int(t//self.tstep)]
-                        deriv[self.x_idx[self.cell_idx]] += hi_loss*rate*self.inbound_traj_inflation*self.trajectories[(start_cell*2) + phase_idx][int(t//self.tstep)]
+                        deriv[self.x_idx[self.cell_idx]] += 0.5*hi_loss*rate*self.inbound_traj_inflation*self.trajectories[(start_cell*2) + phase_idx][int(t//self.tstep)]
+                        deriv[self.x_idx[start_cell]] += 0.5*hi_loss*rate*self.inbound_traj_inflation*self.trajectories[(start_cell*2) + phase_idx][int(t//self.tstep)]
                         arrivals += (1-hi_loss)*rate*self.inbound_traj_inflation*self.trajectories[(start_cell*2) + phase_idx][int(t//self.tstep)]
 
                         bounces += hi_loss*rate*self.inbound_traj_inflation*self.trajectories[(start_cell*2) + phase_idx][int(t//self.tstep)]

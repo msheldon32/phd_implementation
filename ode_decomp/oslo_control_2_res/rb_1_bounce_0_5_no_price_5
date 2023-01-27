@@ -1,0 +1,1030 @@
+running hours: 5 -> 21
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Iteration complete, time: 2.58617805497488, error: inf
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 6.079749717959203, profit 0.0
+reward: 0.0, bounces: 0.0, profits: 0.0, rebalancing: 2889.0
+--------------------------------------------------------------------------------------
+annealing: 53 (n: 0)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.5583540799561888, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4319393360055983, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.545396701025311, profit 0.0
+price deriv: 53
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4193960140109994, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 17 (n: 1)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.5927908959565684, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3724592569633387, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.436242519004736, profit 0.0
+price deriv: 17
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.450454592006281, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 25 (n: 2)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3709271830157377, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3728947939816862, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4687857429962605, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 14 (n: 3)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3942812570021488, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3545122880022973, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3617641819873825, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3578698860364966, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3447319979895838, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 56 (n: 4)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4596634290064685, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4866399590391666, profit 0.0
+price deriv: 56
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.47217298601754, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4275650290073827, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.503839245007839, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 57 (n: 5)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4530641079763882, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.403772672987543, profit 0.0
+price deriv: 57
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4281793119735084, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 35 (n: 6)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3975650869542733, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4334319059853442, profit 0.0
+price deriv: 35
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3746720980270766, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 8 (n: 7)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.473565118969418, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4015840869979002, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.5006149169639684, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.455539481015876, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 43 (n: 8)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.412596377020236, profit 0.0
+price deriv: 43
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3635649799834937, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 31 (n: 9)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3885740000405349, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.468251730024349, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4292769209714606, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 11 (n: 10)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4172760659712367, profit 0.0
+price deriv: 11
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.361744305002503, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3736438799533062, profit 0.0
+price deriv: 11
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3673256259644404, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.6648888959898613, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 44 (n: 11)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4544529230333865, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.465301325020846, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.8745041210204363, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 18 (n: 12)
+price deriv: 18
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.9515853799530305, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.7256693359813653, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.662328422011342, profit 0.0
+price deriv: 18
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.7471867839922197, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.7586566510144621, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 50 (n: 13)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.6104922039667144, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.5816591220209375, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.5619316409574822, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.603933650010731, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 33 (n: 14)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.5796170399989933, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.5819561579846777, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.5301176060456783, profit 0.0
+price deriv: 33
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.5182076710043475, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.5081787059898488, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 48 (n: 15)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.545276566001121, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.5943504309980199, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 54 (n: 16)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.5994600669946522, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.6263547040289268, profit 0.0
+price deriv: 54
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.5759064090088941, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.5612318780040368, profit 0.0
+price deriv: 54
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.632503118016757, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 23 (n: 17)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.6333675800124183, profit 0.0
+price deriv: 23
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.8466372700058855, profit 0.0
+price deriv: 23
+--------------------------------------------------------------------------------------
+annealing: 15 (n: 18)
+price deriv: 15
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.7761239419924095, profit 0.0
+price deriv: 15
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4159303919877857, profit 0.0
+price deriv: 15
+--------------------------------------------------------------------------------------
+annealing: 29 (n: 19)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.400232472049538, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4022966850316152, profit 0.0
+price deriv: 29
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4825298570212908, profit 0.0
+price deriv: 29
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4339988690335304, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 39 (n: 20)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4238080509821884, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.5579289519810118, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.435074347013142, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 19 (n: 21)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3672016629716381, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4028764209942892, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.575907661987003, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.5335290250368416, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 21 (n: 22)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.5637251780135557, profit 0.0
+price deriv: 21
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.5160115510225296, profit 0.0
+price deriv: 21
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4818554429803044, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.435833872994408, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4433626869576983, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 4 (n: 23)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4075426160125062, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4764751679613255, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4286088580265641, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3902606140472926, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 27 (n: 24)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4153127340250649, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4207146370317787, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4328736290335655, profit 0.0
+price deriv: 27
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4570163339958526, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 38 (n: 25)
+price deriv: 38
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.5313998910132796, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.517914120981004, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 13 (n: 26)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.394431677996181, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4000390389701352, profit 0.0
+price deriv: 13
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4057154579786584, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3651222520275041, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 24 (n: 27)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3576305169845, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4236145879840478, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.434330942982342, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 12 (n: 28)
+price deriv: 12
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.5287435069913045, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.5223480889690109, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4652735440176912, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 32 (n: 29)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.447238047956489, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4560418939800002, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3916411640238948, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 1 (n: 30)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4000887019792572, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.523458331997972, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4710894839954562, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 7 (n: 31)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3601802199846134, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4409295810037293, profit 0.0
+price deriv: 7
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3988229669630527, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4014715160010383, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 41 (n: 32)
+price deriv: 41
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4195795180276036, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4775334930163808, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 20 (n: 33)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.5165082539897412, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.504852797021158, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4935898869880475, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 26 (n: 34)
+price deriv: 26
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4322897139936686, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.552719698054716, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.511172925005667, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 47 (n: 35)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4983581529813819, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.438448116008658, profit 0.0
+price deriv: 47
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4128507249988616, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3463330819504336, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 16 (n: 36)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4127005619811825, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.5113366710138507, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.525658940023277, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4836314849671908, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 52 (n: 37)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4474410489783622, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 9 (n: 38)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3962749360362068, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.437012162990868, profit 0.0
+price deriv: 9
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4546646300004795, profit 0.0
+price deriv: 9
+--------------------------------------------------------------------------------------
+annealing: 28 (n: 39)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3924099150463007, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3773437300114892, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3694105580216274, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 46 (n: 40)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4088016989990138, profit 0.0
+price deriv: 46
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3876808729837649, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 5 (n: 41)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3693299969891086, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3844541299622506, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4009782809880562, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 2 (n: 42)
+price deriv: 2
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4289552280097269, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4378178539918736, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4313829620368779, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 37 (n: 43)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.363308820000384, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3688060530112125, profit 0.0
+price deriv: 37
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3686077310121618, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3734968330245465, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 6 (n: 44)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4068249490228482, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3987353629781865, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.397257911041379, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.394113151007332, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 51 (n: 45)
+price deriv: 51
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3710105189820752, profit 0.0
+price deriv: 51
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3645578340510838, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3727385200327262, profit 0.0
+price deriv: 51
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3837192920036614, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 30 (n: 46)
+price deriv: 30
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4788646720116958, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4921062639914453, profit 0.0
+price deriv: 30
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4413927209679969, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.5767306750058196, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4599607849959284, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 22 (n: 47)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3668535000178963, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4353062129812315, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4812280950136483, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 0 (n: 48)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4348359599825926, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3788411000277847, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.451352746982593, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 36 (n: 49)
+price deriv: 36
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.7255973310093395, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4874554990092292, profit 0.0
+price deriv: 36
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.768774193013087, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.7159649390378036, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 45 (n: 50)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.627654051000718, profit 0.0
+price deriv: 45
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.5726364739821292, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.51942709996365, profit 0.0
+price deriv: 45
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.5370375780039467, profit 0.0
+price deriv: 45
+--------------------------------------------------------------------------------------
+annealing: 3 (n: 51)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.5106688779778779, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.5832129070186056, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.5352878459962085, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 40 (n: 52)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.6217687499593012, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.5964833319885656, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.529981130035594, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 55 (n: 53)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4790704380138777, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.5954872429720126, profit 0.0
+price deriv: 55
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.597431903006509, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4573543859878555, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3747659649816342, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 42 (n: 54)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.432194174034521, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4232634090003558, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4404309369856492, profit 0.0
+price deriv: 42
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4747372679994442, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 49 (n: 55)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4701264169998467, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4270945360185578, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4366888760123402, profit 0.0
+price deriv: 49
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4623748250305653, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 10 (n: 56)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.402350493997801, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3909628110122867, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4321812700363807, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 34 (n: 57)
+price deriv: 34
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4294640019652434, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4505706389900297, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4109467619564384, profit 0.0
+price deriv: 34
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3885809920029715, profit 0.0
+simulated annealing finished. expecting profits of 0
+original prices: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+new station_levels: [[10.0, 10.0, 10.0, 10.0, 10.0, 9, 10.0, 10.0], [10.0, 10.0, 10.0, 10.0, 10.0, 10.0], [10.0, 10.0, 10.0, 10.0], [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0], [10.0, 10.0, 10.0, 10.0], [10.0, 10.0], [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0], [8, 10.0, 10.0, 9, 10.0], [10.0, 10.0, 6, 10.0], [10.0, 10.0, 10.0, 10.0], [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0], [10.0, 10.0, 10.0, 10.0], [10.0, 10.0], [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0], [10.0, 10.0, 10.0, 10.0, 10.0], [10.0], [10.0, 10.0, 10.0, 10.0], [10.0, 10.0, 10.0, 10.0, 10.0, 10.0], [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0], [10.0, 10.0, 10.0, 10.0], [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0], [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0], [10.0, 10.0, 10.0, 10.0], [10.0], [10.0, 10.0, 10.0], [10.0, 10.0], [10.0, 10.0, 10.0, 10.0, 10.0], [10.0, 10.0, 10.0, 10.0, 10.0], [10.0, 10.0], [10.0, 10.0, 10.0, 10.0, 10.0], [10.0, 10.0, 10.0], [10.0, 10.0, 10.0, 10.0], [10.0, 10.0, 10.0, 10.0, 9, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0], [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0], [10.0, 10.0, 10.0, 10.0, 10.0, 10.0], [10.0, 10.0, 10.0, 10.0], [10.0, 10.0], [10.0, 10.0, 10.0, 10.0], [10.0, 10.0, 10.0], [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0], [10.0, 10.0, 10.0, 10.0, 10.0], [10.0, 10.0, 10.0, 10.0, 10.0], [10.0, 10.0, 10.0, 10.0, 10.0], [10.0], [10.0, 9], [10.0, 10.0, 10.0, 10.0], [10.0], [9, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0], [10.0, 10.0, 10.0, 10.0, 9, 10.0, 10.0, 10.0, 10.0, 10.0], [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 9, 10.0], [10.0, 10.0, 10.0, 6, 10.0, 6, 10.0, 10.0, 10.0, 10.0], [10.0, 10.0, 10.0, 10.0, 10.0, 10.0], [10.0], [10.0, 10.0, 10.0, 10.0], [10.0, 10.0, 10.0, 10.0], [10.0, 10.0, 10.0, 10.0, 10.0, 10.0], [10.0, 10.0, 10.0], [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0]]
+new prices: [1.0, 1.0, 0.9, 1.0, 1.0, 1.0, 1.0, 1.1, 1.0, 1.0, 1.0, 0.8, 1.1, 0.9, 1.0, 1.1, 1.0, 0.9, 1.0, 1.0, 1.0, 0.8, 1.0, 1.0, 1.0, 1.0, 0.9, 0.9, 1.0, 1.0, 1.0, 1.0, 1.0, 0.9, 0.8, 1.1, 0.8, 0.9, 0.9, 1.0, 1.0, 0.9, 0.9, 1.1, 1.0, 0.9, 1.1, 0.9, 1.0, 0.9, 1.0, 1.1, 1.0, 0.9, 1.0, 0.9, 1.1, 1.1]
+At iteration 0...profit: 0.0, regret: 0.0, rebalancing costs: 2889.0
+previous iterations: [0.0]
+.with rebalancing costs: [2889.0]
+and regret: [0.0]
+running hours: 5 -> 21
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Iteration complete, time: 2.534857435966842, error: inf
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 5.977833696000744, profit 0.0
+reward: 0.0, bounces: 0.0, profits: 0.0, rebalancing: 2949.0
+--------------------------------------------------------------------------------------
+annealing: 49 (n: 0)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.5468127770000137, profit 0.0
+price deriv: 49
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4917881269939244, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4301940010045655, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4038488459773362, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4222185499966145, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 45 (n: 1)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3529183160280809, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4368826799909584, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3591171459993348, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 37 (n: 2)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3909078869619407, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3567084670066833, profit 0.0
+price deriv: 37
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4068337350036018, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4059400690020993, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 15 (n: 3)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4423438259982504, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 0 (n: 4)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4209004059666768, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4454890270135365, profit 0.0
+price deriv: 0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3598462349618785, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4101466410211287, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 10 (n: 5)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4385604579583742, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3984052439918742, profit 0.0
+price deriv: 10
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3917153130169027, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4071149440133013, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 40 (n: 6)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.419138912053313, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4275415950105526, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 23 (n: 7)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3783786830026656, profit 0.0
+price deriv: 23
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4031077660038136, profit 0.0
+price deriv: 23
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3962859269813634, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 57 (n: 8)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4368043429567479, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4289751550531946, profit 0.0
+price deriv: 57
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.5324911890202202, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 54 (n: 9)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4404877130291425, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4986978500382975, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4466836270294152, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.420340574986767, profit 0.0
+price deriv: 54
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.458390329964459, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 43 (n: 10)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.398655723023694, profit 0.0
+price deriv: 43
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4481337280012667, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 13 (n: 11)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3922292870120145, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4652554190251976, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.408965184004046, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.451358959020581, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 12 (n: 12)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4738785270019434, profit 0.0
+price deriv: 12
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.5911780890310183, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.470375826000236, profit 0.0
+price deriv: 12
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4225076420116238, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4244632900226861, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 8 (n: 13)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3962563919485547, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3793563569779508, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 14 (n: 14)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.340495750948321, profit 0.0
+price deriv: 14
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3709973139921203, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3653973780456, profit 0.0
+price deriv: 14
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3708112749736756, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3660216490388848, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 30 (n: 15)
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.4162731060059741, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.416160783963278, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3690948559669778, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 24 (n: 16)
+price deriv: 24
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3645586149650626, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.351967672992032, profit 0.0
+price deriv: 24
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.342440169013571, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3589573160279542, profit 0.0
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 0.0, regret: 0.0, arrivals: 0.0, bounces: 0.0
+Trajectory-Based Iteration finished, time: 1.3847031670156866, profit 0.0
+--------------------------------------------------------------------------------------
+annealing: 42 (n: 17)
+price deriv: 42
+Running Trajectory-Based Control (parallelized, limit: False)
