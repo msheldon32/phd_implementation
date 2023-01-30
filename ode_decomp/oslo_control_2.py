@@ -49,7 +49,7 @@ SOLVER = "RK45"
 TEST_PARAM = False
 REQUIRE_POS_GRAD = False
 CAPACITY = 15
-PRICE_X_THRESHOLD = 0.85
+PRICE_X_THRESHOLD = 0.5
 
 
 MAX_PRICE = 1.5
@@ -364,6 +364,7 @@ def run_control(model_data, traj_cells, ode_method, epsilon, cell_limit=False, c
                 all_res.append([time_points, x_res[-1], toc - tic - h_time + h_rec, n_iterations])
                 break
         
+        toc = time.perf_counter()
         print(f"Iteration complete, time: {time.perf_counter()-tic}, error: {error_score}")
         
     out_vector = []
@@ -554,7 +555,7 @@ def run_control_period_sa(start_hour, end_hour, prices, cell_levels, prior_cell_
             ares, lastres, trajectories, last_vector_iter, trajectories, total_reward, profits, reb_cost = pickle.load(f)
     else:
         # all_res, x_res[-1], trajectories, out_vector, total_reward, profits, regret, arrivals
-        ares, lastres, trajectories, last_vector_iter, total_reward, profits, regret, arrivals, bounces = run_control(model_data, traj_cells, SOLVER, 0.5, current_vector=first_vec_iter, time_length=float(end_hour-start_hour))
+        ares, lastres, trajectories, last_vector_iter, total_reward, profits, regret, arrivals, bounces = run_control(model_data, traj_cells, SOLVER, 0.5, current_vector=first_vec_iter, time_length=float(end_hour-start_hour), max_steps=10)
         gc.collect()
         profits = [x - (bounce_cost*y) for x,y in zip(profits, bounces)]
 
@@ -623,7 +624,7 @@ def run_control_period_sa(start_hour, end_hour, prices, cell_levels, prior_cell_
                         first_vec_iter[cell_idx][-1-station_idx] += change
                 if change_one or (first_vec_iter[cell_idx][-1], traj_cells[cell_idx].price) not in acache:
                     ares, lastres, sample_trajectories, sample_last_vector, new_total_reward, new_profits, new_regret, new_arrivals,new_bounces = run_control(model_data, 
-                        traj_cells, SOLVER, 0.05, trajectories=trajectories, 
+                        traj_cells, SOLVER, 0.02, trajectories=trajectories, 
                         prior_res=lastres, cell_inc=[cell_idx], current_vector=first_vec_iter, time_length=float(end_hour-start_hour), max_steps=10)
                     gc.collect()
 
@@ -647,13 +648,18 @@ def run_control_period_sa(start_hour, end_hour, prices, cell_levels, prior_cell_
                                 new_station_level = sample_last_vector[dst_cell_idx][-1-stn]
                                 if final_cell_levels == "same":
                                     init_station_level = first_vec_iter[cell_idx][-1-stn]
+                                    if not change_one or stn == station_idx:
+                                        orig_init_station_level = first_vec_iter[cell_idx][-1-stn] - change
+                                    else:
+                                        orig_init_station_level = first_vec_iter[cell_idx][-1-stn]
                                 else:
                                     init_station_level = final_cell_levels[cell_idx][-1-stn]
+                                    orig_init_station_level = final_cell_levels[cell_idx][-1-stn]
                                 orig_station_level = last_vector_iter[dst_cell_idx][-1-stn]
-                                final_rebalancing_cost += 0.5 * rebalancing_cost * (abs(new_station_level - init_station_level) - abs(orig_station_level-init_station_level))
+                                final_rebalancing_cost += 0.5 * rebalancing_cost * (abs(new_station_level - init_station_level) - abs(orig_station_level-orig_init_station_level))
 
                     cell_delta = local_profit_delta - (init_rebalancing_cost + final_rebalancing_cost)
-                    acache[(first_vec_iter[cell_idx][-1], traj_cells[cell_idx].price)] = cell_delta
+                    #acache[(first_vec_iter[cell_idx][-1], traj_cells[cell_idx].price)] = cell_delta
                 else:
                     cell_delta = acache[(first_vec_iter[cell_idx][-1], traj_cells[cell_idx].price)]
 
@@ -663,12 +669,16 @@ def run_control_period_sa(start_hour, end_hour, prices, cell_levels, prior_cell_
                     else:
                         for station_idx in range(len(cell_to_station[cell_idx])):
                             first_vec_iter[cell_idx][-1-station_idx] -= change
+                    print(f"rejecting x0 change: revenue of {local_profit_delta}, reb of {final_rebalancing_cost}")
                 else:
                     s_in_cell = len(cell_to_station[cell_idx])
                     cell_levels[cell_idx] = copy.deepcopy(first_vec_iter[cell_idx][-s_in_cell:])
                     overall_delta += cell_delta
                     trajectories = sample_trajectories
                     gc.collect()
+                    print(f"accepting x0 change: revenue of {local_profit_delta}, reb of {final_rebalancing_cost}")
+
+                    profits = [x if x != 0 else y for x, y in zip(new_profits, profits)]
 
                     for dst_cell_idx, new_cell_profit in enumerate(new_profits):
                         # use profits to see if the cell has been re-ran
@@ -703,7 +713,7 @@ def run_control_period_sa(start_hour, end_hour, prices, cell_levels, prior_cell_
                         traj_cells[cell_idx].set_price(traj_cells[cell_idx].price + direction*finite_difference_price)
 
                     starting_vec = [(x if i != cell_idx else x) for i, x in enumerate(first_vec_iter)]
-                    ares, lastres, sample_trajectories, sample_last_vector, new_total_reward, new_profits, new_regret, new_arrivals, new_bounces = run_control(model_data, traj_cells, SOLVER, 0.05, trajectories=trajectories, 
+                    ares, lastres, sample_trajectories, sample_last_vector, new_total_reward, new_profits, new_regret, new_arrivals, new_bounces = run_control(model_data, traj_cells, SOLVER, 0.02, trajectories=trajectories, 
                                     prior_res=lastres, cell_inc=[cell_idx], current_vector=first_vec_iter, time_length=float(end_hour-start_hour), max_steps=10)
                     gc.collect()
                     new_profits = [x - (bounce_cost*y) for x, y in zip(new_profits, new_bounces)]
@@ -719,14 +729,16 @@ def run_control_period_sa(start_hour, end_hour, prices, cell_levels, prior_cell_
                             for stn in range(s_in_cell):
                                 new_station_level = sample_last_vector[dst_cell_idx][-stn]
                                 if final_cell_levels == "same":
-                                    init_station_level = first_vec_iter[cell_idx][-stn]
+                                    init_station_level = first_vec_iter[cell_idx][-1-stn]
+                                    orig_init_station_level = first_vec_iter[cell_idx][-1-stn]
                                 else:
-                                    init_station_level = final_cell_levels[cell_idx][-stn]
-                                orig_station_level = last_vector_iter[dst_cell_idx][-stn]
-                                final_rebalancing_cost += 0.5 * rebalancing_cost * (abs(new_station_level - init_station_level) - abs(orig_station_level-init_station_level))
+                                    init_station_level = final_cell_levels[cell_idx][-1-stn]
+                                    orig_init_station_level = final_cell_levels[cell_idx][-1-stn]
+                                orig_station_level = last_vector_iter[dst_cell_idx][-1-stn]
+                                final_rebalancing_cost += 0.5 * rebalancing_cost * (abs(new_station_level - init_station_level) - abs(orig_station_level-orig_init_station_level))
 
                     cell_delta = local_profit_delta - final_rebalancing_cost
-                    acache[(first_vec_iter[cell_idx][-1], new_price)] = cell_delta
+                    #acache[(first_vec_iter[cell_idx][-1], new_price)] = cell_delta
                 else:
                     cell_delta = acache[(first_vec_iter[cell_idx][-1], new_price)]
 
@@ -737,16 +749,20 @@ def run_control_period_sa(start_hour, end_hour, prices, cell_levels, prior_cell_
                     else:
                         traj_cells[cell_idx].price = old_price
                         traj_cells[cell_idx].set_prices_list(old_prices)
+                    print(f"rejecting price change: revenue of {local_profit_delta}, reb of {final_rebalancing_cost}")
                 else:
                     prices[cell_idx] = old_price + (direction*finite_difference_price)
                     overall_delta += cell_delta
                     trajectories = sample_trajectories
                     gc.collect()
 
+                    profits = [x if x != 0 else y for x, y in zip(new_profits, profits)]
+
                     for dst_cell_idx, new_cell_profit in enumerate(new_profits):
                         # use profits to see if the cell has been re-ran
                         if new_cell_profit != 0:
                             last_vector_iter[dst_cell_idx] = sample_last_vector[dst_cell_idx]
+                    print(f"accepting price change: revenue of {local_profit_delta}, reb of {final_rebalancing_cost}")
 
             cell_temp *= annealing_alpha
                         
@@ -1057,7 +1073,7 @@ def optimize_start(rebalancing_cost, bounce_cost, run_price=True, run_xdiff=True
     annealing_alpha = 0.98
 
     #raise Exception("price/start change")
-    #temperature = temperature * (annealing_alpha**(45))
+    temperature = temperature * (annealing_alpha**(5))
 
     
 
@@ -1066,11 +1082,12 @@ def optimize_start(rebalancing_cost, bounce_cost, run_price=True, run_xdiff=True
 
     starting_level = 10.0
     prices = [[1.0 for cell_idx in range(n_cells)] for hr in start_hours]
-    #prices = [[0.9, 1.0, 1.0, 1.1, 1.0, 1.1, 1.0, 1.1, 0.9, 1.0, 1.0, 0.8, 1.2000000000000002, 0.9, 1.1, 0.9, 0.8, 1.0, 1.1, 1.1, 1.2000000000000002, 1.1000000000000003, 1.2000000000000002, 1.0, 1.1, 1.2000000000000002, 0.9, 1.1, 0.9, 1.1, 1.0, 0.9, 0.9, 1.1, 1.0, 1.1, 1.2000000000000002, 0.9, 0.9, 1.2000000000000002, 0.8, 0.9, 0.8, 1.0, 1.1, 0.8, 1.0, 1.0, 0.9, 1.1, 1.0, 0.8, 0.8, 1.0, 1.1, 1.0, 1.2000000000000002, 0.9] for hr in start_hours]
+
+    #prices = [[1.0, 1.1, 1.0, 1.0, 0.9, 0.9, 1.1, 1.0, 1.0, 1.0, 1.1, 1.0, 1.0, 1.1, 1.0, 1.0, 1.0, 1.0, 1.0, 1.1, 0.9, 1.0, 1.1, 1.2000000000000002, 1.1, 0.9, 1.0, 1.0, 1.0, 1.2000000000000002, 1.0, 0.9, 1.0, 1.0, 1.0, 1.0, 0.9, 1.1, 1.2000000000000002, 1.1, 1.0, 1.0, 0.9, 1.0, 0.9, 1.0, 1.1, 1.1, 0.9, 0.9, 1.0, 1.1, 1.2000000000000002, 0.9, 0.9, 1.0, 1.0, 1.0] for hr in start_hours]
 
     
-    #cell_levels = [10.0, 9.0, 10.0, 8.0, 10.0, 14.0, 10.0, 8.0, 16.0, 11.0, 12.0, 10.0, 13.0, 12.0, 8.0, 10.0, 11.0, 11.0, 8.0, 14.0, 16.0, 11.0, 15.0, 10.0, 14.0, 14.0, 8.0, 12.0, 14.0, 14.0, 6.0, 13.0, 8.0, 10.0, 7.0, 12.0, 10.0, 6.0, 17.0, 4.0, 14.0, 11.0, 12.0, 10.0, 10, 10.0, 10.0, 14.0, 6.0, 10.0, 10.0, 10.0, 10.0, 14.0, 9.0, 10.0, 14.0, 6.0]
-    
+    #cell_levels = [11.0, 11.0, 11.0, 12.0, 8.0, 10.0, 12.0, 10.0, 13.0, 7.0, 11.0, 7.0, 9.0, 9.0, 9.0, 13.0, 13.0, 9.0, 12.0, 9.0, 12.0, 10.0, 8.0, 11.0, 13.0, 8.0, 13.0, 10.0, 9.0, 7.0, 9.0, 14.0, 9.0, 12.0, 11.0, 7.0, 10.0, 10.0, 11.0, 10.0, 11.0, 12.0, 12.0, 13.0, 10, 11.0, 10.0, 10.0, 12.0, 11.0, 9.0, 6.0, 11.0, 9.0, 10.0, 7.0, 9.0, 11.0]
+       
 
     #cell_levels = [[[min(cell_levels[cell_idx], capacities[cell_idx][stn_idx]) for stn_idx in range(len(list(cell_to_station[cell_idx])))] for cell_idx in range(n_cells)] for hr in start_hours]
     cell_levels = [[[min(starting_level, capacities[cell_idx][stn_idx]) for stn_idx in range(len(list(cell_to_station[cell_idx])))] for cell_idx in range(n_cells)] for hr in start_hours]
