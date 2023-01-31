@@ -20,3 +20,13 @@
   if prior_res != "none":
 /home/matts/phd/implementation/ode_decomp/oslo_control_2.py:123: FutureWarning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
   if prior_res != "none":
+/home/matts/phd/implementation/ode_decomp/oslo_control_2.py:123: FutureWarning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
+  if prior_res != "none":
+/home/matts/phd/implementation/ode_decomp/oslo_control_2.py:123: FutureWarning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
+  if prior_res != "none":
+/home/matts/phd/implementation/ode_decomp/oslo_control_2.py:123: FutureWarning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
+  if prior_res != "none":
+/home/matts/phd/implementation/ode_decomp/oslo_control_2.py:123: FutureWarning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
+  if prior_res != "none":
+/home/matts/phd/implementation/ode_decomp/oslo_control_2.py:123: FutureWarning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
+  if prior_res != "none":
