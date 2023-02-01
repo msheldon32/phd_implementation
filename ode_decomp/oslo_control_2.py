@@ -1073,7 +1073,7 @@ def optimize_start(rebalancing_cost, bounce_cost, run_price=True, run_xdiff=True
     annealing_alpha = 0.98
 
     #raise Exception("price/start change")
-    temperature = temperature * (annealing_alpha**(5))
+    temperature = temperature * (annealing_alpha**(75))
 
     
 
@@ -1085,12 +1085,18 @@ def optimize_start(rebalancing_cost, bounce_cost, run_price=True, run_xdiff=True
 
     #prices = [[1.0, 1.1, 1.0, 1.0, 0.9, 0.9, 1.1, 1.0, 1.0, 1.0, 1.1, 1.0, 1.0, 1.1, 1.0, 1.0, 1.0, 1.0, 1.0, 1.1, 0.9, 1.0, 1.1, 1.2000000000000002, 1.1, 0.9, 1.0, 1.0, 1.0, 1.2000000000000002, 1.0, 0.9, 1.0, 1.0, 1.0, 1.0, 0.9, 1.1, 1.2000000000000002, 1.1, 1.0, 1.0, 0.9, 1.0, 0.9, 1.0, 1.1, 1.1, 0.9, 0.9, 1.0, 1.1, 1.2000000000000002, 0.9, 0.9, 1.0, 1.0, 1.0] for hr in start_hours]
 
+    prices = [[1.2, 0.8999999999999999, 1.4000000000000004, 1.0000000000000002, 0.9, 0.7000000000000001, 0.6, 1.2000000000000002, 1.4000000000000004, 1.3000000000000003, 1.0000000000000002, 0.7000000000000001, 0.8, 0.8999999999999999, 1.0, 1.1, 1.1, 1.3, 0.9999999999999999, 1.3000000000000003, 1.2, 1.4000000000000006, 1.6000000000000005, 0.40000000000000013, 1.5000000000000007, 0.4, 1.1, 1.4000000000000004, 0.7000000000000001, 1.1, 1.1, 1.3000000000000003, 0.8000000000000003, 1.2000000000000002, 1.2, 0.8, 0.7000000000000001, 1.1, 1.2000000000000004, 1.0999999999999999, 1.2000000000000002, 1.3000000000000003, 1.2000000000000002, 1.3000000000000003, 0.7000000000000001, 0.9, 1.3000000000000003, 1.1000000000000003, 0.8, 1.2000000000000006, 1.0, 0.9, 1.2000000000000002, 1.4000000000000004, 1.0, 1.2, 0.9, 1.0000000000000002] for hr in start_hours]
+    
+
     
     #cell_levels = [11.0, 11.0, 11.0, 12.0, 8.0, 10.0, 12.0, 10.0, 13.0, 7.0, 11.0, 7.0, 9.0, 9.0, 9.0, 13.0, 13.0, 9.0, 12.0, 9.0, 12.0, 10.0, 8.0, 11.0, 13.0, 8.0, 13.0, 10.0, 9.0, 7.0, 9.0, 14.0, 9.0, 12.0, 11.0, 7.0, 10.0, 10.0, 11.0, 10.0, 11.0, 12.0, 12.0, 13.0, 10, 11.0, 10.0, 10.0, 12.0, 11.0, 9.0, 6.0, 11.0, 9.0, 10.0, 7.0, 9.0, 11.0]
+
+    cell_levels = [10.0, 13.0, 12.0, 6.0, 7.0, 6.0, 9.0, 11.0, 8.0, 8.0, 14.0, 1.0, 16.0, 10.0, 15.0, 10.0, 14.0, 13.0, 11.0, 13.0, 10.0, 10.0, 4.0, 9.0, 9.0, 8.0, 4.0, 9.0, 11.0, 17.0, 4.0, 15.0, 8.0, 17.0, 9.0, 17.0, 16.0, 13.0, 17.0, 7.0, 16.0, 15.0, 11.0, 5.0, 15, 11.0, 14.0, 16.0, 8.0, 7.0, 10.0, 5.0, 8.0, 15.0, 8.0, 13.0, 16.0, 7.0]
+    
        
 
-    #cell_levels = [[[min(cell_levels[cell_idx], capacities[cell_idx][stn_idx]) for stn_idx in range(len(list(cell_to_station[cell_idx])))] for cell_idx in range(n_cells)] for hr in start_hours]
-    cell_levels = [[[min(starting_level, capacities[cell_idx][stn_idx]) for stn_idx in range(len(list(cell_to_station[cell_idx])))] for cell_idx in range(n_cells)] for hr in start_hours]
+    cell_levels = [[[min(cell_levels[cell_idx], capacities[cell_idx][stn_idx]) for stn_idx in range(len(list(cell_to_station[cell_idx])))] for cell_idx in range(n_cells)] for hr in start_hours]
+    #cell_levels = [[[min(starting_level, capacities[cell_idx][stn_idx]) for stn_idx in range(len(list(cell_to_station[cell_idx])))] for cell_idx in range(n_cells)] for hr in start_hours]
 
     delay_phase_ct = get_delay_phase_ct(start_hours[0], start_hours[-1] + hour_delta)
     first_vec_iter = [[
