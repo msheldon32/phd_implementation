@@ -114,10 +114,10 @@ class Simulator:
                     if self.station_lvl[stn_idx] >= self.capacities[stn_idx]:
                         #print(f"Station is full: {stn_idx}")
                         self.n_bounces += 1
-                        if random.random() < 0.5:
-                            self.delay_lvl[dst_cell][src_cell][0] += 1
-                        else:
-                            self.delay_lvl[dst_cell][dst_cell][0] += 1
+                        #if random.random() < 0.5:
+                        #    self.delay_lvl[dst_cell][src_cell][0] += 1
+                        #else:
+                        self.delay_lvl[dst_cell][dst_cell][0] += 1
                     else:
                         self.n_arrivals += 1
                         self.station_lvl[stn_idx] += 1

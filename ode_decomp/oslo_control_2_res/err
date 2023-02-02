@@ -1,14 +1,10 @@
-/home/matts/phd/implementation/ode_decomp/oslo_control_2.py:123: FutureWarning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
-  if prior_res != "none":
-/home/matts/phd/implementation/ode_decomp/oslo_control_2.py:123: FutureWarning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
-  if prior_res != "none":
-/home/matts/phd/implementation/ode_decomp/oslo_control_2.py:123: FutureWarning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
-  if prior_res != "none":
-/home/matts/phd/implementation/ode_decomp/oslo_control_2.py:123: FutureWarning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
-  if prior_res != "none":
-/home/matts/phd/implementation/ode_decomp/oslo_control_2.py:123: FutureWarning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
-  if prior_res != "none":
-/home/matts/phd/implementation/ode_decomp/oslo_control_2.py:123: FutureWarning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
-  if prior_res != "none":
-/home/matts/phd/implementation/ode_decomp/oslo_control_2.py:123: FutureWarning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
-  if prior_res != "none":
+Traceback (most recent call last):
+  File "/home/matts/phd/implementation/ode_decomp/oslo_control_2.py", line 1222, in <module>
+    optimize_start(rebalancing_cost, bounce_cost)##, default_epoch=default_epoch, default_prices=default_prices)
+  File "/home/matts/phd/implementation/ode_decomp/oslo_control_2.py", line 1110, in optimize_start
+    delay_phase_ct = get_delay_phase_ct(start_hours[0], start_hours[-1] + hour_delta)
+  File "/home/matts/phd/implementation/ode_decomp/oslo_control_2.py", line 861, in get_delay_phase_ct
+    mu_hr, phi_hr = get_oslo_data.get_cox_data(hr, len(cell_to_station))
+  File "/home/matts/phd/implementation/ode_decomp/get_oslo_data.py", line 67, in get_cox_data
+    mu[start_cell][end_cell]  = [float(row["mu1"]) * RATE_MULTIPLIER, float(row["mu2"]) * RATE_MULTIPLIER]
+IndexError: list assignment index out of range

@@ -42,7 +42,7 @@ RATE_MULTIPLIER = 1
 DEMAND_INFLATION = 1 # FOR TESTING/EXPERIMENTS ONLY
 TEST_PARAM = False
 
-data_folder = "oslo_data_3_big"
+data_folder = "oslo_data_4"
 
 def get_cox_data(hour, n_cells):
     durations = pd.read_csv(f"{data_folder}/cell_distances.csv")
