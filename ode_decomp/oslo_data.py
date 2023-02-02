@@ -11,7 +11,7 @@ import random
 import sqlite3
 import gc
 
-DATA_FOLDER = "oslo_data/"
+DATA_FOLDER = "oslo_data_4/"
 HOURLY_CLUSTER = [hr for hr in range(0,24)] # map hour->time cluster
 
 def get_oslo_data(time_clusters = HOURLY_CLUSTER):

@@ -837,12 +837,13 @@ class StrictTrajCellCoxControl:
 
                         # change to trajectories: store only 2 phases per cell
                         deriv[j + self.station_offset] += (1-hi_loss)*rate*self.inbound_traj_inflation*self.trajectories[(start_cell*2) + phase_idx][int(t//self.tstep)]
-                        #deriv[self.x_idx[self.cell_idx]] += 0.5*hi_loss*rate*self.inbound_traj_inflation*self.trajectories[(start_cell*2) + phase_idx][int(t//self.tstep)]
-                        deriv[self.x_idx[start_cell]] += hi_loss*rate*self.inbound_traj_inflation*self.trajectories[(start_cell*2) + phase_idx][int(t//self.tstep)]
+                        deriv[self.x_idx[self.cell_idx]] += hi_loss*rate*self.inbound_traj_inflation*self.trajectories[(start_cell*2) + phase_idx][int(t//self.tstep)]
+                        #deriv[self.x_idx[start_cell]] += 0.5*hi_loss*rate*self.inbound_traj_inflation*self.trajectories[(start_cell*2) + phase_idx][int(t//self.tstep)]
                         arrivals += (1-hi_loss)*rate*self.inbound_traj_inflation*self.trajectories[(start_cell*2) + phase_idx][int(t//self.tstep)]
 
                         bounces += hi_loss*rate*self.inbound_traj_inflation*self.trajectories[(start_cell*2) + phase_idx][int(t//self.tstep)]
-
+        
+        #print(f"prices: {self.prices[j]}")
                
         deriv[-1] = reward
         deriv[-2] = regret

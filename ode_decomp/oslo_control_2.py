@@ -568,7 +568,7 @@ def run_control_period_sa(start_hour, end_hour, prices, cell_levels, prior_cell_
                     if change_one:
                         raise Exception("not implemented")
                     else:
-                        next_level = cell_levels[cell_idx] * capacities[-1-stn_idx]
+                        next_level = cell_levels[cell_idx] * capacities[cell_idx][-1-stn_idx]
                 else:
                     next_level = final_cell_levels[cell_idx] * capacities[-1-stn_idx]
                 reb_cost += rebalancing_cost*abs(final_level - next_level)
@@ -1080,7 +1080,7 @@ def optimize_start(rebalancing_cost, bounce_cost, run_price=True, run_xdiff=True
     annealing_alpha = 0.98
 
     #raise Exception("price/start change")
-    temperature = temperature * (annealing_alpha**(75))
+    #temperature = temperature * (annealing_alpha**(75))
 
     
 
@@ -1092,7 +1092,6 @@ def optimize_start(rebalancing_cost, bounce_cost, run_price=True, run_xdiff=True
 
     #prices = [[1.0, 1.1, 1.0, 1.0, 0.9, 0.9, 1.1, 1.0, 1.0, 1.0, 1.1, 1.0, 1.0, 1.1, 1.0, 1.0, 1.0, 1.0, 1.0, 1.1, 0.9, 1.0, 1.1, 1.2000000000000002, 1.1, 0.9, 1.0, 1.0, 1.0, 1.2000000000000002, 1.0, 0.9, 1.0, 1.0, 1.0, 1.0, 0.9, 1.1, 1.2000000000000002, 1.1, 1.0, 1.0, 0.9, 1.0, 0.9, 1.0, 1.1, 1.1, 0.9, 0.9, 1.0, 1.1, 1.2000000000000002, 0.9, 0.9, 1.0, 1.0, 1.0] for hr in start_hours]
 
-    prices = [[1.2, 0.8999999999999999, 1.4000000000000004, 1.0000000000000002, 0.9, 0.7000000000000001, 0.6, 1.2000000000000002, 1.4000000000000004, 1.3000000000000003, 1.0000000000000002, 0.7000000000000001, 0.8, 0.8999999999999999, 1.0, 1.1, 1.1, 1.3, 0.9999999999999999, 1.3000000000000003, 1.2, 1.4000000000000006, 1.6000000000000005, 0.40000000000000013, 1.5000000000000007, 0.4, 1.1, 1.4000000000000004, 0.7000000000000001, 1.1, 1.1, 1.3000000000000003, 0.8000000000000003, 1.2000000000000002, 1.2, 0.8, 0.7000000000000001, 1.1, 1.2000000000000004, 1.0999999999999999, 1.2000000000000002, 1.3000000000000003, 1.2000000000000002, 1.3000000000000003, 0.7000000000000001, 0.9, 1.3000000000000003, 1.1000000000000003, 0.8, 1.2000000000000006, 1.0, 0.9, 1.2000000000000002, 1.4000000000000004, 1.0, 1.2, 0.9, 1.0000000000000002] for hr in start_hours]
     
 
     

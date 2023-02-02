@@ -47,6 +47,7 @@ data_folder = "oslo_data_4"
 def get_cox_data(hour, n_cells):
     durations = pd.read_csv(f"{data_folder}/cell_distances.csv")
     default_durations = pd.read_csv(f"{data_folder}/default_cell_distances.csv")
+    #print(f"default_durations: {default_durations}")
 
     durations = durations[durations["hour"] == hour]
 
@@ -57,6 +58,7 @@ def get_cox_data(hour, n_cells):
 
     # first run through general durations then hour-specific ones
     for i, row in default_durations.iterrows():
+        #print(f"row: {row}")
         start_cell = int(row["start_cell"])
         end_cell   = int(row["end_cell"])
 
