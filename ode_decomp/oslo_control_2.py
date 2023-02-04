@@ -652,15 +652,12 @@ def run_control_period_sa(start_hour, end_hour, prices, cell_levels, prior_cell_
                             s_in_cell = len(cell_to_station[dst_cell_idx])
                             for stn in range(s_in_cell):
                                 new_station_level = sample_last_vector[dst_cell_idx][-1-stn]
+                                orig_station_level = last_vector_iter[dst_cell_idx][-1-stn]
                                 if final_cell_levels == "same":
-                                    init_station_level = first_vec_iter[cell_idx][-1-stn] - change
-                                    if not change_one or stn == station_idx:
-                                        orig_init_station_level = first_vec_iter[cell_idx][-1-stn]
-                                    else:
-                                        orig_init_station_level = first_vec_iter[cell_idx][-1-stn]
+                                    orig_init_station_level = cell_levels[cell_idx]*capacities[cell_idx][-1-stn]
+                                    init_station_level = first_vec_iter[cell_idx][-1-stn]
                                 else: 
                                     raise Exception("not implemented. In particular, we need to concern ourselves with both the rebalancing cost into the period and out of the period")
-                                orig_station_level = last_vector_iter[dst_cell_idx][-1-stn]
                                 final_rebalancing_cost += 0.5 * rebalancing_cost * (abs(new_station_level - init_station_level) - abs(orig_station_level-orig_init_station_level))
 
                     cell_delta = local_profit_delta - (init_rebalancing_cost + final_rebalancing_cost)
@@ -726,21 +723,22 @@ def run_control_period_sa(start_hour, end_hour, prices, cell_levels, prior_cell_
                     local_profit_delta = sum([(x - profits[i]) for i, x in enumerate(new_profits) if new_profits[i] != 0])
                     
                     # update starting & ending rebalancing costs
-                    
                     final_rebalancing_cost = 0
+
                     for dst_cell_idx, new_cell_profit in enumerate(new_profits):
                         # use profits to see if the cell has been re-ran
                         if new_cell_profit != 0:
                             s_in_cell = len(cell_to_station[dst_cell_idx])
                             for stn in range(s_in_cell):
-                                new_station_level = sample_last_vector[dst_cell_idx][-stn]
+                                new_station_level = sample_last_vector[dst_cell_idx][-1-stn]
+                                orig_station_level = last_vector_iter[dst_cell_idx][-1-stn]
                                 if final_cell_levels == "same":
                                     init_station_level = first_vec_iter[cell_idx][-1-stn]
                                     orig_init_station_level = first_vec_iter[cell_idx][-1-stn]
-                                else:
-                                    raise Exception("not implemented. in particular, we need to concern ourselves with both the starting and ending levels")
-                                orig_station_level = last_vector_iter[dst_cell_idx][-1-stn]
+                                else: 
+                                    raise Exception("not implemented. In particular, we need to concern ourselves with both the rebalancing cost into the period and out of the period")
                                 final_rebalancing_cost += 0.5 * rebalancing_cost * (abs(new_station_level - init_station_level) - abs(orig_station_level-orig_init_station_level))
+                    
 
                     cell_delta = local_profit_delta - final_rebalancing_cost
                     #acache[(first_vec_iter[cell_idx][-1], new_price)] = cell_delta

@@ -1,0 +1,108 @@
+Traceback (most recent call last):
+  File "/home/matts/phd/implementation/ode_decomp/oslo_control_2.py", line 1221, in <module>
+    toc = time.perf_counter()
+  File "/home/matts/phd/implementation/ode_decomp/oslo_control_2.py", line 1150, in optimize_start
+    "same" if (n_hours == 1) else ending_cell_levels[(hour_idx + n_hours - 1) % n_hours], # cell levels before rebalancing
+  File "/home/matts/phd/implementation/ode_decomp/oslo_control_2.py", line 558, in run_control_period_sa
+    ares, lastres, trajectories, last_vector_iter, total_reward, profits, regret, arrivals, bounces = run_control(model_data, traj_cells, SOLVER, 0.5, current_vector=first_vec_iter, time_length=float(end_hour-start_hour), max_steps=10)
+  File "/home/matts/phd/implementation/ode_decomp/oslo_control_2.py", line 312, in run_control
+    cell_threads[c].join()
+  File "/usr/lib/python3.10/multiprocessing/process.py", line 149, in join
+    res = self._popen.wait(timeout)
+  File "/usr/lib/python3.10/multiprocessing/popen_fork.py", line 43, in wait
+    return self.poll(os.WNOHANG if timeout == 0.0 else 0)
+  File "/usr/lib/python3.10/multiprocessing/popen_fork.py", line 27, in poll
+    pid, sts = os.waitpid(self.pid, flag)
+KeyboardInterrupt
+Process Process-25:
+Process Process-26:
+Process Process-32:
+Process Process-27:
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/usr/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/matts/phd/implementation/ode_decomp/oslo_control_2.py", line 159, in cell_fn
+    x_t = spi.solve_ivp(traj_cells[cell_idx].dxdt_array_2phase, [0, time_length], list(current_vector[cell_idx]) + [0,0,0,0],
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/ivp.py", line 580, in solve_ivp
+    message = solver.step()
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/base.py", line 181, in step
+    success, message = self._step_impl()
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/rk.py", line 144, in _step_impl
+    y_new, f_new = rk_step(self.fun, t, y, self.f, h, self.A,
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/rk.py", line 64, in rk_step
+    K[s] = fun(t + c * h, y + dy)
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/base.py", line 138, in fun
+    return self.fun_single(t, y)
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/base.py", line 20, in fun_wrapped
+    return np.asarray(fun(t, y), dtype=dtype)
+  File "/home/matts/phd/implementation/ode_decomp/spatial_decomp_strict.py", line 844, in dxdt_array_2phase
+    bounces += hi_loss*rate*self.inbound_traj_inflation*self.trajectories[(start_cell*2) + phase_idx][int(t//self.tstep)]
+KeyboardInterrupt
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/usr/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/matts/phd/implementation/ode_decomp/oslo_control_2.py", line 159, in cell_fn
+    x_t = spi.solve_ivp(traj_cells[cell_idx].dxdt_array_2phase, [0, time_length], list(current_vector[cell_idx]) + [0,0,0,0],
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/ivp.py", line 580, in solve_ivp
+    message = solver.step()
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/base.py", line 181, in step
+    success, message = self._step_impl()
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/rk.py", line 144, in _step_impl
+    y_new, f_new = rk_step(self.fun, t, y, self.f, h, self.A,
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/rk.py", line 64, in rk_step
+    K[s] = fun(t + c * h, y + dy)
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/base.py", line 138, in fun
+    return self.fun_single(t, y)
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/base.py", line 20, in fun_wrapped
+    return np.asarray(fun(t, y), dtype=dtype)
+  File "/home/matts/phd/implementation/ode_decomp/spatial_decomp_strict.py", line 842, in dxdt_array_2phase
+    arrivals += (1-hi_loss)*rate*self.inbound_traj_inflation*self.trajectories[(start_cell*2) + phase_idx][int(t//self.tstep)]
+KeyboardInterrupt
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/usr/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/matts/phd/implementation/ode_decomp/oslo_control_2.py", line 159, in cell_fn
+    x_t = spi.solve_ivp(traj_cells[cell_idx].dxdt_array_2phase, [0, time_length], list(current_vector[cell_idx]) + [0,0,0,0],
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/ivp.py", line 580, in solve_ivp
+    message = solver.step()
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/base.py", line 181, in step
+    success, message = self._step_impl()
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/rk.py", line 144, in _step_impl
+    y_new, f_new = rk_step(self.fun, t, y, self.f, h, self.A,
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/rk.py", line 64, in rk_step
+    K[s] = fun(t + c * h, y + dy)
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/base.py", line 138, in fun
+    return self.fun_single(t, y)
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/base.py", line 20, in fun_wrapped
+    return np.asarray(fun(t, y), dtype=dtype)
+  File "/home/matts/phd/implementation/ode_decomp/spatial_decomp_strict.py", line 844, in dxdt_array_2phase
+    bounces += hi_loss*rate*self.inbound_traj_inflation*self.trajectories[(start_cell*2) + phase_idx][int(t//self.tstep)]
+KeyboardInterrupt
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/usr/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/matts/phd/implementation/ode_decomp/oslo_control_2.py", line 159, in cell_fn
+    x_t = spi.solve_ivp(traj_cells[cell_idx].dxdt_array_2phase, [0, time_length], list(current_vector[cell_idx]) + [0,0,0,0],
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/ivp.py", line 580, in solve_ivp
+    message = solver.step()
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/base.py", line 181, in step
+    success, message = self._step_impl()
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/rk.py", line 144, in _step_impl
+    y_new, f_new = rk_step(self.fun, t, y, self.f, h, self.A,
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/rk.py", line 67, in rk_step
+    f_new = fun(t + h, y_new)
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/base.py", line 138, in fun
+    return self.fun_single(t, y)
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/base.py", line 20, in fun_wrapped
+    return np.asarray(fun(t, y), dtype=dtype)
+  File "/home/matts/phd/implementation/ode_decomp/spatial_decomp_strict.py", line 844, in dxdt_array_2phase
+    bounces += hi_loss*rate*self.inbound_traj_inflation*self.trajectories[(start_cell*2) + phase_idx][int(t//self.tstep)]
+KeyboardInterrupt
