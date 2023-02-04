@@ -482,7 +482,7 @@ def run_control_period_optuna(start_hour, end_hour, prices, cell_levels, prior_c
 
 def run_control_period_sa(start_hour, end_hour, prices, cell_levels, prior_cell_levels, 
             final_cell_levels,first_vec_iter="none",
-            finite_difference_x = 0.1, finite_difference_price=0.1, run_xdiff=True, run_price=True, cache=True, 
+            finite_difference_x = 0.1, finite_difference_price=0.05, run_xdiff=True, run_price=True, cache=True, 
             bounce_cost=0.0, rebalancing_cost=0.0,
             annealing_steps=100, starting_temperature=1.0, annealing_alpha=0.95, change_one=True):
     print(f"running hours: {start_hour} -> {end_hour}")
@@ -621,13 +621,13 @@ def run_control_period_sa(start_hour, end_hour, prices, cell_levels, prior_cell_
                         change = -1
                     first_vec_iter[cell_idx][-1-station_idx] += change
                 else:
-                    if cell_levels[cell_idx]+(change*0.1) < 0:
+                    if cell_levels[cell_idx]+(change*finite_difference_x) < 0:
                         # prevent negative starting values
                         change = 1
-                    elif cell_levels[cell_idx]+(change*0.1) >= 1:
+                    elif cell_levels[cell_idx]+(change*finite_difference_x) >= 1:
                         change = -1
                     for station_idx in range(len(cell_to_station[cell_idx])):
-                        first_vec_iter[cell_idx][-1-station_idx] = (cell_levels[cell_idx]+(change*0.1))*capacities[cell_idx][-1-station_idx]
+                        first_vec_iter[cell_idx][-1-station_idx] = (cell_levels[cell_idx]+(change*finite_difference_x))*capacities[cell_idx][-1-station_idx]
                 if change_one or (first_vec_iter[cell_idx][-1], traj_cells[cell_idx].price) not in acache:
                     ares, lastres, sample_trajectories, sample_last_vector, new_total_reward, new_profits, new_regret, new_arrivals,new_bounces = run_control(model_data, 
                         traj_cells, SOLVER, 0.02, trajectories=trajectories, 
@@ -654,8 +654,8 @@ def run_control_period_sa(start_hour, end_hour, prices, cell_levels, prior_cell_
                                 new_station_level = sample_last_vector[dst_cell_idx][-1-stn]
                                 orig_station_level = last_vector_iter[dst_cell_idx][-1-stn]
                                 if final_cell_levels == "same":
-                                    orig_init_station_level = cell_levels[cell_idx]*capacities[cell_idx][-1-stn]
-                                    init_station_level = first_vec_iter[cell_idx][-1-stn]
+                                    orig_init_station_level = cell_levels[dst_cell_idx]*capacities[dst_cell_idx][-1-stn]
+                                    init_station_level = first_vec_iter[dst_cell_idx][-1-stn]
                                 else: 
                                     raise Exception("not implemented. In particular, we need to concern ourselves with both the rebalancing cost into the period and out of the period")
                                 final_rebalancing_cost += 0.5 * rebalancing_cost * (abs(new_station_level - init_station_level) - abs(orig_station_level-orig_init_station_level))
@@ -675,7 +675,7 @@ def run_control_period_sa(start_hour, end_hour, prices, cell_levels, prior_cell_
                     print(f"rejecting x0 change: revenue of {local_profit_delta}, reb of {final_rebalancing_cost}")
                 else:
                     s_in_cell = len(cell_to_station[cell_idx])
-                    cell_levels[cell_idx] += change*0.1
+                    cell_levels[cell_idx] += change*finite_difference_x
                     overall_delta += cell_delta
                     trajectories = sample_trajectories
                     gc.collect()
@@ -733,8 +733,8 @@ def run_control_period_sa(start_hour, end_hour, prices, cell_levels, prior_cell_
                                 new_station_level = sample_last_vector[dst_cell_idx][-1-stn]
                                 orig_station_level = last_vector_iter[dst_cell_idx][-1-stn]
                                 if final_cell_levels == "same":
-                                    init_station_level = first_vec_iter[cell_idx][-1-stn]
-                                    orig_init_station_level = first_vec_iter[cell_idx][-1-stn]
+                                    init_station_level = first_vec_iter[dst_cell_idx][-1-stn]
+                                    orig_init_station_level = first_vec_iter[dst_cell_idx][-1-stn]
                                 else: 
                                     raise Exception("not implemented. In particular, we need to concern ourselves with both the rebalancing cost into the period and out of the period")
                                 final_rebalancing_cost += 0.5 * rebalancing_cost * (abs(new_station_level - init_station_level) - abs(orig_station_level-orig_init_station_level))
@@ -1028,8 +1028,8 @@ def optimize_start_optuna(rebalancing_cost, bounce_cost, run_price=True, run_xdi
                         "same" if (n_hours == 1) else ending_cell_levels[(hour_idx + n_hours - 1) % n_hours], # cell levels before rebalancing
                         "same" if (n_hours == 1) else cell_levels[(hours_idx + 1) % n_hours ], # next cell idx 
                         cache=False, 
-                        finite_difference_x=1, 
-                        finite_difference_price=0.1,
+                        finite_difference_x=0.1, 
+                        finite_difference_price=0.05,
                         run_price=run_price, 
                         run_xdiff=run_xdiff,
                         bounce_cost=bounce_cost, rebalancing_cost=rebalancing_cost,
