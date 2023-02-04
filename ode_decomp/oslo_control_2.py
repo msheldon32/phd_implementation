@@ -653,14 +653,13 @@ def run_control_period_sa(start_hour, end_hour, prices, cell_levels, prior_cell_
                             for stn in range(s_in_cell):
                                 new_station_level = sample_last_vector[dst_cell_idx][-1-stn]
                                 if final_cell_levels == "same":
-                                    init_station_level = first_vec_iter[cell_idx][-1-stn]
+                                    init_station_level = first_vec_iter[cell_idx][-1-stn] - change
                                     if not change_one or stn == station_idx:
-                                        orig_init_station_level = first_vec_iter[cell_idx][-1-stn] - change
+                                        orig_init_station_level = first_vec_iter[cell_idx][-1-stn]
                                     else:
                                         orig_init_station_level = first_vec_iter[cell_idx][-1-stn]
-                                else:
-                                    init_station_level = final_cell_levels[cell_idx][-1-stn]*capacities[cell_idx][-1-stn]
-                                    orig_init_station_level = final_cell_levels[cell_idx][-1-stn]*capacities[cell_idx][-1-stn]
+                                else: 
+                                    raise Exception("not implemented. In particular, we need to concern ourselves with both the rebalancing cost into the period and out of the period")
                                 orig_station_level = last_vector_iter[dst_cell_idx][-1-stn]
                                 final_rebalancing_cost += 0.5 * rebalancing_cost * (abs(new_station_level - init_station_level) - abs(orig_station_level-orig_init_station_level))
 
@@ -739,8 +738,7 @@ def run_control_period_sa(start_hour, end_hour, prices, cell_levels, prior_cell_
                                     init_station_level = first_vec_iter[cell_idx][-1-stn]
                                     orig_init_station_level = first_vec_iter[cell_idx][-1-stn]
                                 else:
-                                    init_station_level = final_cell_levels[cell_idx][-1-stn]
-                                    orig_init_station_level = final_cell_levels[cell_idx][-1-stn]
+                                    raise Exception("not implemented. in particular, we need to concern ourselves with both the starting and ending levels")
                                 orig_station_level = last_vector_iter[dst_cell_idx][-1-stn]
                                 final_rebalancing_cost += 0.5 * rebalancing_cost * (abs(new_station_level - init_station_level) - abs(orig_station_level-orig_init_station_level))
 
@@ -1041,7 +1039,7 @@ def optimize_start_optuna(rebalancing_cost, bounce_cost, run_price=True, run_xdi
                         annealing_steps=annealing_steps,
                         annealing_alpha=annealing_alpha,
                         change_one=False)
-            print(f"original cell levels: {[x[-1] for x in cell_levels[hour_idx]]}")
+            print(f"original cell levels: {[x for x in cell_levels[hour_idx]]}")
             print(f"original prices: {prices[hour_idx]}")
 
             total_profit += profit
@@ -1165,7 +1163,7 @@ def optimize_start(rebalancing_cost, bounce_cost, run_price=True, run_xdiff=True
             first_vec_iter = new_first_vec_iter
             #station_levels = [first_vec_iter[hour_idx][cell_idx][delay_phase_ct[cell_idx]:] for cell_idx in range(n_cells)]
             print(f"original prices: {prices[hour_idx]}")
-            print(f"original cell_levels: {[x[-1] for x in cell_levels[hour_idx]]}")
+            print(f"original cell_levels: {[x for x in cell_levels[hour_idx]]}")
 
             total_profit += profit
             total_regret += regret
@@ -1175,7 +1173,7 @@ def optimize_start(rebalancing_cost, bounce_cost, run_price=True, run_xdiff=True
 
             #print(f"new station_levels: {station_levels}")
             print(f"new prices: {prices[hour_idx]}")
-            print(f"new cell_levels: {[x[-1] for x in cell_levels[hour_idx]]}")
+            print(f"new cell_levels: {[x for x in cell_levels[hour_idx]]}")
 
             for cell_idx in range(n_cells):
                 s_in_cell = len(cell_to_station[cell_idx])
