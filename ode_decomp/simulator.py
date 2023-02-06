@@ -26,7 +26,7 @@ class Simulator:
             [[0 for phase_idx in range(len(self.mu[0][src_cell][dst_cell]))] for dst_cell in range(self.n_cells)] for src_cell in range(self.n_cells)
                 ]
         self.station_lvl = [
-                starting_levels[self.stn_to_cell[stn_idx]]*self.capacities[stn_idx] for stn_idx in range(self.n_stations)
+                round(starting_levels[self.stn_to_cell[stn_idx]]*self.capacities[stn_idx]) for stn_idx in range(self.n_stations)
             ]
 
         for i, stn_lvl in enumerate(self.station_lvl):
@@ -149,5 +149,5 @@ class Simulator:
         total_reb_cost = 0
         for cell_idx in range(self.n_cells):
             for stn_idx_in_cell, stn_idx in enumerate(self.cell_to_stn[cell_idx]):
-                total_reb_cost += abs(self.station_lvl[stn_idx] - (self.starting_levels[cell_idx]*self.capacities[stn_idx])) * reb_cost
+                total_reb_cost += abs(self.station_lvl[stn_idx] - round(self.starting_levels[cell_idx]*self.capacities[stn_idx])) * reb_cost
         return total_reb_cost
