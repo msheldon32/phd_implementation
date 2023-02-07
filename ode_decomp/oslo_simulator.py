@@ -118,7 +118,7 @@ if __name__ == "__main__":
     start_hour = 5
     end_hour = 21
 
-    n_epochs = 128
+    n_epochs = 512 
 
     data_list = get_data()
     n_cells, n_stations, stations = data_list[-3:]
