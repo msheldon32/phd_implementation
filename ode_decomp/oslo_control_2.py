@@ -1119,7 +1119,7 @@ if __name__ == "__main__":
     rebalancing_cost = float(sys.argv[1])
     bounce_cost = float(sys.argv[2])
 
-    optimize_start(rebalancing_cost, bounce_cost)##, default_epoch=default_epoch, default_prices=default_prices)
+    optimize_start(rebalancing_cost, bounce_cost, run_price=False)##, default_epoch=default_epoch, default_prices=default_prices)
 
     toc = time.perf_counter()
     print(f"time diff: {toc-tic}")

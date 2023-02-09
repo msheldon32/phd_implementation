@@ -5,7 +5,7 @@ import copy
 ELASTICITY = 1.0
 
 class Simulator:
-    def __init__(self, stn_to_cell, cell_to_stn, n_cells, stations, mu, phi, in_demands, in_probabilities, out_demands, starting_levels, prices, capacities):
+    def __init__(self, stn_to_cell, cell_to_stn, n_cells, stations, mu, phi, in_demands, in_probabilities, out_demands, starting_ptg, prices, capacities):
         self.n_cells = n_cells
         self.stations = stations
         self.n_stations = len(stn_to_cell)
@@ -17,6 +17,7 @@ class Simulator:
         self.in_probabilities = in_probabilities
         self.out_demands = out_demands
         self.capacities = capacities
+        self.starting_lvl = [0.5 for _ in range(self.n_stations)]
 
         assert len(self.capacities) == self.n_stations
 
@@ -25,15 +26,24 @@ class Simulator:
         self.delay_lvl = [
             [[0 for phase_idx in range(len(self.mu[0][src_cell][dst_cell]))] for dst_cell in range(self.n_cells)] for src_cell in range(self.n_cells)
                 ]
+
+        def get_starting_level(stn):
+            cell_idx = self.stn_to_cell[stn]
+            cell_ptg = starting_ptg[cell_idx]
+            int_lvl = math.floor(cell_ptg * self.capacities[stn])
+            if random.random() < (cell_ptg * self.capacities[stn] - int_lvl):
+                return int_lvl + 1
+            return int_lvl
+
         self.station_lvl = [
-                round(starting_levels[self.stn_to_cell[stn_idx]]*self.capacities[stn_idx]) for stn_idx in range(self.n_stations)
+               get_starting_level(stn_idx) for stn_idx in range(self.n_stations)
             ]
 
         for i, stn_lvl in enumerate(self.station_lvl):
             self.station_lvl[i] = min(self.station_lvl[i], self.capacities[i])
+            self.starting_lvl[i] = self.station_lvl[i]
             #assert stn_lvl <= self.capacities[i]
 
-        self.starting_levels = starting_levels
 
         self.n_bounces = 0
         self.n_arrivals = 0
@@ -149,5 +159,5 @@ class Simulator:
         total_reb_cost = 0
         for cell_idx in range(self.n_cells):
             for stn_idx_in_cell, stn_idx in enumerate(self.cell_to_stn[cell_idx]):
-                total_reb_cost += abs(self.station_lvl[stn_idx] - round(self.starting_levels[cell_idx]*self.capacities[stn_idx])) * reb_cost
+                total_reb_cost += abs(self.station_lvl[stn_idx] - self.starting_lvl[stn_idx])*reb_cost
         return total_reb_cost
