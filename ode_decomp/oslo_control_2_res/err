@@ -36,3 +36,181 @@
   if prior_res != "none":
 /home/matts/phd/implementation/ode_decomp/oslo_control_2.py:123: FutureWarning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
   if prior_res != "none":
+/home/matts/phd/implementation/ode_decomp/oslo_control_2.py:123: FutureWarning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
+  if prior_res != "none":
+/home/matts/phd/implementation/ode_decomp/oslo_control_2.py:123: FutureWarning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
+  if prior_res != "none":
+/home/matts/phd/implementation/ode_decomp/oslo_control_2.py:123: FutureWarning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
+  if prior_res != "none":
+/home/matts/phd/implementation/ode_decomp/oslo_control_2.py:123: FutureWarning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
+  if prior_res != "none":
+/home/matts/phd/implementation/ode_decomp/oslo_control_2.py:123: FutureWarning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
+  if prior_res != "none":
+/home/matts/phd/implementation/ode_decomp/oslo_control_2.py:123: FutureWarning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
+  if prior_res != "none":
+/home/matts/phd/implementation/ode_decomp/oslo_control_2.py:123: FutureWarning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
+  if prior_res != "none":
+/home/matts/phd/implementation/ode_decomp/oslo_control_2.py:123: FutureWarning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
+  if prior_res != "none":
+/home/matts/phd/implementation/ode_decomp/oslo_control_2.py:123: FutureWarning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
+  if prior_res != "none":
+/home/matts/phd/implementation/ode_decomp/oslo_control_2.py:123: FutureWarning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
+  if prior_res != "none":
+/home/matts/phd/implementation/ode_decomp/oslo_control_2.py:123: FutureWarning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
+  if prior_res != "none":
+/home/matts/phd/implementation/ode_decomp/oslo_control_2.py:123: FutureWarning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
+  if prior_res != "none":
+Process Process-44707:
+Process Process-44705:
+Process Process-44704:
+Process Process-44709:
+Process Process-44708:
+Process Process-44706:
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/usr/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/usr/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/usr/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/matts/phd/implementation/ode_decomp/oslo_control_2.py", line 159, in cell_fn
+    x_t = spi.solve_ivp(traj_cells[cell_idx].dxdt_array_2phase, [0, time_length], list(current_vector[cell_idx]) + [0,0,0,0],
+  File "/home/matts/phd/implementation/ode_decomp/oslo_control_2.py", line 159, in cell_fn
+    x_t = spi.solve_ivp(traj_cells[cell_idx].dxdt_array_2phase, [0, time_length], list(current_vector[cell_idx]) + [0,0,0,0],
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/ivp.py", line 546, in solve_ivp
+    solver = method(fun, t0, y0, tf, vectorized=vectorized, **options)
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/ivp.py", line 546, in solve_ivp
+    solver = method(fun, t0, y0, tf, vectorized=vectorized, **options)
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/rk.py", line 94, in __init__
+    self.f = self.fun(self.t, self.y)
+  File "/usr/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/rk.py", line 94, in __init__
+    self.f = self.fun(self.t, self.y)
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/base.py", line 138, in fun
+    return self.fun_single(t, y)
+  File "/usr/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/base.py", line 138, in fun
+    return self.fun_single(t, y)
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/base.py", line 20, in fun_wrapped
+    return np.asarray(fun(t, y), dtype=dtype)
+  File "/home/matts/phd/implementation/ode_decomp/oslo_control_2.py", line 159, in cell_fn
+    x_t = spi.solve_ivp(traj_cells[cell_idx].dxdt_array_2phase, [0, time_length], list(current_vector[cell_idx]) + [0,0,0,0],
+  File "/home/matts/phd/implementation/ode_decomp/spatial_decomp_strict.py", line 798, in dxdt_array_2phase
+    rho = q_to_rho(x[j+self.station_offset], self.capacities[j])
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/base.py", line 20, in fun_wrapped
+    return np.asarray(fun(t, y), dtype=dtype)
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/ivp.py", line 580, in solve_ivp
+    message = solver.step()
+  File "/home/matts/phd/implementation/ode_decomp/spatial_decomp_strict.py", line 41, in q_to_rho
+    build_k_q(capacity)
+  File "/home/matts/phd/implementation/ode_decomp/spatial_decomp_strict.py", line 798, in dxdt_array_2phase
+    rho = q_to_rho(x[j+self.station_offset], self.capacities[j])
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/base.py", line 181, in step
+    success, message = self._step_impl()
+  File "/home/matts/phd/implementation/ode_decomp/spatial_decomp_strict.py", line 41, in q_to_rho
+    build_k_q(capacity)
+  File "/home/matts/phd/implementation/ode_decomp/spatial_decomp_strict.py", line 36, in build_k_q
+    Q += (j*(rho**j))*norm_constant
+  File "/usr/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/usr/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/rk.py", line 144, in _step_impl
+    y_new, f_new = rk_step(self.fun, t, y, self.f, h, self.A,
+  File "/home/matts/phd/implementation/ode_decomp/spatial_decomp_strict.py", line 36, in build_k_q
+    Q += (j*(rho**j))*norm_constant
+  File "/usr/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/rk.py", line 64, in rk_step
+    K[s] = fun(t + c * h, y + dy)
+  File "/usr/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/base.py", line 138, in fun
+    return self.fun_single(t, y)
+  File "/home/matts/phd/implementation/ode_decomp/oslo_control_2.py", line 159, in cell_fn
+    x_t = spi.solve_ivp(traj_cells[cell_idx].dxdt_array_2phase, [0, time_length], list(current_vector[cell_idx]) + [0,0,0,0],
+KeyboardInterrupt
+KeyboardInterrupt
+  File "/home/matts/phd/implementation/ode_decomp/oslo_control_2.py", line 159, in cell_fn
+    x_t = spi.solve_ivp(traj_cells[cell_idx].dxdt_array_2phase, [0, time_length], list(current_vector[cell_idx]) + [0,0,0,0],
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/base.py", line 20, in fun_wrapped
+    return np.asarray(fun(t, y), dtype=dtype)
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/ivp.py", line 580, in solve_ivp
+    message = solver.step()
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/base.py", line 181, in step
+    success, message = self._step_impl()
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/rk.py", line 144, in _step_impl
+    y_new, f_new = rk_step(self.fun, t, y, self.f, h, self.A,
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/rk.py", line 64, in rk_step
+    K[s] = fun(t + c * h, y + dy)
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/base.py", line 138, in fun
+    return self.fun_single(t, y)
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/base.py", line 20, in fun_wrapped
+    return np.asarray(fun(t, y), dtype=dtype)
+  File "/home/matts/phd/implementation/ode_decomp/spatial_decomp_strict.py", line 840, in dxdt_array_2phase
+    deriv[self.x_idx[self.cell_idx]] += hi_loss*rate*self.inbound_traj_inflation*self.trajectories[(start_cell*2) + phase_idx][int(t//self.tstep)]
+KeyboardInterrupt
+  File "/usr/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/ivp.py", line 580, in solve_ivp
+    message = solver.step()
+  File "/home/matts/phd/implementation/ode_decomp/spatial_decomp_strict.py", line 839, in dxdt_array_2phase
+    deriv[j + self.station_offset] += (1-hi_loss)*rate*self.inbound_traj_inflation*self.trajectories[(start_cell*2) + phase_idx][int(t//self.tstep)]
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/base.py", line 181, in step
+    success, message = self._step_impl()
+  File "/usr/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/rk.py", line 144, in _step_impl
+    y_new, f_new = rk_step(self.fun, t, y, self.f, h, self.A,
+  File "/home/matts/phd/implementation/ode_decomp/oslo_control_2.py", line 159, in cell_fn
+    x_t = spi.solve_ivp(traj_cells[cell_idx].dxdt_array_2phase, [0, time_length], list(current_vector[cell_idx]) + [0,0,0,0],
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/rk.py", line 64, in rk_step
+    K[s] = fun(t + c * h, y + dy)
+KeyboardInterrupt
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/ivp.py", line 580, in solve_ivp
+    message = solver.step()
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/base.py", line 138, in fun
+    return self.fun_single(t, y)
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/base.py", line 181, in step
+    success, message = self._step_impl()
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/base.py", line 20, in fun_wrapped
+    return np.asarray(fun(t, y), dtype=dtype)
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/rk.py", line 144, in _step_impl
+    y_new, f_new = rk_step(self.fun, t, y, self.f, h, self.A,
+  File "/home/matts/phd/implementation/ode_decomp/spatial_decomp_strict.py", line 839, in dxdt_array_2phase
+    deriv[j + self.station_offset] += (1-hi_loss)*rate*self.inbound_traj_inflation*self.trajectories[(start_cell*2) + phase_idx][int(t//self.tstep)]
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/rk.py", line 67, in rk_step
+    f_new = fun(t + h, y_new)
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/base.py", line 138, in fun
+    return self.fun_single(t, y)
+  File "/home/matts/.local/lib/python3.10/site-packages/scipy/integrate/_ivp/base.py", line 20, in fun_wrapped
+    return np.asarray(fun(t, y), dtype=dtype)
+  File "/home/matts/phd/implementation/ode_decomp/spatial_decomp_strict.py", line 844, in dxdt_array_2phase
+    bounces += hi_loss*rate*self.inbound_traj_inflation*self.trajectories[(start_cell*2) + phase_idx][int(t//self.tstep)]
+KeyboardInterrupt
+KeyboardInterrupt
+Traceback (most recent call last):
+  File "/home/matts/phd/implementation/ode_decomp/oslo_control_2.py", line 1122, in <module>
+    optimize_start(rebalancing_cost, bounce_cost, run_xdiff=False)##, default_epoch=default_epoch, default_prices=default_prices)
+  File "/home/matts/phd/implementation/ode_decomp/oslo_control_2.py", line 1051, in optimize_start
+    res, last_vector_iter, new_prices, new_cell_levels, profit, profits, regret, reb_cost, new_first_vec_iter = run_control_period_sa(start_hour,end_hour,
+  File "/home/matts/phd/implementation/ode_decomp/oslo_control_2.py", line 721, in run_control_period_sa
+    ares, lastres, sample_trajectories, sample_last_vector, new_total_reward, new_profits, new_regret, new_arrivals, new_bounces = run_control(model_data, traj_cells, SOLVER, 0.02, trajectories=trajectories, 
+  File "/home/matts/phd/implementation/ode_decomp/oslo_control_2.py", line 323, in run_control
+    cell_threads[c].join()
+  File "/usr/lib/python3.10/multiprocessing/process.py", line 149, in join
+    res = self._popen.wait(timeout)
+  File "/usr/lib/python3.10/multiprocessing/popen_fork.py", line 43, in wait
+    return self.poll(os.WNOHANG if timeout == 0.0 else 0)
+  File "/usr/lib/python3.10/multiprocessing/popen_fork.py", line 27, in poll
+    pid, sts = os.waitpid(self.pid, flag)
+KeyboardInterrupt
