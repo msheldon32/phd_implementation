@@ -985,7 +985,7 @@ def optimize_start(rebalancing_cost, bounce_cost, run_price=True, run_xdiff=True
     annealing_alpha = 0.98
 
     #raise Exception("price/start change")
-    #temperature = temperature * (annealing_alpha**(75))
+    #temperature = temperature * (annealing_alpha**(130))
 
     
 
@@ -996,11 +996,17 @@ def optimize_start(rebalancing_cost, bounce_cost, run_price=True, run_xdiff=True
     prices = [[1.0 for cell_idx in range(n_cells)] for hr in start_hours]
 
     
-    
+    #prices = [[0.8499999999999998, 1.1500000000000001, 1.15, 1.0, 0.7999999999999996, 0.9499999999999998, 0.8999999999999999, 1.15, 0.9, 1.3500000000000008, 1.3000000000000005, 0.8499999999999994, 1.0999999999999999, 1.1500000000000001, 1.05, 1.1, 1.2000000000000004, 1.25, 1.1500000000000001, 1.05, 0.95, 0.9500000000000002, 1.05, 1.15, 1.15, 1.15, 1.1500000000000001, 1.0999999999999999, 1.1, 1.0, 1.3500000000000003, 1.1500000000000001, 0.8499999999999994, 0.8999999999999999, 0.9499999999999998, 0.6999999999999997, 0.9499999999999997, 1.0, 1.2500000000000002, 1.0, 0.7499999999999998, 0.8499999999999998, 1.1] for hr in start_hours]
 
     
 
     cell_levels = [[0.5 for cell_idx in range(n_cells)] for hr in start_hours]
+
+    #cell_levels = [[0.4, 0.7, 0.8999999999999999, 0.4, 0.20000000000000004, 0.5, 0.4, 0.7, 0.20000000000000004, 0.7999999999999999, 0.30000000000000004, 0.4, 0.7999999999999999, 0.7999999999999999, 0.6, 0.7999999999999999, 0.8999999999999999, 0.7999999999999999, 0.7, 0.6, 0.6, 0.8999999999999999, 0.6, 0.7999999999999999, 0.7, 0.7, 0.7999999999999999, 0.6, 0.6, 0.7, 0.7999999999999999, 0.7999999999999999, 0.4, 0.30000000000000004, 0.6, 0.8999999999999999, 0.4, 0.8999999999999999, 0.7, 0.8999999999999999, 0.4, 0.4, 0.6] for hr in start_hours]
+    #cell_levels = [[0.15000000000000008, 0.7500000000000002, 0.7500000000000002, 0.30000000000000004, 0.15000000000000008, 0.55, 0.35000000000000003, 0.9000000000000004, 0.30000000000000004, 0.6000000000000001, 0.7500000000000002, 0.30000000000000004, 0.7500000000000002, 0.7000000000000002, 0.7500000000000002, 0.7000000000000002, 0.9000000000000004, 0.6500000000000001, 0.5, 0.6000000000000001, 0.6500000000000001, 0.8500000000000003, 0.5, 0.8500000000000003, 0.7500000000000002, 0.7000000000000002, 0.8000000000000003, 0.9000000000000004, 0.7500000000000002, 0.5, 0.30000000000000004, 0.55, 0.5, 0.4, 0.6000000000000001, 0.35000000000000003, 0.55, 0.9000000000000004, 0.7500000000000002, 0.05000000000000007, 0.35000000000000003, 0.4, 0.5] for hr in start_hours]
+
+    
+    
     
        
 
@@ -1045,6 +1051,7 @@ def optimize_start(rebalancing_cost, bounce_cost, run_price=True, run_xdiff=True
         total_regret = 0
 
         for hour_idx, start_hour in enumerate(start_hours):
+            print(f"analyzing {hour_idx}")
             end_hour = start_hour + hour_delta
             n_hours = len(start_hours)
             # in: start_hour, end_hour, first_vec_iter, prices, cell_levels, prior_cell_levels, final_cell_levels,
@@ -1054,8 +1061,8 @@ def optimize_start(rebalancing_cost, bounce_cost, run_price=True, run_xdiff=True
                         "same" if (n_hours == 1) else cell_levels[(hours_idx + 1) % n_hours ], # next cell idx
                         first_vec_iter="none",
                         cache=False, 
-                        finite_difference_x=0.1, 
-                        finite_difference_price=0.1,
+                        finite_difference_x=0.05, 
+                        finite_difference_price=0.05,
                         run_price=run_price, 
                         run_xdiff=run_xdiff,
                         bounce_cost=bounce_cost, rebalancing_cost=rebalancing_cost,
@@ -1072,7 +1079,6 @@ def optimize_start(rebalancing_cost, bounce_cost, run_price=True, run_xdiff=True
             total_regret += regret
             prices[hour_idx] = new_prices
             cell_levels[hour_idx] = new_cell_levels
-            temperature = temperature*(annealing_alpha**annealing_steps)
 
             #print(f"new station_levels: {station_levels}")
             print(f"new prices: {prices[hour_idx]}")
@@ -1082,6 +1088,7 @@ def optimize_start(rebalancing_cost, bounce_cost, run_price=True, run_xdiff=True
                 s_in_cell = len(cell_to_station[cell_idx])
                 ending_cell_levels[hour_idx][cell_idx] = last_vector_iter[cell_idx][-s_in_cell:]
             
+        temperature = temperature*(annealing_alpha**annealing_steps)
         
         iter_profits.append(total_profit)
         iter_reb_costs.append(reb_cost)
@@ -1119,7 +1126,7 @@ if __name__ == "__main__":
     rebalancing_cost = float(sys.argv[1])
     bounce_cost = float(sys.argv[2])
 
-    optimize_start(rebalancing_cost, bounce_cost, run_xdiff=False)##, default_epoch=default_epoch, default_prices=default_prices)
+    optimize_start(rebalancing_cost, bounce_cost, run_price=False)##, default_epoch=default_epoch, default_prices=default_prices)
 
     toc = time.perf_counter()
     print(f"time diff: {toc-tic}")

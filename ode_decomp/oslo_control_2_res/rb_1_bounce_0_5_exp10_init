@@ -1,0 +1,36 @@
+running hours: 5 -> 21
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 2131.114683298523, regret: 1732.4654663578012, arrivals: 165.19032529760437, bounces: 2.0192783926280877
+Iteration complete, time: 178.21689615992364, error: inf
+Reward: 3272.2542429165906, regret: 591.4790703482361, arrivals: 2590.49535199852, bounces: 291.5029434611737
+Iteration complete, time: 383.40943700796925, error: 31.062488160743527
+Reward: 3494.40760981479, regret: 369.36456926356254, arrivals: 3698.143608924249, bounces: 603.3249307851355
+Iteration complete, time: 579.5348692529369, error: 21.941309822668536
+Reward: 3504.376589738815, regret: 359.3843729767108, arrivals: 3826.1391443408684, bounces: 642.7527555382143
+Iteration complete, time: 797.237216243986, error: 2.8609819619953427
+Reward: 3504.480968459983, regret: 359.2948727914466, arrivals: 3829.311611745794, bounces: 642.5505229157209
+Trajectory-Based Iteration finished, time: 1007.9904596839333, profit 3504.4809684599827
+reward: 3504.480968459983, bounces: 642.5505229157209, profits: 3183.2057070021224, rebalancing: 1173.854433472702
+--------------------------------------------------------------------------------------
+annealing: 29 (n: 0)
+price deriv: 29
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 51.93132439043246, regret: 4.980700205821586, arrivals: 59.39410319157956, bounces: 2.5383120364562717
+Trajectory-Based Iteration finished, time: 9.834502919926308, profit 51.93132439043246
+rejecting price change: revenue of 0.41078320529790346, reb of 2.688424960777499
+price deriv: 29
+Running Trajectory-Based Control (parallelized, limit: False)
+adding in cell number 33
+difference: 0.022718101891265927
+Reward: 48.680689823323455, regret: 9.691148303338947, arrivals: 60.18595329748291, bounces: 1.0483847616961253
+Iteration complete, time: 10.915498577989638, error: 3.9698945213434307
+Reward: 156.46054831060732, regret: 10.786500312377147, arrivals: 245.16942271372574, bounces: 29.18519942505697
+Trajectory-Based Iteration finished, time: 29.719278958975337, profit 156.46054831060732
+accepting price change: revenue of -2.4962812862506, reb of 1.3057778216051537
+price deriv: 29
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 44.8997424402314, regret: 13.46176692496595, arrivals: 60.29101024377781, bounces: 0.685666525018303
+Trajectory-Based Iteration finished, time: 9.973434904008172, profit 44.8997424402314
+accepting price change: revenue of -3.5995882647531445, reb of 2.558704131656431
+price deriv: 29
+Running Trajectory-Based Control (parallelized, limit: False)

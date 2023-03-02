@@ -1,0 +1,25 @@
+running hours: 5 -> 21
+Running Trajectory-Based Control (parallelized, limit: False)
+Reward: 2361.26270883519, regret: 1502.6185437979022, arrivals: 177.09814577833959, bounces: 6.197894217103449
+Iteration complete, time: 232.1670559470076, error: inf
+Reward: 3553.0161659215078, regret: 310.67247095332084, arrivals: 2736.800706441679, bounces: 166.53656813814564
+Iteration complete, time: 462.61589207698125, error: 33.5073750622779
+Reward: 3698.0610018404914, regret: 165.50395957151574, arrivals: 3821.5777611947397, bounces: 325.53232725838706
+Iteration complete, time: 685.6299026199849, error: 24.885870301835475
+Reward: 3698.596522877167, regret: 165.0116517304246, arrivals: 3852.099609275179, bounces: 331.4940222637723
+Iteration complete, time: 912.9201026710216, error: 1.0589440221489497
+Reward: 3698.603221407367, regret: 164.95227154389374, arrivals: 3852.5901042540395, bounces: 331.741121079629
+Trajectory-Based Iteration finished, time: 1131.311233560089, profit 3698.603221407367
+reward: 3698.603221407367, bounces: 331.741121079629, profits: 3532.732660867554, rebalancing: 1193.07199860395
+--------------------------------------------------------------------------------------
+annealing: 13 (n: 0)
+price deriv: 13
+Running Trajectory-Based Control (parallelized, limit: False)
+adding in cell number 8
+difference: 0.020606713493103432
+adding in cell number 32
+difference: 0.024660110073338987
+Reward: 143.0241259168251, regret: 2.078542168873026, arrivals: 129.89670045299044, bounces: 18.874919549592274
+Iteration complete, time: 22.947720719967037, error: 4.034906528244148
+Reward: 350.31749427537386, regret: 12.130149402162901, arrivals: 452.5575473251655, bounces: 41.94431468578131
+Iteration complete, time: 46.82876852701884, error: 0.23799526943292193
