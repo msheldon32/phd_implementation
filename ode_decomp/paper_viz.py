@@ -47,4 +47,5 @@ if __name__ == "__main__":
     ax.bar(X + 0, full_np[0], color='b', width=0.25)
     ax.bar(X + 0.5, full_np[2], color='r', width=0.25)
     ax.set_title("Revenue, Returns to Full Station, and Rebalancing Costs")
+    ax.set_ylabel("Revenue")
     plt.show()
