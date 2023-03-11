@@ -33,7 +33,8 @@ if __name__ == "__main__":
 
     for level in all_levels:
         for i in range(n_classes):
-            print(f"tput for class {i} at level {level} is {get_tput(level, i, tput_table)}")
-            game[level][i] = get_tput(level, i, tput_table) - prices[i]*level[i]
+            level_id = [possible_levels.index(x) for x in level]
+            game[level_id][i] = round((get_tput(level, i, tput_table) - prices[i]*level[i])*100)
+    print(game)
 
 
