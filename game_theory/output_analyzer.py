@@ -19,22 +19,25 @@ def get_all_levels(possible_levels, n_classes):
         return [[x] + y for x in possible_levels for y in get_all_levels(possible_levels, n_classes-1)]
 
 if __name__ == "__main__":
-    output_id = 7
-    n_classes = 3
+    for output_id in range(1,17):
+        output_id = 2 
+        n_classes = 3
 
-    prices = [3,3,3]
-    possible_levels = [i for i in range(1, 11, 2)]
+        prices = [0.5, 0.5, 0.5]
+        possible_levels = [i for i in range(1, 11, 2)]
 
 
-    all_levels = get_all_levels(possible_levels, n_classes)
-    tput_table = get_tput_table(output_id, n_classes)
+        all_levels = get_all_levels(possible_levels, n_classes)
+        tput_table = get_tput_table(output_id, n_classes)
 
-    game = pygambit.Game.new_table([len(possible_levels)] * n_classes)
+        game = pygambit.Game.new_table([len(possible_levels)] * n_classes)
 
-    for level in all_levels:
-        for i in range(n_classes):
-            level_id = [possible_levels.index(x) for x in level]
-            game[level_id][i] = round((get_tput(level, i, tput_table) - prices[i]*level[i])*100)
-    print(game)
+        for level in all_levels:
+            for i in range(n_classes):
+                level_id = [possible_levels.index(x) for x in level]
+                game[level_id][i] = round((get_tput(level, i, tput_table) - prices[i]*level[i])*100)
+
+        solver = pygambit.nash.ExternalLogitSolver()
+        print(solver.solve(game))
 
 
