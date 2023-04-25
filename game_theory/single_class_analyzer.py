@@ -79,10 +79,6 @@ if __name__ == "__main__":
             
             #assert player_test_set == set(range(n_classes))
             accs.add(acc)
-
-            if acc == 57:
-                print("found solution")
-                print(sol)
     
         min_acc = min(accs)
         max_acc = max(accs)
