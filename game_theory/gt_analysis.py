@@ -54,5 +54,7 @@ class CostGenerator:
                 forward_diff += (random.uniform(1, 5)**2)/100
 
             return curve
+        elif curve_type == "zero":
+            return [0] * length
         else:
             raise ValueError("Invalid curve type")
