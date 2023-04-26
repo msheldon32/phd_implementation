@@ -23,7 +23,7 @@ if __name__ == "__main__":
 
     for output_id in range(1,1000):
         print(f"generating game {output_id}...")
-        n_classes = random.randint(2, 5)
+        n_classes = random.randint(2, 3)
         print(f"number of players: {n_classes}")
         possible_levels = [_ for _ in range(tput_data.n_jobs+1)]
         all_levels = get_all_levels(possible_levels, n_classes, tput_data.n_jobs)
@@ -33,7 +33,7 @@ if __name__ == "__main__":
         cost_curves = []
 
         for player in range(n_classes):
-            shape = "linear"#random.choice(["linear", "exp", "convex"])
+            shape = random.choice(["linear", "exp", "convex"])
             cost_curves.append(cost_generator.generate_cost_curve(shape, tput_data.n_jobs+1))
 
         for level in all_levels:
@@ -86,9 +86,8 @@ if __name__ == "__main__":
         print(f"min acc: {min_acc}")
         print(f"max acc: {max_acc}")
 
-        assert len(accs) > 0
+        assert len(accs) > 0   # ASSERTION: a pure nash equilibrium exists
 
         for acc in range(min_acc, max_acc):
-            if acc not in accs:
-                assert False
+            assert acc in accs # ASSERTION: uniqueness of pure nash equilibrium
 
