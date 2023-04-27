@@ -1,6 +1,7 @@
 from gt_analysis import TputData, CostGenerator
 
 import pytest
+import random
 
 TOL = 0.002
 
@@ -31,6 +32,7 @@ def test_tput_concavity():
 
 def test_rel_concavity():
     tput_data = TputData()
+    cost_gen = CostGenerator()
 
     # 1. Check concavity and monotonicity of throughput for user x
     # 2. Check intermediate proof steps
@@ -39,13 +41,23 @@ def test_rel_concavity():
     for run_no in range(tput_data.n_runs):
         tput = tput_data.run_data[run_no]
 
+
+        curve_type = random.choice(["linear", "exp", "convex"])
+        cost_curve = cost_gen.generate_cost_curve(curve_type, tput_data.n_jobs+1)
+
+
+
         for x_mr in range(0, tput_data.n_jobs):
             tput_conversion = lambda i: tput[i+x_mr] * (i/(i+x_mr))
             first_differences = [tput_conversion(i+1) - tput_conversion(i) for i in range(len(tput)-1) if i > x_mr and (i+x_mr) < len(tput)-1]
             second_differences = [first_differences[i+1] - first_differences[i] for i in range(len(first_differences)-1)]
 
+            first_differences_c = [tput_conversion(i+1) - tput_conversion(i) - cost_curve[i+1] + cost_curve[i] for i in range(len(tput)-1) if i > x_mr and (i+x_mr) < len(tput)-1]
+            second_differences_c = [first_differences_c[i+1] - first_differences_c[i] for i in range(len(first_differences_c)-1)]
+
             assert all([diff >= -TOL for diff in first_differences])
             assert all([diff <= TOL for diff in second_differences])
+            assert all([diff <= TOL for diff in second_differences_c])
 
 def test_dsc():
     tput_data = TputData()
