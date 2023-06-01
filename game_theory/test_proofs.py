@@ -24,6 +24,8 @@ def test_tput_concavity():
         second_differences = [first_differences[i+1] - first_differences[i] for i in range(len(first_differences)-1)]
 
         assert all([diff >= -TOL for diff in first_differences])
+        #print(f"tput: {tput}")
+        #print(f"second_differences: {second_differences}")
         assert all([diff <= TOL for diff in second_differences])
 
         #starshape_differences = [(tput[i+1]/(i+2)) - (tput[i]/(i+1)) for i in range(len(tput-1))]
@@ -79,11 +81,11 @@ def test_dsc():
 
         for x_r in range(0, tput_data.n_jobs):
             prev = -1
-            for x_mr in range(1, x_r):
+            for x_mr in range(x_r, tput_data.n_jobs-1):
                 tput_conversion = lambda i: tput[i+x_mr] * (i/(i+x_mr))
-                if x_r >= len(first_difference_list[x_mr]):
-                    break
-                assert first_difference_list[x_mr][x_r] <= first_difference_list[x_mr][x_r-1] + TOL
+                if x_r >= len(first_difference_list[x_mr+1]) or x_r >= len(first_difference_list[x_mr]):
+                    continue
+                assert first_difference_list[x_mr+1][x_r] <= first_difference_list[x_mr][x_r] - TOL
                 
                 if prev != -1:
                     assert tput_conversion(x_r) <= prev + TOL

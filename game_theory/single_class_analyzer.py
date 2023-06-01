@@ -10,6 +10,17 @@ def get_all_levels(possible_levels, n_classes, max_level):
     out_list = [[x] + y for x in possible_levels for y in get_all_levels(possible_levels, n_classes - 1, max_level)]
     return [x for x in out_list]
 
+def filter_levels(levels):
+    return levels
+    # remove levels where there is an x such that x has at least one more than half of the total number of jobs
+    #filtered_levels = []
+
+    #for level in levels:
+    #    if max(level) <= int((0.5 * sum(level)))+1:
+    #        filtered_levels.append(level)
+
+    #return filtered_levels
+
 if __name__ == "__main__":
     solver = pygambit.nash.ExternalEnumPureSolver()
 
@@ -21,14 +32,28 @@ if __name__ == "__main__":
 
     print("data loaded")
 
-    for output_id in range(1,1000):
+    for output_id in range(5000, 15000):
         print(f"generating game {output_id}...")
-        n_classes = random.randint(2, 3)
+        n_classes = random.randint(2,5)
         print(f"number of players: {n_classes}")
-        possible_levels = [_ for _ in range(tput_data.n_jobs+1)]
+        min_level = random.randint(1, 10)
+        max_level = min(tput_data.n_jobs, ((n_classes-1)*min_level) + 1)
+        span = max_level - min_level + 1
+        print(f"strategies are between {min_level} and {max_level}")
+        possible_levels = [_ for _ in range(min_level, max_level+1)]
         all_levels = get_all_levels(possible_levels, n_classes, tput_data.n_jobs)
+        all_levels = filter_levels(all_levels)
 
-        game = pygambit.Game.new_table([tput_data.n_jobs+1] * n_classes)
+        # ensure concavity of run data
+        first_differences = [tput_data.run_data[output_id][x+1] - tput_data.run_data[output_id][x] for x in range(len(tput_data.run_data[output_id])-1)]
+        second_differences = [first_differences[x+1] - first_differences[x] for x in range(len(first_differences)-1)]
+
+        if any([x > 0 for x in second_differences]):
+            print(f"run data: {tput_data.run_data[output_id]}")
+            print("not concave")
+            continue
+
+        game = pygambit.Game.new_table([(max_level-min_level+1)] * n_classes)
 
         cost_curves = []
 
@@ -50,7 +75,7 @@ if __name__ == "__main__":
                 else:
                     revenue = player_x * total_tput / total_ct
 
-                game[level_id][player] = round((revenue - cost_curves[player][player_x])*100)
+                game[level_id][player] = round((revenue - cost_curves[player][player_x])*1000)
 
 
 
@@ -66,28 +91,67 @@ if __name__ == "__main__":
         for sol in solutions:
             acc = 0
             n_seen = 0
-            player_test_set = set()
             for strat_no, rat in enumerate(sol):
                 if rat == 0:
                     continue
-                acc += strat_no % (tput_data.n_jobs+1)
-                player_test_set.add(strat_no // (tput_data.n_jobs+1))
+                acc += (strat_no % span) + min_level
                 n_seen += 1
             if n_seen != n_classes:
                 #print(f"did not see all strategies: {n_seen}")
                 continue
             
-            #assert player_test_set == set(range(n_classes))
             accs.add(acc)
     
+        if len(accs) == 0:
+            print(f"no solutions found for game {output_id}")
+            print(f"run data: {tput_data.run_data[output_id]}")
+            print(f"cost curves: {cost_curves}")
+
+            # write all data to file
+            with open(f"violation_{output_id}.txt", "w") as f:
+                f.write(f"run data: {tput_data.run_data[output_id]}\n")
+                f.write(f"cost curves: {cost_curves}\n")
+                f.write(f"game: {game}\n")
+                f.write(f"solutions: {solutions}\n")
+                f.write(f"accs: {accs}\n")
+            solutions = solver.solve(game)
+
+            for i in range(20):
+                print(f"retrying game {output_id}...")
+                accs = set()
+
+                for sol in solutions:
+                    acc = 0
+                    n_seen = 0
+                    for strat_no, rat in enumerate(sol):
+                        if rat == 0:
+                            continue
+                        #acc += strat_no % (tput_data.n_jobs+1)
+                        acc += (strat_no % span) + min_level 
+                        n_seen += 1
+                    if n_seen != n_classes:
+                        #print(f"did not see all strategies: {n_seen}")
+                        continue
+                    
+                    accs.add(acc)
+
+        assert len(accs) > 0   # ASSERTION: a pure nash equilibrium exists
+        if len(accs) > 1:
+            print(f"non-unique solution for game {output_id}")
+            print(f"number of solutions: {len(accs)}")
+            print(f"solutions: {accs}")
+            print(f"run data: {tput_data.run_data[output_id]}")
+            print(f"cost curves: {cost_curves}")
+            raise Exception("non-unique solution")
+
+
         min_acc = min(accs)
         max_acc = max(accs)
 
         print(f"min acc: {min_acc}")
         print(f"max acc: {max_acc}")
 
-        assert len(accs) > 0   # ASSERTION: a pure nash equilibrium exists
 
-        for acc in range(min_acc, max_acc):
-            assert acc in accs # ASSERTION: uniqueness of pure nash equilibrium
+        #for acc in range(min_acc, max_acc):
+        #    assert acc in accs # ASSERTION: uniqueness of pure nash equilibrium
 

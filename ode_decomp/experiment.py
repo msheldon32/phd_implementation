@@ -485,6 +485,8 @@ class Experiment:
                                     t_eval=time_points, 
                                     method=ode_method, atol=ATOL)
 
+            #assert not (x_t.y < -0.0001).any()
+
             for i, src_stn in enumerate(traj_cells[cell_idx].stations):
                 for dst_stn in range(model.n_stations):
                     #y_idx = traj_cells[cell_idx].get_delay_idx(i, dst_stn)
@@ -1189,7 +1191,7 @@ class Experiment:
                 self.save_model(repetition, model)
 
                 for ode_method in self.configuration.ode_methods:
-                    full_res = self.run_full(model, ode_method)
+                    #full_res = self.run_full(model, ode_method)
 
 
                     for stations_per_cell in self.configuration.stations_per_cell:

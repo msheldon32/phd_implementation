@@ -1,0 +1,11 @@
+Figure 1:
+  Based on 1000 iterations, with a min value of 1e-5, and rates between 0.1 and 1000. Time span is between (0, 10).
+  IVP tolerance is 1e-6 for both atol and rtol
+  Number of equations is uniform between 2 and 20
+  y0 between 0 and 50
+
+Figure 2:
+ 300 iterations, histogram range bounded between 0 and 1000, rates reduced to be between 0.1 and 10
+
+Figure 3:
+ Same as figure 2, but rates for (i,i) are uniform between 0.1 and 100

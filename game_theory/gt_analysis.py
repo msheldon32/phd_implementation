@@ -41,7 +41,7 @@ class CostGenerator:
             slope = random.uniform(0.1, 0.5)
             return [slope * i for i in range(length)]
         elif curve_type == "exp":
-            rate = random.uniform(0.1, 0.5)
+            rate = random.uniform(1.1, 1.5)
             first_curve = [rate ** i for i in range(length)]
             return [x - first_curve[0] for x in first_curve]
         elif curve_type == "convex":
