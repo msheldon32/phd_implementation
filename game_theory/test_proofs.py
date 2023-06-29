@@ -3,7 +3,7 @@ from gt_analysis import TputData, CostGenerator
 import pytest
 import random
 
-TOL = 0.002
+TOL = 0.000002
 
 def test_tput_concavity():
     tput_data = TputData()
@@ -22,10 +22,12 @@ def test_tput_concavity():
 
         first_differences = [tput[i+1] - tput[i] for i in range(len(tput)-1)]
         second_differences = [first_differences[i+1] - first_differences[i] for i in range(len(first_differences)-1)]
+        
+        #print(f"run_no: {run_no},\n tput: {tput},\n first_differences: {first_differences},\n second_differences: {second_differences}")
 
         assert all([diff >= -TOL for diff in first_differences])
-        #print(f"tput: {tput}")
-        #print(f"second_differences: {second_differences}")
+        print(f"tput: {tput}")
+        print(f"second_differences: {second_differences}")
         assert all([diff <= TOL for diff in second_differences])
 
         #starshape_differences = [(tput[i+1]/(i+2)) - (tput[i]/(i+1)) for i in range(len(tput-1))]

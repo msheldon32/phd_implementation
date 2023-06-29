@@ -1,14 +1,20 @@
 addpath(genpath("/home/matts/imperial-qore-line-solver-3d80cf0/"));
 
-rng(100);
+rng(101);
+
+% old parameters
+%  (output 1)
+%  10 queues, 20 queue size, 20 max service
 
 n_classes = 1;
-n_queues = 10;
-max_class_size = 20;
+n_queues = 40;
+max_class_size = 40;
 n_repetitions = 100000;
 class_jump = 1;
 
-for rep=1:n_repetitions
+starting_rep = 1170;
+
+for rep=starting_rep:n_repetitions
     get_table(rep,n_classes,n_queues,max_class_size, class_jump)
 end
 
@@ -27,7 +33,8 @@ function get_table(table_id, n_classes, n_queues, max_class_size, class_jump)
             output_arr(k,1+n_classes+class_n) = processed_network{class_n};
         end
     end
-    csvwrite(sprintf('single_class_output_1/output_%d.csv', table_id), output_arr);
+    %csvwrite(sprintf('single_class_output_2/output_%d.csv', table_id), output_arr);
+    dlmwrite(sprintf('single_class_output_2/output_%d.csv', table_id), output_arr, 'delimiter', ',', 'precision', 8);
 end
 
 function populations = get_all_populations(n_classes, max_class_size, class_jump)
@@ -60,7 +67,7 @@ end
 function P = get_transition_matrix(n_classes, n_queues)
     P = {};
     for class_n = 1:n_classes
-        P{class_n} = zeros(n_queues, n_queues)
+        P{class_n} = zeros(n_queues, n_queues);
         for start_q = 1:n_queues
             out_nums = {};
             denom = 0;

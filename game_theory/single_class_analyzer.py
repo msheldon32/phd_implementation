@@ -3,6 +3,11 @@ import pygambit
 from gt_analysis import TputData, CostGenerator
 
 import random
+import sys
+
+import csv
+
+MAX_LEVEL = 20
 
 def get_all_levels(possible_levels, n_classes, max_level):
     if n_classes == 1:
@@ -22,6 +27,8 @@ def filter_levels(levels):
     #return filtered_levels
 
 if __name__ == "__main__":
+    output_file = f"single_class_analyzer_output_{sys.argv[1]}.csv"
+
     solver = pygambit.nash.ExternalEnumPureSolver()
 
     # random.seed(0)
@@ -31,13 +38,18 @@ if __name__ == "__main__":
     cost_generator = CostGenerator()
 
     print("data loaded")
+    with open(output_file, "a") as f:
+        f.write(f"output_id,n_classes,min_acc,max_acc,optimum_index\n")
 
-    for output_id in range(5000, 15000):
+
+    for output_id in range(0, 100000):
         print(f"generating game {output_id}...")
         n_classes = random.randint(2,5)
+
         print(f"number of players: {n_classes}")
         min_level = random.randint(1, 10)
-        max_level = min(tput_data.n_jobs, ((n_classes-1)*min_level) + 1)
+
+        max_level = min(MAX_LEVEL, ((n_classes-1)*min_level) + 1)
         span = max_level - min_level + 1
         print(f"strategies are between {min_level} and {max_level}")
         possible_levels = [_ for _ in range(min_level, max_level+1)]
@@ -61,6 +73,9 @@ if __name__ == "__main__":
             shape = random.choice(["linear", "exp", "convex"])
             cost_curves.append(cost_generator.generate_cost_curve(shape, tput_data.n_jobs+1))
 
+        social_optimum = float("-inf")
+        optimum_index  = 0
+
         for level in all_levels:
             total_ct = sum(level)
             if total_ct > tput_data.n_jobs:
@@ -68,6 +83,7 @@ if __name__ == "__main__":
             else:
                 total_tput = tput_data.run_data[output_id][total_ct]
             level_id = [possible_levels.index(x) for x in level]
+            total_reward = 0
             for player in range(n_classes):
                 player_x = level[player]
                 if total_ct == 0:
@@ -75,7 +91,12 @@ if __name__ == "__main__":
                 else:
                     revenue = player_x * total_tput / total_ct
 
-                game[level_id][player] = round((revenue - cost_curves[player][player_x])*1000)
+                game[level_id][player] = round((revenue - cost_curves[player][player_x])*10000000)
+                total_reward += revenue - cost_curves[player][player_x]
+            if total_reward > social_optimum:
+                social_optimum = total_reward
+                optimum_index = sum(level)
+            
 
 
 
@@ -136,20 +157,17 @@ if __name__ == "__main__":
                     accs.add(acc)
 
         assert len(accs) > 0   # ASSERTION: a pure nash equilibrium exists
-        if len(accs) > 1:
-            print(f"non-unique solution for game {output_id}")
-            print(f"number of solutions: {len(accs)}")
-            print(f"solutions: {accs}")
-            print(f"run data: {tput_data.run_data[output_id]}")
-            print(f"cost curves: {cost_curves}")
-            raise Exception("non-unique solution")
-
 
         min_acc = min(accs)
         max_acc = max(accs)
 
         print(f"min acc: {min_acc}")
         print(f"max acc: {max_acc}")
+
+        print(f"social optimum: {optimum_index}")
+
+        with open(output_file, "a") as f:
+            f.write(f"{output_id},{n_classes},{min_acc},{max_acc},{optimum_index}\n")
 
 
         #for acc in range(min_acc, max_acc):

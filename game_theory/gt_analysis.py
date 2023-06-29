@@ -1,7 +1,8 @@
 import csv
 import random
 
-N_JOBS = 20
+N_JOBS = 40
+FILE = "single_class_combined_2.csv"
 
 class TputData:
     def __new__(cls, *args, **kwargs):
@@ -10,7 +11,7 @@ class TputData:
         
             cls._instance.run_data = {}
 
-            with open('single_class_combined_1.csv') as csvfile:
+            with open(FILE) as csvfile:
                 reader = csv.reader(csvfile)
                 for i, row in enumerate(reader):
                     if i == 0:
