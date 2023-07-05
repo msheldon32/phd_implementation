@@ -7,11 +7,11 @@ import sys
 
 import csv
 
-MAX_LEVEL = 15
+MAX_LEVEL = 20
 MIN_CLASSES = 2
-MAX_CLASSES = 4
-STARTING_OUTPUT = 4511
-N_OUTPUTS = 5000-STARTING_OUTPUT
+MAX_CLASSES = 5
+STARTING_OUTPUT = 0
+N_OUTPUTS = 1000-STARTING_OUTPUT
 
 def get_all_levels(possible_levels, n_classes, max_level):
     if n_classes == 1:
@@ -46,10 +46,7 @@ if __name__ == "__main__":
 
     print("data loaded")
     with open(output_file, "a") as f:
-        if single_prices:
-            f.write(f"output_id,n_classes,price,min_acc,max_acc,social_optimum_index,soc_stability,soc_anarchy,soc_optimum, min_tput, max_tput, opt_tput\n")
-        else:
-            f.write(f"output_id,n_classes,x_min,x_max,min_acc,max_acc,social_optimum_index,soc_stability,soc_anarchy,soc_optimum, throughput_ratio, min_tput, max_tput, opt_tput\n")
+        f.write(f"output_id,n_classes,min_acc,max_acc,optimum_index\n")
 
 
     for output_id in range(STARTING_OUTPUT, STARTING_OUTPUT+N_OUTPUTS):
@@ -57,13 +54,9 @@ if __name__ == "__main__":
         n_classes = random.randint(MIN_CLASSES, MAX_CLASSES)
 
         print(f"number of players: {n_classes}")
-        if single_prices:
-            min_level = 1
-            max_level = MAX_LEVEL
-        else:
-            min_level = random.randint(1, 10)
+        min_level = random.randint(1, 10)
 
-            max_level = min(MAX_LEVEL, ((n_classes-1)*min_level) + 1)
+        max_level = min(MAX_LEVEL, ((n_classes-1)*min_level) + 1)
         span = max_level - min_level + 1
         print(f"strategies are between {min_level} and {max_level}")
         possible_levels = [_ for _ in range(min_level, max_level+1)]
@@ -71,7 +64,7 @@ if __name__ == "__main__":
         all_levels = filter_levels(all_levels)
 
         if single_prices:
-            price = random.random()*5.0
+            price = random.randint(0.1, 5.0)
 
         # ensure concavity of run data
         first_differences = [tput_data.run_data[output_id][x+1] - tput_data.run_data[output_id][x] for x in range(len(tput_data.run_data[output_id])-1)]
@@ -88,8 +81,7 @@ if __name__ == "__main__":
 
         for player in range(n_classes):
             if single_prices:
-                shape = "linear"
-                cost_curves.append(cost_generator.generate_cost_curve("linear", tput_data.n_jobs+1, price))
+                cost_curves.append(cost_generator.generate_cost_curve(linear, tput_data.n_jobs+1, price))
             else:
                 shape = random.choice(["linear", "exp", "convex"])
                 cost_curves.append(cost_generator.generate_cost_curve(shape, tput_data.n_jobs+1))
@@ -99,7 +91,6 @@ if __name__ == "__main__":
 
         social_optimum = float("-inf")
         optimum_index  = 0
-        opt_tput = 0
 
         for level in all_levels:
             total_ct = sum(level)
@@ -118,10 +109,9 @@ if __name__ == "__main__":
 
                 game[level_id][player] = round((revenue - cost_curves[player][player_x])*10000000)
                 total_reward += revenue - cost_curves[player][player_x]
-            if total_reward >= social_optimum:
+            if total_reward > social_optimum:
                 social_optimum = total_reward
-                optimum_index = max(optimum_index, sum(level))
-                opt_tput = max(total_tput, opt_tput)
+                optimum_index = sum(level)
             
 
 
@@ -132,38 +122,22 @@ if __name__ == "__main__":
         #    print(f"payoff for player 1: {game[level][1]}")
 
         solutions = solver.solve(game)
-        min_soc = float("inf")
-        max_soc = float("-inf")
-        min_tput = float("inf")
-        max_tput = float("-inf")
         
         accs = set()
 
         for sol in solutions:
             acc = 0
             n_seen = 0
-            
-            social_value = 0
-
             for strat_no, rat in enumerate(sol):
                 if rat == 0:
                     continue
-                player_val = (strat_no % span) + min_level
-                acc += player_val
+                acc += (strat_no % span) + min_level
                 n_seen += 1
-                social_value -= cost_curves[strat_no // span][player_val]
             if n_seen != n_classes:
                 #print(f"did not see all strategies: {n_seen}")
                 continue
-            if acc >= len(tput_data.run_data[output_id]):
-                social_value += tput_data.run_data[output_id][-1]
-            else:
-                social_value += tput_data.run_data[output_id][acc]
+            
             accs.add(acc)
-            min_soc = min(min_soc, social_value)
-            max_soc = max(max_soc, social_value)
-            min_tput = min(min_tput, tput_data.run_data[output_id][acc])
-            max_tput = max(max_tput, tput_data.run_data[output_id][acc])
     
         if len(accs) == 0:
             print(f"no solutions found for game {output_id}")
@@ -209,10 +183,7 @@ if __name__ == "__main__":
         print(f"social optimum: {optimum_index}")
 
         with open(output_file, "a") as f:
-            if single_prices:
-                f.write(f"{output_id},{n_classes},{price},{min_acc},{max_acc},{optimum_index},{min_soc},{max_soc},{social_optimum}, {min_tput}, {max_tput}, {opt_tput}\n")
-            else:
-                f.write(f"{output_id},{n_classes},{min_level},{max_level},{min_acc},{max_acc},{optimum_index},{min_soc},{max_soc},{social_optimum}, {min_tput}, {max_tput}, {opt_tput}\n")
+            f.write(f"{output_id},{n_classes},{min_level},{max_level},{min_acc},{max_acc},{optimum_index}\n")
 
 
         #for acc in range(min_acc, max_acc):

@@ -37,9 +37,12 @@ class CostGenerator:
             cls._instance = super(CostGenerator, cls).__new__(cls)
         return cls._instance
 
-    def generate_cost_curve(cls, curve_type, length):
+    def generate_cost_curve(cls, curve_type, length, price=0):
         if curve_type == "linear":
-            slope = random.uniform(0.1, 0.5)
+            if price == 0:
+                slope = random.uniform(0.1, 5.0)
+            else:
+                slope = price
             return [slope * i for i in range(length)]
         elif curve_type == "exp":
             rate = random.uniform(1.1, 1.5)
