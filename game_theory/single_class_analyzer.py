@@ -10,7 +10,7 @@ import csv
 MAX_LEVEL = 15
 MIN_CLASSES = 2
 MAX_CLASSES = 4
-STARTING_OUTPUT = 4511
+STARTING_OUTPUT = 4449
 N_OUTPUTS = 5000-STARTING_OUTPUT
 
 def get_all_levels(possible_levels, n_classes, max_level):
@@ -162,8 +162,12 @@ if __name__ == "__main__":
             accs.add(acc)
             min_soc = min(min_soc, social_value)
             max_soc = max(max_soc, social_value)
-            min_tput = min(min_tput, tput_data.run_data[output_id][acc])
-            max_tput = max(max_tput, tput_data.run_data[output_id][acc])
+            if acc >= len(tput_data.run_data[output_id]):
+                max_tput = max(max_tput, tput_data.run_data[output_id][-1])
+                min_tput = min(min_tput, tput_data.run_data[output_id][-1])
+            else:
+                max_tput = max(max_tput, tput_data.run_data[output_id][acc])
+                min_tput = min(min_tput, tput_data.run_data[output_id][acc])
     
         if len(accs) == 0:
             print(f"no solutions found for game {output_id}")
