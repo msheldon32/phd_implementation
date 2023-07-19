@@ -4,11 +4,14 @@ from simulator import *
 import pandas as pd
 import numpy as np
 import random
+import wb_simulator
 
 data_folder = "oslo_data_4"
 default_capacity = 15
 
-def get_data():
+WB = True
+
+def get_data(wb=False):
     stations = pd.read_csv(f"{data_folder}/stations.csv").rename({"Unnamed: 0": "index"}, axis=1)
     n_cells = int(stations["cell"].max())+1
     n_stations = len(list(stations["index"]))
@@ -33,7 +36,12 @@ def get_data():
 
     for hr in range(start_hour, end_hour+1): # need an extra hour of data since solve_ivp sometimes calls the end of the time interval
         hr = hr % 24
-        in_demands_hr, in_probabilities_hr, out_demands_hr = get_oslo_data.get_demands(hr, cell_to_station, station_to_cell)
+        if not wb:
+            in_demands_hr, in_probabilities_hr, out_demands_hr = get_oslo_data.get_demands(hr, cell_to_station, station_to_cell)
+        else:
+            in_demands_hr = None
+            in_probabilities_hr = None
+            out_demands_hr = None
 
         # phase processes
         mu_hr, phi_hr = get_oslo_data.get_cox_data(hr, len(cell_to_station))
@@ -46,21 +54,31 @@ def get_data():
         phi.append(phi_hr)
     return cell_to_station, station_to_cell, capacities, mu, phi, in_demands, in_probabilities, out_demands, n_cells, n_stations, stations
 
-def run_simulation_epoch(data_list, prices, starting_levels):
+def run_simulation_epoch(data_list, prices, starting_levels, wb=False):
     cell_to_station, station_to_cell, capacities, mu, phi, in_demands, in_probabilities, out_demands, n_cells, n_stations, stations = data_list
 
-    simulator = Simulator(station_to_cell, 
-                                    cell_to_station, 
-                                    n_cells, 
-                                    stations, 
-                                    mu,
-                                    phi,
-                                    in_demands,
-                                    in_probabilities,
-                                    out_demands,
-                                    starting_levels,
-                                    prices,
-                                    capacities)
+    if wb:
+        simulator = wb_simulator.Simulator(station_to_cell, 
+                                        cell_to_station, 
+                                        n_cells, 
+                                        stations, 
+                                        mu,
+                                        phi,
+                                        starting_levels,
+                                        capacities)
+    else:
+        simulator = Simulator(station_to_cell, 
+                                        cell_to_station, 
+                                        n_cells, 
+                                        stations, 
+                                        mu,
+                                        phi,
+                                        in_demands,
+                                        in_probabilities,
+                                        out_demands,
+                                        starting_levels,
+                                        prices,
+                                        capacities)
     t = 0 # not the actual hour, but the index of the hour
     cur_hour = -1
     while not simulator.is_finished(t):
@@ -120,7 +138,7 @@ if __name__ == "__main__":
 
     n_epochs = 128
 
-    data_list = get_data()
+    data_list = get_data(wb=WB)
     n_cells, n_stations, stations = data_list[-3:]
 
     prices = [1.0 for i in range(n_cells)]
@@ -150,7 +168,7 @@ if __name__ == "__main__":
 
     for i in range(n_epochs):
         print(f"Epoch {i+1}/{n_epochs}")
-        b, a, r, rc = run_simulation_epoch(data_list, prices, starting_levels)
+        b, a, r, rc = run_simulation_epoch(data_list, prices, starting_levels, wb=WB)
         bounces.append(b)
         arrivals.append(a)
         revenue.append(r)
