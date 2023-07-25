@@ -6,8 +6,14 @@ import csv
 
 ELASTICITY = 1.0
 
+prices_folder = "cqp_prices"
+demands_folder = "wb_prices"
+
+single_price = True
+no_price = False
+
 class Simulator:
-    def __init__(self, stn_to_cell, cell_to_stn, n_cells, stations, mu, phi, starting_ptg, capacities):
+    def __init__(self, stn_to_cell, cell_to_stn, n_cells, stations, mu, phi, starting_ptg, capacities, in_probabilities):
         self.start_hour = 5
         self.n_hours = 17
 
@@ -19,6 +25,7 @@ class Simulator:
         self.mu = mu
         self.phi = phi
         self.capacities = capacities
+        self.in_probabilities = in_probabilities
         self.starting_lvl = [0.5 for _ in range(self.n_stations)]
 
 
@@ -59,27 +66,46 @@ class Simulator:
         self.demands = [[] for _ in range(self.n_hours)]
 
         for hr_idx in range(self.n_hours):
-            self.prices[hr_idx] = [[0 for _ in range(self.n_stations)] for _ in range(self.n_stations)]
+            self.prices[hr_idx] = [[1 for _ in range(self.n_stations)] for _ in range(self.n_stations)]
             for src_stn in range(self.n_stations):
                 for dst_stn in range(self.n_stations):
-                    self.prices[hr_idx][src_stn][dst_stn] = 0
+                    self.prices[hr_idx][src_stn][dst_stn] = 1
 
 
             self.demands[hr_idx] = [[0 for _ in range(self.n_stations)] for _ in range(self.n_stations)]
             for src_stn in range(self.n_stations):
                 for dst_stn in range(self.n_stations):
                     self.demands[hr_idx][src_stn][dst_stn] = 0
-
-            with open(f"wb_prices/prices_{hr_idx+self.start_hour}.csv", newline='') as csvfile:
-                reader = csv.reader(csvfile, delimiter=',')
-                for i, row in enumerate(reader):
-                    if i == 0:
-                        continue
-                    src_stn = int(float(row[2]))
-                    dst_stn = int(float(row[3]))
-                    price = float(row[1])
-                    self.prices[hr_idx][src_stn][dst_stn] = price
-            with open(f"wb_prices/demands_{hr_idx+self.start_hour}.csv", newline='') as csvfile:
+            
+            if no_price:
+                pass
+            elif single_price:
+                with open(f"{prices_folder}/prices.csv", newline='') as csvfile:
+                    reader = csv.reader(csvfile, delimiter=',')
+                    for i, row in enumerate(reader):
+                        if i == 0:
+                            continue
+                        src_stn = int(float(row[2]))
+                        for dst_stn in range(self.n_stations):
+                            self.prices[hr_idx][src_stn][dst_stn] = float(row[1])
+                        x0 = float(row[3])
+                        if random.random() < (x0 - math.floor(x0)):
+                            x0 = math.floor(x0) + 1
+                        else:
+                            x0 = math.floor(x0)
+                        self.station_lvl[src_stn] = min(x0, self.capacities[src_stn])
+                        self.starting_lvl[src_stn] = self.station_lvl[src_stn]
+            else:
+                with open(f"{prices_folder}/prices_{hr_idx+self.start_hour}.csv", newline='') as csvfile:
+                    reader = csv.reader(csvfile, delimiter=',')
+                    for i, row in enumerate(reader):
+                        if i == 0:
+                            continue
+                        src_stn = int(float(row[2]))
+                        dst_stn = int(float(row[3]))
+                        price = float(row[1])
+                        self.prices[hr_idx][src_stn][dst_stn] = price
+            with open(f"{demands_folder}/demands_{hr_idx+self.start_hour}.csv", newline='') as csvfile:
                 reader = csv.reader(csvfile, delimiter=',')
                 for i, row in enumerate(reader):
                     if i == 0:
@@ -87,9 +113,7 @@ class Simulator:
                     src_stn = int(float(row[2]))
                     dst_stn = int(float(row[3]))
                     demand = float(row[1])
-                    self.demands[hr_idx][src_stn][dst_stn] = demand
-
-
+                    self.demands[hr_idx][src_stn][dst_stn] = (2-self.prices[hr_idx][src_stn][dst_stn])*demand
 
     def get_rates(self, hour_idx):
         stn_rates = []
@@ -136,7 +160,16 @@ class Simulator:
         if is_departure:
             self.delay_lvl[src_stn][dst_stn][phase_idx] -= 1
             if self.station_lvl[dst_stn] >= self.capacities[dst_stn]:
-                new_dst = random.choice(self.cell_to_stn[self.stn_to_cell[dst_stn]])
+                c_prob = 0
+                x = random.random()
+                new_dst = random.choice(self.cell_to_stn[dst_cell])
+
+                for stn_idx_in_cell, stn_idx in enumerate(self.cell_to_stn[dst_cell]):
+                    c_prob += self.in_probabilities[hour_idx][dst_cell][src_cell][stn_idx_in_cell]
+                    if x < c_prob:
+                        new_dst = stn_idx
+                        break
+
                 self.n_bounces += 1
                 self.delay_lvl[dst_stn][new_dst][0] += 1
             else:

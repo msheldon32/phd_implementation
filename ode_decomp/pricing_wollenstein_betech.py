@@ -7,6 +7,8 @@ from gurobipy import GRB
 
 data_folder = "oslo_data_4"
 
+single_price = True
+
 if __name__ == "__main__":
     # Based on Wollenstein-Betech, this pricing model involves maximizing
     #     sum { lambda_{ij} (p_ij) - c_{ij} lambda_{ij} - c^c {lambda^0_{ij} - lambda_{ij}(u_ij}) }
@@ -27,9 +29,13 @@ if __name__ == "__main__":
     station_to_cell = {}
 
     start_hour = 5
+    first_hour = 5
     end_hour = 21
 
-    output_folder = "wb_prices/"
+    if single_price:
+        output_folder = "wb_single_prices"
+    else:
+        output_folder = "wb_prices/"
 
 
     for i, row in stations.iterrows():
@@ -38,7 +44,7 @@ if __name__ == "__main__":
 
     average_demands = [[[0 for end_cell in range(n_cells)] for station in cell_to_station[start_cell]] for start_cell in range(n_cells)]
 
-    for hr in range(start_hour, end_hour+1):
+    for hr in range(first_hour, end_hour+1):
         hr = hr % 24
         in_demands_hr, in_probabilities_hr, out_demands_hr = get_oslo_data.get_demands(hr, cell_to_station, station_to_cell)
 
@@ -60,8 +66,12 @@ if __name__ == "__main__":
         # Now, we optimize p(2-p) * lambda_{ij} for each i,j
         # While ensuring that the sum of all lambda_{ij} is equal to the sum of all lambda_{ji}
         m = gp.Model("pricing")
-        prices = m.addMVar(shape=n_stations**2, name="prices")
-        m.setObjective(2*(prices @ station_demands) -  ((prices**2) @ station_demands), GRB.MAXIMIZE)
+        if not single_price:
+            prices = m.addMVar(shape=n_stations**2, name="prices")
+            m.setObjective(2*(prices @ station_demands) -  ((prices**2) @ station_demands), GRB.MAXIMIZE)
+        else:
+            prices = m.addMVar(shape = n_stations, name="prices")
+            m.setObjective(2*(prices @ station_demands.reshape(n_stations, n_stations).sum(axis=1)) -  ((prices**2) @ station_demands.reshape(n_stations, n_stations).sum(axis=1)), GRB.MAXIMIZE)
 
         for station in range(n_stations):
             mask_in = np.zeros(n_stations**2)
@@ -69,8 +79,27 @@ if __name__ == "__main__":
             for other_station in range(n_stations):
                 mask_in[(station*n_stations)+other_station] = 1
                 mask_out[(other_station*n_stations)+station] = 1
-            m.addConstr(prices @ mask_in == prices @ mask_out)
+            # balance demands
+            if not single_price:
+                m.addConstr((2-prices) @ (mask_in * station_demands) == (2-prices) @ (mask_out * station_demands))
+            else:
+                print(f"station demands: {station_demands.reshape(n_stations, n_stations)}")
+                #m.addConstr((2-prices) @ (mask_in @ station_demands.reshape(n_stations, n_stations).sum(axis=1)) == (2-prices) @ (mask_out * station_demands.reshape(n_stations, n_stations).sum(axis=1)))
         #m.setObjective((prices @ station_demands) - (2 - (prices @ (prices @ station_demands))), GRB.MAXIMIZE)
+
+        nc_constraints = m.getConstrs()
+
+        m.addConstr(prices >= 0)
+        m.addConstr(prices <= 2)
+
+        lbpen = [1.0] * m.numVars
+        ubpen = [1.0] * m.numVars
+        rhspen = [1.0] * m.numConstrs
+
+        m.feasRelax(0, False, m.getVars(), lbpen, ubpen, nc_constraints, rhspen)
+
+        # set iteration limit to 200
+        m.setParam('IterationLimit', 200)
 
         m.optimize()
         print(f"prices for hour {hr}: {prices.X}")
@@ -79,8 +108,8 @@ if __name__ == "__main__":
         out_prices["start_station"] = out_prices.index // n_stations
         out_prices["end_station"] = out_prices.index % n_stations
 
-        print(f"max price: {out_prices.max().max()}")
-        print(f"min price: {out_prices.min().min()}")
+        print(f"max price: {out_prices[0].max()}")
+        print(f"min price: {out_prices[0].min()}")
         
 
         out_prices.to_csv(f"{output_folder}/prices_{hr}.csv")
