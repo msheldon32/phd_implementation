@@ -8,11 +8,11 @@ rng(101);
 
 n_classes = 1;
 n_queues = 40;
-max_class_size = 40;
+max_class_size = 100;
 n_repetitions = 100000;
 class_jump = 1;
 
-starting_rep = 1170;
+starting_rep = 1;
 
 for rep=starting_rep:n_repetitions
     get_table(rep,n_classes,n_queues,max_class_size, class_jump)
@@ -34,7 +34,7 @@ function get_table(table_id, n_classes, n_queues, max_class_size, class_jump)
         end
     end
     %csvwrite(sprintf('single_class_output_2/output_%d.csv', table_id), output_arr);
-    dlmwrite(sprintf('single_class_output_2/output_%d.csv', table_id), output_arr, 'delimiter', ',', 'precision', 8);
+    dlmwrite(sprintf('single_class_output_3/output_%d.csv', table_id), output_arr, 'delimiter', ',', 'precision', 8);
 end
 
 function populations = get_all_populations(n_classes, max_class_size, class_jump)
@@ -67,7 +67,7 @@ end
 function P = get_transition_matrix(n_classes, n_queues)
     P = {};
     for class_n = 1:n_classes
-        P{class_n} = zeros(n_queues, n_queues);
+        P{class_n} = zeros(n_queues, n_queues*2);
         for start_q = 1:n_queues
             out_nums = {};
             denom = 0;
@@ -75,9 +75,12 @@ function P = get_transition_matrix(n_classes, n_queues)
                 out_nums{end_q} = rand();
                 denom = denom + out_nums{end_q};
             end
+            start_p_idx = ((start_q-1)*2)+1;
+            P{class_n}(start_p_idx+1, start_p_idx) = 1;
 
             for end_q = 1:n_queues
-                P{class_n}(start_q, end_q) = out_nums{end_q}/denom;
+                end_p_idx = ((end_q-1)*2)+2;
+                P{class_n}(start_p_idx, end_p_idx) = out_nums{end_q}/denom;
             end
         end
     end
@@ -86,9 +89,13 @@ end
 function [out_net, classes] = generate_network(n_classes, n_queues, service_rates, P, class_counts)
     out_net = Network ('qn');
 
+    think_time = 5;
+
+    delays = {};
     queues = {};
 
     for queue_n = 1:n_queues
+        delays {queue_n} = Delay(out_net, sprintf('Delay %d', queue_n));
         queues {queue_n} = Queue(out_net, sprintf('Queue %d', queue_n), SchedStrategy.PS);
     end
 
@@ -98,6 +105,7 @@ function [out_net, classes] = generate_network(n_classes, n_queues, service_rate
 
     for queue_n = 1:n_queues
         for class_n = 1:n_classes
+            delays{queue_n}.setService(classes{class_n}, Exp(think_time));
             queues{queue_n}.setService(classes{class_n}, Exp(service_rates{queue_n}{class_n}));
         end
     end
@@ -113,6 +121,6 @@ function tputs = process_network(n_classes, n_queues, service_rates, P, class_co
     soln_table = SolverMVA(network, 'method', 'exact').getAvgTable;
     tputs = {};
     for class_n = 1:length(class_counts)
-        tputs{class_n} = sum(soln_table(soln_table.JobClass == classes{class_n}.name,:).Tput);
+        tputs{class_n} = sum(soln_table(soln_table.JobClass == classes{class_n}.name,:).Tput)*0.5;
     end
 end

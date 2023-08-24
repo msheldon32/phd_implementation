@@ -92,3 +92,58 @@ def test_dsc():
                 if prev != -1:
                     assert tput_conversion(x_r) <= prev + TOL
                     prev = tput_conversion(x_r)
+
+
+
+def test_dsc_light_load():
+    tput_data = TputData()
+
+    # 1. Check that the relative throughput is decreasing in x_{-r}
+    # 2. Check that the first difference of relative throughput is decreasing in x_{-r}
+
+    def get_tput_for_stn(m,n):
+        return (m*n)/(m+n-1)
+
+    for run_no in range(tput_data.n_runs):
+        tput = tput_data.run_data[run_no]
+        
+        first_difference_tput = [tput[i+1] - tput[i] for i in range(len(tput)-1)]
+        second_difference_tput = [first_difference_tput[i+1] - first_difference_tput[i] for i in range(len(first_difference_tput)-1)]
+
+        z = [tput[i] / (i) for i in range(1,len(tput))]
+        first_difference_z = [z[i+1] - z[i] for i in range(len(z)-1)]
+        second_difference_z = [first_difference_z[i+1] - first_difference_z[i] for i in range(len(first_difference_z)-1)]
+
+        limit = 0
+
+        for i in range(1, len(tput)):
+            if i-1 >= len(second_difference_tput) or i-1 >= len(second_difference_z):
+                break
+            if (i+2) * second_difference_z[i-1]  + first_difference_z[i-1] <= 0:
+                limit = i + 1
+            else:
+                break
+
+        first_difference_list = []
+
+        for x_mr in range(0, tput_data.n_jobs):
+            tput_conversion = lambda i: tput[i+x_mr] * (i/(i+x_mr))
+
+            first_differences = [tput_conversion(i+1) - tput_conversion(i) for i in range(len(tput)-1) if i > x_mr and (i+x_mr) < len(tput)-1]
+
+            first_difference_list.append(first_differences)
+
+        for x_r in range(0, limit+1):
+            prev = -1
+            for x_mr in range(0, tput_data.n_jobs-1):
+                tput_conversion = lambda i: tput[i+x_mr] * (i/(i+x_mr))
+                if (x_r + x_mr) >= limit:
+                    break
+                if x_r >= len(first_difference_list[x_mr+1]) or x_r >= len(first_difference_list[x_mr]):
+                    break
+                assert first_difference_list[x_mr+1][x_r] <= first_difference_list[x_mr][x_r] - TOL
+                
+                if prev != -1:
+                    assert tput_conversion(x_r) <= prev + TOL
+                    prev = tput_conversion(x_r)
+

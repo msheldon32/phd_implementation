@@ -3,5 +3,6 @@ ode_decomp/start_res/*
 ode_decomp/price_res/*
 game_theory/single_class_output_1/*
 game_theory/single_class_output_2/*
+game_theory/single_class_output_3/*
 game_theory/single_class_combined_1.csv
 game_theory/single_class_combined_2.csv
