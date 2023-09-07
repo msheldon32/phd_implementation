@@ -1,18 +1,22 @@
 import pandas as pd
+import numpy as np
+
+
 from gt_analysis import TputData, CostGenerator
 
-
+import csv
 import random
 import math
 import time
 
 STARTING_OUTPUT = 0
 N_OUTPUTS = 10000
-MIN_N_PLAYERS = 3
-MAX_N_PLAYERS = 3
-MIN_JOBS = 100
-MAX_JOBS = 200
+MIN_N_PLAYERS = 10
+MAX_N_PLAYERS = 10
+MIN_JOBS = 1
+MAX_JOBS = 1000
 M = 100000
+RUNS_PER_COUNT = 20000
 
 think_time = 0.2124 # think time in hours
 
@@ -102,28 +106,15 @@ def get_social_utility(prices, tput, total_ct, x_lo, x_hi, min_jobs, max_jobs):
 
     return True
 
-if __name__ == "__main__":
+def get_equilibrium(prices, n_players):
     cost_generator = CostGenerator()
 
     starting_time = time.time()
 
     found_eq = False
     n_eq = 0
-    n_players = random.randint(MIN_N_PLAYERS, MAX_N_PLAYERS)
-
-    cost_curves = []
-    prices = []
 
     max_n_jobs = 1000000
-
-
-    for player_id in range(n_players):
-        shape = random.choice(['linear'])#,'convex', 'exp'])
-        price = random.random()**5
-        cost_curve = cost_generator.generate_cost_curve(shape, max_n_jobs+1, price)
-        cost_curves.append(cost_curve)
-
-        prices.append(cost_curve[1])
 
 
     min_jobs = [MIN_JOBS for _ in range(n_players)]
@@ -168,6 +159,9 @@ if __name__ == "__main__":
 
     z = 0
 
+    Q = 0
+    eq_tput = 0
+
     prev_max_x = [-1 for _ in range(n_players)]
     for next_job_ct in range(1, sum(max_jobs)+2):
         is_valid = True
@@ -189,7 +183,7 @@ if __name__ == "__main__":
         if next_job_ct == 1:
             delta_z = 0
 
-        print(f"t: {z*next_job_ct}")
+        #print(f"t: {z*next_job_ct}")
         
         #if next_job_ct > tput_data.n_jobs:
         #    z = tput_data.run_data[output_id][-1]/next_job_ct
@@ -243,6 +237,7 @@ if __name__ == "__main__":
                 else:
                     is_valid = False
                     continue
+                #i2_min = max(est_pivot, min_jobs[player_id])
 
             i2_max = i1_max
 
@@ -255,7 +250,7 @@ if __name__ == "__main__":
 
             min_pivots[player_id] = min(min_pivots[player_id], i2_min-Q)
 
-            print(f"player {player_id}: {i1_min} {i1_max} {i2_min} {i2_max} {i3_min} {i3_max}")
+            #print(f"player {player_id}: {i1_min} {i1_max} {i2_min} {i2_max} {i3_min} {i3_max}")
 
             if i3_min > i3_max:
                 is_valid = False
@@ -265,9 +260,9 @@ if __name__ == "__main__":
             x_lo[player_id] = i3_min
             x_hi[player_id] = i3_max
 
-        print(f"x_lo: {x_lo}")
-        print(f"x_hi: {x_hi}")
-        print(f"at: {Q}")
+        #print(f"x_lo: {x_lo}")
+        #print(f"x_hi: {x_hi}")
+        #print(f"at: {Q}")
                 
 
         if is_valid and sum(x_lo) <= (next_job_ct-1) <= sum(x_hi):
@@ -277,17 +272,61 @@ if __name__ == "__main__":
             equilibrium_index = Q
 
             #assert check_equilibrium(prices, tput_data.run_data[output_id], next_job_ct-1, x_lo, x_hi, min_jobs, max_jobs)
+            print(f"{n_players} equilibrium at: {Q}")
+            #print(f"x_lo: {x_lo}")
+            #print(f"x_hi: {x_hi}")
 
-            print(f"equilibrium at: {Q}")
-            print(f"x_lo: {x_lo}")
-            print(f"x_hi: {x_hi}")
+            eq_tput = z*Q
 
-            if next_job_ct-1 != 0:
-                break
+            #if next_job_ct-1 != 0:
+            #    break
+            break
         elif not is_valid:
             pass
         else:
             pass
     
     ending_time = time.time()
+
+    return found_eq, Q, eq_tput
+
+if __name__ == "__main__":
+    Qs = []
+    player_counts = []
+    eq_tputs = []
+    all_prices = []
+
+    min_player_count = 1
+    max_player_count = 20
+
+    for n_players in range(min_player_count, max_player_count+1):
+        for run_no in range(RUNS_PER_COUNT):
+            price = random.random()**0.5
+
+            prices = [price for _ in range(n_players)]
+
+            is_valid, Q, eq_tput = get_equilibrium(prices, n_players)
+            Qs.append(Q)
+            eq_tputs.append(eq_tput)
+            player_counts.append(n_players)
+            all_prices.append(prices)
+
+    print(f"Qs: {Qs}")
+    print(f"eq_tputs: {eq_tputs}")
+    print(f"player_counts: {player_counts}")
+
+    mean_Qs = []
+    mean_eq_tputs = []
+    for n_players in range(min_player_count, max_player_count+1):
+        mean_Qs.append(np.mean([Qs[i] for i in range(len(Qs)) if player_counts[i] == n_players]))
+        mean_eq_tputs.append(np.mean([eq_tputs[i] for i in range(len(eq_tputs)) if player_counts[i] == n_players]))
+
+    print(f"mean_Qs: {mean_Qs}")
+    print(f"mean_eq_tputs: {mean_eq_tputs}")
+
+    with open(f"oslo_single_price.csv", "w") as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(["n_players", "price", "Q", "eq_tput"])
+        for i in range(len(Qs)):
+            writer.writerow([player_counts[i], all_prices[i], Qs[i], eq_tputs[i]])
 
