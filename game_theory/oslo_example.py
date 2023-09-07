@@ -301,8 +301,8 @@ if __name__ == "__main__":
 
     for n_players in range(min_player_count, max_player_count+1):
         for run_no in range(RUNS_PER_COUNT):
-            price_seed = (random.random() * 0.9) + 0.1
-            price = price_seed ** 0.5
+            price_seed = (random.random() * 0.8) + 0.2
+            price = price_seed# ** 0.5
 
             prices = [price for _ in range(n_players)]
 
