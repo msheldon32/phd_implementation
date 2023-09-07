@@ -41,7 +41,7 @@ if __name__ == "__main__":
     plt.legend()
     plt.show()
 
-    raise Exception()
+    #raise Exception()
 
     # plot T vs price
     for n_players in selected_player_counts:

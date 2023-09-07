@@ -325,7 +325,7 @@ if __name__ == "__main__":
         base_price = (random.random() * 0.8) + 0.2
         base_price = base_price ** 0.5
         #prices = [random.random()**0.5 for _ in range(n_players)]
-        get_random = lambda: max(base_price + np.random.normal(0, 0.1), 0.2)
+        get_random = lambda: min(max(base_price + np.random.normal(0, 0.1), 0.2), 1)
         prices = [get_random() for _ in range(n_players)]
 
         is_valid, Q, Q_per_player, eq_tput = get_equilibrium(prices, n_players)
