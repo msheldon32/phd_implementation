@@ -29,12 +29,17 @@ if __name__ == "__main__":
 
     # plot Q vs price
     for n_players in selected_player_counts:
-        plt.scatter(single_price_df[single_price_df["n_players"] == n_players]["price"],
-                    single_price_df[single_price_df["n_players"] == n_players]["Q"],
+        df = single_price_df[single_price_df["n_players"] == n_players].sort_values("price")
+        plt.plot(df["price"],
+                    df["Q"],
                     label="n_players = {}".format(n_players),
-                    alpha=0.1,
-                    s=0.1,
-                    marker=markers[selected_player_counts.index(n_players)])
+                    markevery=1500,
+                    marker=markers[selected_player_counts.index(n_players)],
+                    fillstyle='none',
+                    )
+                    #alpha=0.1,
+                    #s=0.1,
+                    #marker=markers[selected_player_counts.index(n_players)])
 
     plt.xlabel("Price")
     plt.ylabel("Q")
@@ -45,12 +50,17 @@ if __name__ == "__main__":
 
     # plot T vs price
     for n_players in selected_player_counts:
-        plt.scatter(single_price_df[single_price_df["n_players"] == n_players]["price"],
-                    single_price_df[single_price_df["n_players"] == n_players]["eq_tput"],
+        df = single_price_df[single_price_df["n_players"] == n_players].sort_values("price")
+        plt.plot(df["price"],
+                    df["eq_tput"],
                     label="n_players = {}".format(n_players),
-                    alpha=0.1,
-                    s=0.1,
-                    marker=markers[selected_player_counts.index(n_players)])
+                    markevery=1500,
+                    marker=markers[selected_player_counts.index(n_players)],
+                    fillstyle='none',
+                 )
+                    #alpha=0.1,
+                    #s=0.1,
+                    #marker=markers[selected_player_counts.index(n_players)])
 
     plt.xlabel("Price")
     plt.ylabel("T")
@@ -60,45 +70,59 @@ if __name__ == "__main__":
 
     hetero_df = pd.read_csv("oslo_multi_price_het.csv")
     hetero_df["price"] = hetero_df["price"].apply(lambda x: json.loads(x))
-    hetero_df["avg_price"] = hetero_df["price"].apply(lambda x: sum(x)/len(x))
+    hetero_df["avg_price"] = hetero_df["price"].apply(lambda x: round(sum(x)/len(x),2))
 
     #hetero_df["price_ratio"] = hetero_df[["price", "avg_price"]].apply(lambda x: [p/x[1] for p in x[0]], axis=1)
 
     hetero_df["Qs_per_player"] = hetero_df["Qs_per_player"].apply(lambda x: json.loads(x))
 
+    hetero_df = hetero_df.sort_values("avg_price")
+
+    single_price_6 = single_price_df[single_price_df["n_players"] == 6].sort_values("price")
 
     # plot Q vs price
-    plt.scatter(hetero_df["avg_price"], hetero_df["Q"], alpha=0.05, marker=".")
-    plt.scatter(single_price_df[single_price_df["n_players"] == 6]["price"],
-                single_price_df[single_price_df["n_players"] == 6]["Q"],
+    plt.plot(hetero_df.groupby("avg_price").mean().index,
+            hetero_df.groupby("avg_price").mean()["Q"],
+             marker="x",
+             markevery=8)
+    plt.fill_between(hetero_df.groupby("avg_price").mean().index,
+            hetero_df.groupby("avg_price").mean()["Q"] - hetero_df.groupby("avg_price").std()["Q"],
+            hetero_df.groupby("avg_price").mean()["Q"] + hetero_df.groupby("avg_price").std()["Q"],
+            alpha=0.2)
+    plt.plot(single_price_6["price"],
+                single_price_6["Q"],
                 label="constant price",
-                color="darkblue",
-                alpha=0.1,
-                s=0.1,
-                marker=".")
+                marker="o",
+                fillstyle="none",
+                markevery=1500)
+
 
     plt.xlabel("Avg Price")
     plt.ylabel("Q")
     plt.legend()
     plt.show()
 
-    hetero_df = pd.read_csv("oslo_multi_price_het.csv")
-    hetero_df["price"] = hetero_df["price"].apply(lambda x: json.loads(x))
-    hetero_df["avg_price"] = hetero_df["price"].apply(lambda x: sum(x)/len(x))
     # plot T vs price
-    plt.scatter(hetero_df["avg_price"], hetero_df["eq_tput"], alpha=0.05, marker=".")
-    plt.scatter(single_price_df[single_price_df["n_players"] == 6]["price"],
-                single_price_df[single_price_df["n_players"] == 6]["eq_tput"],
+    plt.plot(hetero_df.groupby("avg_price").mean().index,
+            hetero_df.groupby("avg_price").mean()["eq_tput"],
+             marker="x",
+             markevery=8)
+    plt.fill_between(hetero_df.groupby("avg_price").mean().index,
+            hetero_df.groupby("avg_price").mean()["eq_tput"] - hetero_df.groupby("avg_price").std()["eq_tput"],
+            hetero_df.groupby("avg_price").mean()["eq_tput"] + hetero_df.groupby("avg_price").std()["eq_tput"],
+            alpha=0.2)
+    plt.plot(single_price_6["price"],
+                single_price_6["eq_tput"],
                 label="constant price",
-                color="darkblue",
-                alpha=0.1,
-                s=0.1,
-                marker=".")
+                marker="o",
+                fillstyle="none",
+                markevery=1500)
+
+
     plt.xlabel("Avg Price")
-    plt.ylabel("T")
+    plt.ylabel("eq_tput")
     plt.legend()
     plt.show()
-
 
 
     # collect all prices, Q per player Qs, Ts into a single list

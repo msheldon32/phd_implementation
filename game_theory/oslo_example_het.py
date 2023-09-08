@@ -323,7 +323,7 @@ if __name__ == "__main__":
 
     for run_no in range(RUNS_PER_COUNT):
         base_price = (random.random() * 0.8) + 0.2
-        base_price = base_price ** 0.5
+        #base_price = base_price ** 0.5
         #prices = [random.random()**0.5 for _ in range(n_players)]
         get_random = lambda: min(max(base_price + np.random.normal(0, 0.1), 0.2), 1)
         prices = [get_random() for _ in range(n_players)]
