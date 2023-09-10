@@ -68,7 +68,7 @@ if __name__ == "__main__":
     plt.show()
 
 
-    hetero_df = pd.read_csv("oslo_multi_price_het.csv")
+    hetero_df = pd.read_csv("oslo_multi_price_as2.csv")
     hetero_df["price"] = hetero_df["price"].apply(lambda x: json.loads(x))
     hetero_df["avg_price"] = hetero_df["price"].apply(lambda x: round(sum(x)/len(x),2))
 

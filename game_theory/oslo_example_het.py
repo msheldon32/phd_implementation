@@ -9,12 +9,16 @@ import random
 import math
 import time
 
+# light load is violated from 133
+
+AS_2 = True
+
 STARTING_OUTPUT = 0
 N_OUTPUTS = 10000
-MIN_N_PLAYERS = 10
-MAX_N_PLAYERS = 10
-MIN_JOBS = 1
-MAX_JOBS = 500
+MIN_N_PLAYERS = 6
+MAX_N_PLAYERS = 6
+MIN_JOBS = 1 if AS_2 else 1
+MAX_JOBS = 67 if AS_2 else 500
 M = 100000
 RUNS_PER_COUNT = 20000
 
@@ -205,8 +209,8 @@ def get_equilibrium(prices, n_players):
 
         t = (z-delta_z)*Q
 
-        #if ((next_job_ct + 1) * (delta_z-old_delta_z)) + delta_z > 0:
-        #    print(f"broke light load at {next_job_ct}")
+        #if ((next_job_ct) * (delta_z-old_delta_z)) + old_delta_z > 0:
+        #    print(f"broke light load at {Q}")
 
         tputs.append(z*next_job_ct)
 
@@ -299,8 +303,8 @@ def get_equilibrium(prices, n_players):
             pass
         else:
             pass
-
-    #assert found_eq
+    if AS_2:
+        assert found_eq
     
     ending_time = time.time()
 
@@ -348,7 +352,9 @@ if __name__ == "__main__":
     print(f"total invalid: {n_invalid}")
     print(f"percent invalid: {n_invalid/RUNS_PER_COUNT}")
 
-    with open(f"oslo_multi_price_het.csv", "w") as csvfile:
+    filename = "oslo_multi_price_as2.csv" if AS_2 else "oslo_multi_price_het.csv"
+
+    with open(filename, "w") as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(["n_players", "price", "base_price", "Q", "Qs_per_player", "eq_tput"])
         for i in range(len(Qs)):
