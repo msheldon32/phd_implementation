@@ -84,6 +84,7 @@ if __name__ == "__main__":
     plt.plot(hetero_df.groupby("avg_price").mean().index,
             hetero_df.groupby("avg_price").mean()["Q"],
              marker="x",
+             label="heterogeneous price",
              markevery=8)
     plt.fill_between(hetero_df.groupby("avg_price").mean().index,
             hetero_df.groupby("avg_price").mean()["Q"] - hetero_df.groupby("avg_price").std()["Q"],
@@ -106,6 +107,7 @@ if __name__ == "__main__":
     plt.plot(hetero_df.groupby("avg_price").mean().index,
             hetero_df.groupby("avg_price").mean()["eq_tput"],
              marker="x",
+             label="heterogeneous price",
              markevery=8)
     plt.fill_between(hetero_df.groupby("avg_price").mean().index,
             hetero_df.groupby("avg_price").mean()["eq_tput"] - hetero_df.groupby("avg_price").std()["eq_tput"],
@@ -120,7 +122,7 @@ if __name__ == "__main__":
 
 
     plt.xlabel("Avg Price")
-    plt.ylabel("eq_tput")
+    plt.ylabel("T")
     plt.legend()
     plt.show()
 
@@ -143,6 +145,8 @@ if __name__ == "__main__":
         else:
             Qs_per_player += hetero_df.iloc[i]["Qs_per_player"]
 
+
+    print(f"max Q: {max(Qs)}")
         
 
     plt.scatter([p/avg_prices[i] for i,p in enumerate(prices)], [q/Qs[i] for i,q in enumerate(Qs_per_player)], alpha=0.05, marker=".")
